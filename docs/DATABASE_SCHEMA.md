@@ -8,8 +8,8 @@
 > **Todo cambio se refleja aquí en el mismo commit que su archivo SQL.**
 
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
-- **Estado:** definido en `supabase/migrations/`, **aún no ejecutado**
-- **Última actualización:** `0007_seed_forms.sql`
+- **Estado:** ✅ **ejecutado en Supabase el 11 de septiembre de 2026**
+- **Última migración aplicada:** `0007_seed_forms.sql`
 
 ## Índice
 
@@ -460,10 +460,10 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | Usuario `admin` promueve a otro | funciona |
 | Usuario `anon` | permiso denegado |
 
-> **Pendiente de verificar en Supabase:** `security_invoker` requiere PostgreSQL
-> 15 y la validación local corrió en 14, así que las dos vistas se probaron sin
-> esa opción. Al ejecutar el esquema hay que confirmar que un usuario `pendiente`
-> tampoco puede leer `latest_submissions` ni `v_students_directory`.
+> **Verificado en Supabase (2026-09-11):** las dos vistas reportan
+> `security_invoker = on`, así que respetan RLS y no son una vía para saltársela.
+> Era lo único que no se había podido comprobar en local, porque esa opción
+> requiere PostgreSQL 15 y la validación corrió en 14.
 
 ---
 
@@ -471,10 +471,24 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 
 | Migración | Contenido | ¿Ejecutada? |
 |---|---|---|
-| `0001_auth.sql` | `app_role`, `profiles`, `is_admin()`, triggers, RLS de `profiles` | ❌ |
-| `0002_enums.sql` | los 11 enums de dominio | ❌ |
-| `0003_core.sql` | `students`, `forms`, `submissions` | ❌ |
-| `0004_module1.sql` | tablas 1.0 – 1.5 | ❌ |
-| `0005_module2.sql` | `reflections`, `indeed_research` | ❌ |
-| `0006_views_rls.sql` | índices, vistas y políticas admin-only | ❌ |
-| `0007_seed_forms.sql` | catálogo de los 11 formularios | ❌ |
+| `0001_auth.sql` | `app_role`, `profiles`, `is_admin()`, triggers, RLS de `profiles` | ✅ 2026-09-11 |
+| `0002_enums.sql` | los 11 enums de dominio | ✅ 2026-09-11 |
+| `0003_core.sql` | `students`, `forms`, `submissions` | ✅ 2026-09-11 |
+| `0004_module1.sql` | tablas 1.0 – 1.5 | ✅ 2026-09-11 |
+| `0005_module2.sql` | `reflections`, `indeed_research` | ✅ 2026-09-11 |
+| `0006_views_rls.sql` | índices, vistas y políticas admin-only | ✅ 2026-09-11 |
+| `0007_seed_forms.sql` | catálogo de los 11 formularios | ✅ 2026-09-11 |
+
+> **Estos archivos ya no se editan.** Cualquier cambio posterior es un archivo
+> nuevo, `0008_…` en adelante.
+
+### Estado verificado en Supabase tras la ejecución
+
+| Objeto | Cantidad |
+|---|---|
+| Tablas | 12 |
+| Tablas con RLS activo | **12** |
+| Políticas | 14 |
+| Vistas | 2, ambas con `security_invoker = on` |
+| Índices `idx_*` | 5 |
+| Formularios en el catálogo | 11 |

@@ -9,7 +9,8 @@ formularios de Google. Reemplaza la implementación actual en Google Apps Script
 El profesor autorizó el proyecto el 10 de septiembre de 2026.
 
 - Supabase configurado (ref `sovinakodrmgxytgapry`) y Vercel desplegado.
-- El SQL de `supabase/migrations/` sigue **sin ejecutar**.
+- Las 7 migraciones **ya se ejecutaron** (2026-09-11). Esos archivos no se
+  vuelven a editar: lo siguiente es `0008_…`.
 - Alcance del esquema: **autenticación + los 11 formularios de Módulo 1 y 2**
   (`form1_0` … `form2_7`). Las hojas `alumnos` y `fechas_entrega`, los apéndices
   A/B y las bitácoras quedan para después.

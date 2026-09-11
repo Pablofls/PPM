@@ -26,10 +26,11 @@ posterior es un archivo nuevo.
 | Componente | Estado |
 |---|---|
 | Pantallas React | ✅ Listas, corren en local con `npm run dev` |
-| SQL del esquema | ✅ Escrito en `supabase/migrations/`, **sin ejecutar** |
+| SQL del esquema | ✅ **Ejecutado** en Supabase el 2026-09-11 |
 | Proyecto de Supabase | ✅ Creado — ref `sovinakodrmgxytgapry` |
 | Variables de entorno (local) | ✅ `.env.local` con la llave pública |
-| Proyecto de Vercel | ⬜ En proceso |
+| Proyecto de Vercel | ✅ https://ppd-zeta.vercel.app |
+| Primer administrador | ⬜ Pendiente — ver [AUTH.md](AUTH.md) |
 | Importación desde el Sheets | ⬜ No escrita — la especificación es [DATA_MAPPING.md](DATA_MAPPING.md) |
 
 ## Paso 1 — Proyecto de Supabase ✅

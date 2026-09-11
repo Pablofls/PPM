@@ -7,9 +7,8 @@ formularios de Google. Reemplaza la implementación actual en Google Apps Script
 
 **Iteración 2: autenticación y primer esquema de base de datos.**
 
-Supabase está configurado y la app desplegada en Vercel. El esquema SQL cubre la
-autenticación y los 11 formularios del Módulo 1 y 2; está escrito y verificado
-contra PostgreSQL, pero **todavía no se ejecuta** en Supabase.
+Supabase está configurado, la app desplegada en Vercel y el esquema **ya está
+ejecutado**: autenticación y los 11 formularios del Módulo 1 y 2.
 
 Las pantallas siguen mostrándose en estado vacío, sin demo data.
 

@@ -4,7 +4,7 @@ Cómo entra la gente al panel y qué puede ver cada quien.
 
 - **Proveedor:** Supabase Auth, **correo + contraseña**
 - **Implementación:** `supabase/migrations/0001_auth.sql`
-- **Estado:** escrito, **sin ejecutar**
+- **Estado:** ✅ ejecutado en Supabase el 2026-09-11; falta crear el primer admin
 
 ## Principio
 
