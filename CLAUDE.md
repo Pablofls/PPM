@@ -5,16 +5,17 @@ formularios de Google. Reemplaza la implementación actual en Google Apps Script
 
 ## Estado del proyecto
 
-**Iteración 1 (actual): pantallas + esquema, sin base de datos.**
+**Iteración 2 (actual): configuración de Supabase y Vercel.**
+El profesor autorizó el proyecto el 10 de septiembre de 2026.
 
-- La app corre en local con `npm run dev` y **no requiere base de datos ni `.env`**.
-- Las pantallas se renderizan en estado vacío. **No se agrega demo data.**
-- El SQL de `supabase/migrations/` está escrito pero **NO se ha ejecutado**.
-- El objetivo es presentarle las pantallas al profesor para recibir su opinión.
+- Proyecto de Supabase creado (ref `sovinakodrmgxytgapry`).
+- El SQL de `supabase/migrations/` sigue **sin ejecutar**.
+- La app sigue corriendo sin base de datos y **sin demo data**.
+- Primero se termina de configurar Supabase y Vercel; la base de datos va después.
 
-**Iteración 2 (después de la autorización del profesor):** ejecutar las migraciones
-en Supabase, migrar los datos del Google Sheets y desplegar en Vercel.
-Ver [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+Ver [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) para el estado detallado y los pasos.
+
+**Iteración 1 (terminada):** pantallas del Módulo 1 y 2, esquema y documentación.
 
 ## Reglas del proyecto
 
@@ -75,7 +76,24 @@ fila por alumno; el perfil del alumno muestra el historial completo.
 Agregar o quitar una habilidad requiere una migración `ALTER TABLE` **y** actualizar
 `docs/DATABASE_SCHEMA.md`. Decisión tomada a propósito por fidelidad con el Sheets.
 
-### 7. Alcance de las pantallas
+### 7. Los cambios de base de datos se hacen en la interfaz de Supabase
+
+**Todo cambio de base de datos se ejecuta pegando SQL en el SQL Editor de
+Supabase, en el navegador.** No se usa `supabase db push` ni el CLI para aplicar
+cambios, y no hay que sugerirlo.
+
+El riesgo de este flujo es que la base de datos cambie sin que el repositorio se
+entere. Por eso cada cambio son **tres cosas en el mismo commit**:
+
+1. El SQL, en `supabase/migrations/`, con el siguiente número de la serie.
+2. `docs/DATABASE_SCHEMA.md` actualizado (regla 1).
+3. En el mensaje del commit, si ese SQL **ya se ejecutó** en Supabase o todavía no.
+
+Los archivos de `supabase/migrations/` son el historial y la fuente de lo que se
+pega en el editor. **Nunca se edita un archivo ya ejecutado**: un cambio posterior
+es un archivo nuevo.
+
+### 8. Alcance de las pantallas
 
 Esta iteración construye **solo Módulo 1 y Módulo 2**. Los Apéndices A/B, las
 bitácoras semanales, Grupos y Administrador tienen su esquema listo pero **no** su
@@ -87,8 +105,11 @@ pantalla. No construir pantallas fuera de alcance sin pedirlo.
 - **Tailwind CSS v4** (plugin de Vite, sin `tailwind.config.js`)
 - **React Router** para navegación
 - Tabla de datos propia (`src/components/DataTable.tsx`), sin librería externa
-- **Supabase** (Postgres) — futuro, ver iteración 2
-- **Vercel** — futuro
+- **Supabase** (Postgres) — proyecto creado, esquema sin ejecutar
+- **Vercel** — pendiente
+
+> No hay dependencia del CLI de Supabase: los cambios de base de datos se hacen
+> en la interfaz (regla 7).
 
 > No se usa TanStack Table: su versión 9 tiene una API reescrita y la tabla que
 > necesita este panel —encabezados fijos, scroll horizontal y estado vacío— son

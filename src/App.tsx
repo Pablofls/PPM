@@ -12,7 +12,7 @@ import { ReflectionPage } from './pages/modulo2/ReflectionPage'
 
 /**
  * Rutas del panel. Solo Módulo 1 y Módulo 2 en esta iteración
- * (regla 7 de CLAUDE.md).
+ * (regla 8 de CLAUDE.md).
  *
  * Las rutas están en español porque el profesor puede compartirlas o guardarlas
  * como marcador.

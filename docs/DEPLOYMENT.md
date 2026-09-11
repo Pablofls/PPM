@@ -1,38 +1,49 @@
 # Despliegue — Supabase + Vercel
 
-> **No ejecutar nada de este documento todavía.**
-> Es el plan para la iteración 2, después de que el profesor autorice el proyecto.
-> Hoy la app corre solo en local y sin base de datos.
+> Iteración 2, en curso. El profesor autorizó el proyecto el 10 de septiembre
+> de 2026.
+
+## Cómo se aplican los cambios de base de datos
+
+**Todos los cambios de base de datos se hacen desde el SQL Editor de Supabase,
+en el navegador.** No se usa `supabase db push` ni ninguna otra forma de aplicar
+migraciones desde la terminal.
+
+Esto tiene una consecuencia que hay que compensar a mano: la base de datos puede
+cambiar sin que el repositorio se entere. Para evitarlo, cada cambio son **tres
+cosas en el mismo commit**:
+
+1. El SQL, guardado en `supabase/migrations/` con el siguiente número de la serie.
+2. `docs/DATABASE_SCHEMA.md` actualizado (regla 1 de CLAUDE.md).
+3. En el mensaje del commit, decir si el SQL **ya se ejecutó** en Supabase o no.
+
+Los archivos de `supabase/migrations/` son el historial y la fuente de lo que se
+pega en el SQL Editor. Nunca se editan después de haberse ejecutado: un cambio
+posterior es un archivo nuevo.
 
 ## Estado actual
 
 | Componente | Estado |
 |---|---|
 | Pantallas React | ✅ Listas, corren en local con `npm run dev` |
-| Migraciones SQL | ✅ Escritas en `supabase/migrations/`, **sin ejecutar** |
-| Proyecto de Supabase | ⬜ No creado |
+| SQL del esquema | ✅ Escrito en `supabase/migrations/`, **sin ejecutar** |
+| Proyecto de Supabase | ✅ Creado — ref `sovinakodrmgxytgapry` |
+| Variables de entorno | ⬜ Pendientes |
 | Importación desde el Sheets | ⬜ No escrita — la especificación es [DATA_MAPPING.md](DATA_MAPPING.md) |
 | Proyecto de Vercel | ⬜ No creado |
 
-## Paso 1 — Proyecto de Supabase
+## Paso 1 — Proyecto de Supabase ✅
 
-1. Crear el proyecto en la región `us-east-1` (la más cercana a Monterrey con
-   plan gratuito).
-2. Guardar la contraseña de la base de datos en un gestor de contraseñas.
-   **Nunca en el repositorio.**
-3. Aplicar las migraciones **en orden numérico**:
+Creado el 11 de septiembre de 2026, región East US (North Virginia), plan Free.
+La contraseña de la base de datos vive en el gestor de contraseñas de Pablo,
+**nunca en el repositorio**.
 
-```bash
-supabase link --project-ref <project-ref>
-supabase db push
-```
-
-O manualmente desde el SQL Editor, en este orden:
+Cuando se ejecute el esquema, será pegando en el SQL Editor en este orden:
 `0001_enums.sql` → `0002_core.sql` → `0003_module1.sql` → `0004_module2.sql` →
 `0005_appendices.sql` → `0006_views.sql` → `0007_seed_catalogs.sql`.
 
-4. Verificar que RLS quedó habilitado en todas las tablas
-   (Database → Tables → columna *RLS enabled*).
+Después, verificar que RLS quedó habilitado en todas las tablas
+(Database → Tables → columna *RLS enabled*).
 
 ## Paso 2 — Variables de entorno
 
@@ -44,9 +55,16 @@ VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
 ```
 
-La `service_role` key **no** se usa en el frontend: solo la necesita el script de
-importación, que corre localmente y toma la llave de una variable de entorno de la
-terminal, nunca de un archivo versionado.
+Ambos valores salen de **Project Settings → API Keys** en el dashboard.
+
+- `VITE_SUPABASE_URL`: la *Project URL*.
+- `VITE_SUPABASE_ANON_KEY`: la llave **pública** (`anon` / `publishable`). Está
+  diseñada para ir en el navegador y no es un secreto: lo que protege los datos
+  son las políticas RLS, no ocultar esta llave.
+
+La llave **secreta** (`service_role` / `secret`) **no** se usa en el frontend ni
+se guarda en ningún archivo del repositorio. Solo la necesita el script de
+importación, que la toma de una variable de entorno de la terminal.
 
 ## Paso 3 — Conectar la capa de datos
 
