@@ -25,7 +25,10 @@ export function StudentPanel<T extends BaseRow>({
   onClose,
   children,
 }: StudentPanelProps<T>) {
-  const history = useSubmissionHistory(row?.studentId ?? null, form.code)
+  const { history, error: historyError } = useSubmissionHistory(
+    row?.studentId ?? null,
+    form.code,
+  )
 
   useEffect(() => {
     if (!row) return
@@ -102,7 +105,11 @@ export function StudentPanel<T extends BaseRow>({
           <h3 className="mb-3 text-xs font-semibold tracking-wider text-slate-500 uppercase">
             Historial de respuestas
           </h3>
-          <SubmissionTimeline entries={history} isConnected={repository.isConnected} />
+          {historyError ? (
+            <p className="text-sm text-red-700">{historyError}</p>
+          ) : (
+            <SubmissionTimeline entries={history} isConnected={repository.isConnected} />
+          )}
         </div>
       </aside>
     </div>
@@ -120,20 +127,34 @@ function Field({ label, value }: { label: string; value: string | null }) {
 
 function useSubmissionHistory(studentId: string | null, formCode: FormCode) {
   const [history, setHistory] = useState<SubmissionHistoryEntry[]>([])
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!studentId) {
       setHistory([])
+      setError(null)
       return
     }
+
     let cancelled = false
-    repository.getSubmissionHistory(studentId, formCode).then((entries) => {
-      if (!cancelled) setHistory(entries)
-    })
+    repository
+      .getSubmissionHistory(studentId, formCode)
+      .then((entries) => {
+        if (!cancelled) {
+          setHistory(entries)
+          setError(null)
+        }
+      })
+      .catch((cause: unknown) => {
+        if (cancelled) return
+        setHistory([])
+        setError(cause instanceof Error ? cause.message : 'Error desconocido')
+      })
+
     return () => {
       cancelled = true
     }
   }, [studentId, formCode])
 
-  return history
+  return { history, error }
 }

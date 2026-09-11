@@ -16,7 +16,11 @@ interface FormPageProps<T extends BaseRow> {
   /** Columnas de la tabla. Las pantallas componen `studentColumns()` al inicio. */
   columns: Column<T>[]
   /** Consulta al repositorio, ya filtrada. */
-  useRows: (filters: ReturnType<typeof useFilters>[0]) => { data: T[]; loading: boolean }
+  useRows: (filters: ReturnType<typeof useFilters>[0]) => {
+    data: T[]
+    loading: boolean
+    error: string | null
+  }
   /** Controles extra en la barra de filtros. */
   filterControls?: ReactNode
   /** Detalle específico del formulario dentro del panel lateral. */
@@ -37,7 +41,7 @@ export function FormPage<T extends BaseRow>({
   renderDetail,
 }: FormPageProps<T>) {
   const [filters, setFilter, clearFilters] = useFilters()
-  const { data: rows, loading } = useRows(filters)
+  const { data: rows, loading, error } = useRows(filters)
   const { data: summary } = useFormSummary(form.code, filters)
   const [selectedRow, setSelectedRow] = useState<T | null>(null)
 
@@ -61,6 +65,7 @@ export function FormPage<T extends BaseRow>({
         rowKey={(row) => row.submissionId || row.studentId}
         loading={loading}
         isConnected={repository.isConnected}
+        error={error}
         onRowClick={setSelectedRow}
       />
 

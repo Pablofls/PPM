@@ -1,17 +1,20 @@
 /**
  * Capa de datos.
  *
- * Este es el ÚNICO archivo que cambia cuando se conecte Supabase. Las pantallas
- * consumen la interfaz `PanelRepository` y no saben de dónde vienen los datos.
+ * Las pantallas consumen la interfaz `PanelRepository` y no saben de dónde
+ * vienen los datos. La implementación activa es `supabaseRepository`, que
+ * consulta las vistas `v_panel_*`.
  *
- * En esta iteración la implementación activa es `emptyRepository`: devuelve
- * listas vacías a propósito. Las pantallas se muestran con sus encabezados y su
- * estado vacío, sin demo data (regla «Sin demo data en las pantallas» de CLAUDE.md).
+ * `emptyRepository` se conserva como respaldo: si faltan las variables de
+ * entorno, las pantallas se muestran vacías en vez de tronar.
  *
- * Para conectar la base de datos, ver docs/DEPLOYMENT.md paso 3.
+ * Sigue sin haber demo data: las tablas están vacías porque la base lo está
+ * (regla «Sin demo data en las pantallas» de CLAUDE.md).
  */
 
 import type { FormCode } from '../lib/catalog'
+import { isSupabaseConfigured } from './supabaseClient'
+import { supabaseRepository } from './supabaseRepository'
 import type {
   DemographicsRow,
   DiscRow,
@@ -60,7 +63,7 @@ export interface PanelRepository {
   ): Promise<SubmissionHistoryEntry[]>
 }
 
-/** Implementación sin base de datos, la de esta iteración. */
+/** Respaldo sin base de datos, para cuando faltan las variables de entorno. */
 export const emptyRepository: PanelRepository = {
   isConnected: false,
 
@@ -96,4 +99,6 @@ export const emptyRepository: PanelRepository = {
   },
 }
 
-export const repository: PanelRepository = emptyRepository
+export const repository: PanelRepository = isSupabaseConfigured
+  ? supabaseRepository
+  : emptyRepository

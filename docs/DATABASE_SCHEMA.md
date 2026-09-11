@@ -10,6 +10,7 @@
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase el 11 de septiembre de 2026**
 - **Última migración aplicada:** `0007_seed_forms.sql`
+  (`0008_views_panel.sql` está escrito y **pendiente de ejecutar**)
 
 ## Índice
 
@@ -415,6 +416,32 @@ Alimenta el buscador y los filtros compartidos.
 > Ambas vistas llevan `security_invoker = on`. Sin eso se ejecutarían con los
 > permisos de su propietario y **serían una puerta trasera que se salta RLS**.
 
+### Vistas de panel — `v_panel_*`
+
+Una por pantalla. Cada una entrega **una fila por alumno con su respuesta
+vigente**, ya unida con los datos del alumno, para que el frontend haga un
+`select` plano con filtros.
+
+| Vista | Pantalla | Formulario |
+|---|---|---|
+| `v_panel_demographics` | 1.0 Datos Demográficos | `form1_0` |
+| `v_panel_holland` | 1.1 Intereses Profesionales | `form1_1` |
+| `v_panel_mbti` | 1.2 Personalidad | `form1_2` |
+| `v_panel_disc` | 1.3 Estilos de Comportamiento | `form1_3` |
+| `v_panel_skills` | 1.4 Formulario de Habilidades | `form1_4` |
+| `v_panel_values` | 1.5 Valores | `form1_5` |
+| `v_panel_reflections` | 2.1, 2.2, 2.4, 2.5 | los cuatro, se filtra por `form_code` |
+| `v_panel_indeed` | 2.7 Indeed | `form2_7` |
+
+Todas exponen las mismas columnas de filtrado (`institutional_email`,
+`language`, `session_day`, `degree_code`, `semester`, `period_code`), así que el
+filtrado es idéntico en las 11 pantallas.
+
+`v_panel_demographics` es la única que no se apoya en `v_students_directory`:
+sus propios datos **son** los demográficos, y tomarlos de ahí sería circular.
+
+Todas llevan `security_invoker = on`.
+
 ---
 
 ## Índices
@@ -478,6 +505,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0005_module2.sql` | `reflections`, `indeed_research` | ✅ 2026-09-11 |
 | `0006_views_rls.sql` | índices, vistas y políticas admin-only | ✅ 2026-09-11 |
 | `0007_seed_forms.sql` | catálogo de los 11 formularios | ✅ 2026-09-11 |
+| `0008_views_panel.sql` | las 8 vistas `v_panel_*` que alimentan las pantallas | ❌ **pendiente** |
 
 > **Estos archivos ya no se editan.** Cualquier cambio posterior es un archivo
 > nuevo, `0008_…` en adelante.

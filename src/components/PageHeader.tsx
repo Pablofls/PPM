@@ -53,7 +53,7 @@ function Stat({
   isConnected,
 }: {
   label: string
-  value: number | undefined
+  value: number | null | undefined
   isConnected: boolean
 }) {
   return (
@@ -62,7 +62,7 @@ function Stat({
         {label}
       </dt>
       <dd className="mt-1 text-2xl font-semibold text-slate-900 tabular-nums">
-        {isConnected && value !== undefined ? value : <span className="text-slate-300">—</span>}
+        {isConnected && value != null ? value : <span className="text-slate-300">—</span>}
       </dd>
     </div>
   )

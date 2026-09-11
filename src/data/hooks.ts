@@ -9,6 +9,14 @@ interface QueryResult<T> {
   loading: boolean
   /** `false` mientras la base de datos no esté conectada. */
   isConnected: boolean
+  /**
+   * Mensaje de error si la consulta falló.
+   *
+   * Importa distinguirlo de una lista vacía: si RLS rechaza la consulta o se cae
+   * la red, mostrar "no hay respuestas" haría creer al profesor que los alumnos
+   * no han contestado.
+   */
+  error: string | null
 }
 
 /**
@@ -23,6 +31,7 @@ export function useRepositoryQuery<T>(
 ): QueryResult<T> {
   const [data, setData] = useState<T>(fallback)
   const [loading, setLoading] = useState(repository.isConnected)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -33,12 +42,20 @@ export function useRepositoryQuery<T>(
     if (!repository.isConnected) return
 
     setLoading(true)
-    query().then((result) => {
-      if (!cancelled) {
+    setError(null)
+
+    query()
+      .then((result) => {
+        if (cancelled) return
         setData(result)
         setLoading(false)
-      }
-    })
+      })
+      .catch((cause: unknown) => {
+        if (cancelled) return
+        setData(fallback)
+        setError(cause instanceof Error ? cause.message : 'Error desconocido')
+        setLoading(false)
+      })
 
     return () => {
       cancelled = true
@@ -46,7 +63,7 @@ export function useRepositoryQuery<T>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps)
 
-  return { data, loading, isConnected: repository.isConnected }
+  return { data, loading, isConnected: repository.isConnected, error }
 }
 
 export function useFormSummary(formCode: FormCode, filters: PanelFilters) {

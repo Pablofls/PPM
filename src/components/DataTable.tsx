@@ -17,6 +17,8 @@ interface DataTableProps<T> {
   loading?: boolean
   /** `false` mientras la base de datos no esté conectada. */
   isConnected: boolean
+  /** Mensaje si la consulta falló. Se muestra en lugar del estado vacío. */
+  error?: string | null
   onRowClick?: (row: T) => void
 }
 
@@ -32,6 +34,7 @@ export function DataTable<T>({
   rowKey,
   loading = false,
   isConnected,
+  error = null,
   onRowClick,
 }: DataTableProps<T>) {
   return (
@@ -90,7 +93,7 @@ export function DataTable<T>({
       */}
       {rows.length === 0 && (
         <div className="border-t border-slate-200 px-4 py-16">
-          <TableEmptyState loading={loading} isConnected={isConnected} />
+          <TableEmptyState loading={loading} isConnected={isConnected} error={error} />
         </div>
       )}
     </div>
@@ -100,10 +103,23 @@ export function DataTable<T>({
 function TableEmptyState({
   loading,
   isConnected,
+  error,
 }: {
   loading: boolean
   isConnected: boolean
+  error: string | null
 }) {
+  // El error va primero: una tabla vacía por un fallo de consulta no debe
+  // leerse como "los alumnos no han respondido".
+  if (error) {
+    return (
+      <div className="mx-auto max-w-md text-center">
+        <p className="text-sm font-medium text-red-700">No se pudieron cargar los datos</p>
+        <p className="mt-1 text-sm text-slate-500">{error}</p>
+      </div>
+    )
+  }
+
   if (loading) {
     return <p className="text-center text-sm text-slate-500">Cargando respuestas…</p>
   }
@@ -115,16 +131,18 @@ function TableEmptyState({
           Fuente de datos sin conectar
         </p>
         <p className="mt-1 text-sm text-slate-500">
-          Las columnas de arriba son las que mostrará esta pantalla. Los datos
-          aparecerán cuando se conecte la base de datos.
+          Faltan las variables de entorno de Supabase.
         </p>
       </div>
     )
   }
 
   return (
-    <p className="text-center text-sm text-slate-500">
-      No hay respuestas que coincidan con estos filtros.
-    </p>
+    <div className="mx-auto max-w-md text-center">
+      <p className="text-sm font-medium text-slate-700">Sin respuestas todavía</p>
+      <p className="mt-1 text-sm text-slate-500">
+        No hay respuestas que coincidan con estos filtros.
+      </p>
+    </div>
   )
 }

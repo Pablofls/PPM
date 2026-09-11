@@ -140,5 +140,10 @@ export const EMPTY_FILTERS: PanelFilters = {
 export interface FormSummary {
   responses: number
   pending: number
-  late: number
+  /**
+   * `null` cuando no se puede saber: sin fechas de entrega configuradas no hay
+   * contra qué comparar. Se muestra como "—", no como 0, para no hacer creer
+   * que se comprobó y no hubo ninguna.
+   */
+  late: number | null
 }
