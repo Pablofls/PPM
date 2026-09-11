@@ -14,7 +14,7 @@ cambiar sin que el repositorio se entere. Para evitarlo, cada cambio son **tres
 cosas en el mismo commit**:
 
 1. El SQL, guardado en `supabase/migrations/` con el siguiente número de la serie.
-2. `docs/DATABASE_SCHEMA.md` actualizado (regla 1 de CLAUDE.md).
+2. `docs/DATABASE_SCHEMA.md` actualizado (regla «El esquema de la BD vive en un MD» de CLAUDE.md).
 3. En el mensaje del commit, decir si el SQL **ya se ejecutó** en Supabase o no.
 
 Los archivos de `supabase/migrations/` son el historial y la fuente de lo que se
@@ -39,11 +39,17 @@ La contraseña de la base de datos vive en el gestor de contraseñas de Pablo,
 **nunca en el repositorio**.
 
 Cuando se ejecute el esquema, será pegando en el SQL Editor en este orden:
-`0001_enums.sql` → `0002_core.sql` → `0003_module1.sql` → `0004_module2.sql` →
-`0005_appendices.sql` → `0006_views.sql` → `0007_seed_catalogs.sql`.
+`0001_auth.sql` → `0002_enums.sql` → `0003_core.sql` → `0004_module1.sql` →
+`0005_module2.sql` → `0006_views_rls.sql` → `0007_seed_forms.sql`.
 
-Después, verificar que RLS quedó habilitado en todas las tablas
-(Database → Tables → columna *RLS enabled*).
+Después:
+
+1. Verificar que RLS quedó habilitado en las 12 tablas
+   (Database → Tables → columna *RLS enabled*).
+2. Crear el primer administrador siguiendo [AUTH.md](AUTH.md).
+3. Confirmar que un usuario con rol `pendiente` no puede leer
+   `latest_submissions` ni `v_students_directory` — es lo único que no se pudo
+   verificar en local, porque `security_invoker` requiere PostgreSQL 15.
 
 ## Paso 2 — Variables de entorno
 
@@ -83,7 +89,7 @@ Script de un solo uso, siguiendo [DATA_MAPPING.md](DATA_MAPPING.md):
 
 1. Exportar el Sheets a `.xlsx` **fuera del repositorio** (contiene datos personales).
 2. Ejecutar el script con la `service_role` key desde la terminal.
-3. Revisar `unmatched_submissions` — se esperan entre 2 y 4 filas por hoja.
+3. Revisar el log del script: no debería haber filas sin correo.
 4. Revisar `disc_results` con `needs_review = true`.
 
 El script es idempotente gracias a `submissions.source_row_key`: volver a correrlo
@@ -128,9 +134,11 @@ antes de cargar datos de alumnos**.
 
 El panel contiene datos personales de alumnos, así que **no puede quedar público**.
 
-1. Habilitar Supabase Auth con Google, restringido al dominio `@udem.edu`.
-2. Agregar una pantalla de login y proteger las rutas.
-3. Confirmar que las políticas RLS solo permiten lectura al rol `authenticated`.
+1. Habilitar el proveedor **Email + contraseña** en Supabase Auth.
+2. Agregar la pantalla de login y proteger las rutas.
+3. Confirmar que las políticas exigen `is_admin()`, no solo `authenticated`.
+
+Ver [AUTH.md](AUTH.md) para el modelo completo de roles y permisos.
 
 > Este paso no es opcional. Sin autenticación, cualquiera con la URL de Vercel vería
 > nombres, matrículas, fechas de nacimiento y correos personales de los alumnos.

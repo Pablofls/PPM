@@ -6,7 +6,7 @@
  *
  * En esta iteración la implementación activa es `emptyRepository`: devuelve
  * listas vacías a propósito. Las pantallas se muestran con sus encabezados y su
- * estado vacío, sin demo data (regla 3 de CLAUDE.md).
+ * estado vacío, sin demo data (regla «Sin demo data en las pantallas» de CLAUDE.md).
  *
  * Para conectar la base de datos, ver docs/DEPLOYMENT.md paso 3.
  */

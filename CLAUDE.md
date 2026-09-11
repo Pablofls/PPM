@@ -5,19 +5,25 @@ formularios de Google. Reemplaza la implementación actual en Google Apps Script
 
 ## Estado del proyecto
 
-**Iteración 2 (actual): configuración de Supabase y Vercel.**
+**Iteración 2 (actual): autenticación y primer esquema de base de datos.**
 El profesor autorizó el proyecto el 10 de septiembre de 2026.
 
-- Proyecto de Supabase creado (ref `sovinakodrmgxytgapry`).
+- Supabase configurado (ref `sovinakodrmgxytgapry`) y Vercel desplegado.
 - El SQL de `supabase/migrations/` sigue **sin ejecutar**.
+- Alcance del esquema: **autenticación + los 11 formularios de Módulo 1 y 2**
+  (`form1_0` … `form2_7`). Las hojas `alumnos` y `fechas_entrega`, los apéndices
+  A/B y las bitácoras quedan para después.
 - La app sigue corriendo sin base de datos y **sin demo data**.
-- Primero se termina de configurar Supabase y Vercel; la base de datos va después.
 
 Ver [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) para el estado detallado y los pasos.
 
 **Iteración 1 (terminada):** pantallas del Módulo 1 y 2, esquema y documentación.
 
 ## Reglas del proyecto
+
+> Las reglas se referencian **por nombre**, no por número: insertar una regla
+> nueva renumera el resto y deja las referencias del código apuntando al lugar
+> equivocado.
 
 ### 1. El esquema de la BD vive en un MD y se actualiza siempre
 
@@ -86,18 +92,35 @@ El riesgo de este flujo es que la base de datos cambie sin que el repositorio se
 entere. Por eso cada cambio son **tres cosas en el mismo commit**:
 
 1. El SQL, en `supabase/migrations/`, con el siguiente número de la serie.
-2. `docs/DATABASE_SCHEMA.md` actualizado (regla 1).
+2. `docs/DATABASE_SCHEMA.md` actualizado (regla «El esquema de la BD vive en un MD»).
 3. En el mensaje del commit, si ese SQL **ya se ejecutó** en Supabase o todavía no.
 
 Los archivos de `supabase/migrations/` son el historial y la fuente de lo que se
 pega en el editor. **Nunca se edita un archivo ya ejecutado**: un cambio posterior
 es un archivo nuevo.
 
-### 8. Alcance de las pantallas
+### 8. Toda pantalla nace protegida y admin-only
+
+El panel muestra datos personales de alumnos. **Estar autenticado no da acceso a
+nada**: las políticas exigen `is_admin()`, no `authenticated`, y un usuario recién
+registrado tiene rol `pendiente` y no ve ni una fila.
+
+Al agregar una tabla o una pantalla:
+
+- La tabla lleva `alter table ... enable row level security` y una política
+  `using (public.is_admin())`. Una tabla sin política es una tabla que nadie lee,
+  lo cual es el lado seguro del error.
+- La ruta va dentro de `ProtectedRoute`. Nunca colgarla fuera del `AppShell`.
+- Las vistas llevan `security_invoker = on`, si no se saltan RLS.
+
+Ver [docs/AUTH.md](docs/AUTH.md). Cualquier pantalla para un rol distinto de
+`admin` se diseña y se pide explícitamente; no se asume.
+
+### 9. Alcance de las pantallas
 
 Esta iteración construye **solo Módulo 1 y Módulo 2**. Los Apéndices A/B, las
-bitácoras semanales, Grupos y Administrador tienen su esquema listo pero **no** su
-pantalla. No construir pantallas fuera de alcance sin pedirlo.
+bitácoras semanales, Grupos y Administrador **no** tienen esquema ni pantalla
+todavía. No construir fuera de alcance sin pedirlo.
 
 ## Stack
 
@@ -109,7 +132,7 @@ pantalla. No construir pantallas fuera de alcance sin pedirlo.
 - **Vercel** — pendiente
 
 > No hay dependencia del CLI de Supabase: los cambios de base de datos se hacen
-> en la interfaz (regla 7).
+> en la interfaz (regla «Los cambios de BD se hacen en la interfaz»).
 
 > No se usa TanStack Table: su versión 9 tiene una API reescrita y la tabla que
 > necesita este panel —encabezados fijos, scroll horizontal y estado vacío— son
@@ -127,6 +150,7 @@ src/
   layouts/                AppShell con el sidebar
   pages/modulo1/          Pantallas 1.0 – 1.5
   pages/modulo2/          Pantallas 2.1, 2.2, 2.4, 2.5, 2.7
+  auth/                   Sesión, login y protección de rutas
   lib/                    Utilidades y catálogos de la UI
 ```
 
@@ -147,4 +171,5 @@ npm run lint
 | [docs/DATA_MAPPING.md](docs/DATA_MAPPING.md) | Mapeo Sheets → Postgres y reglas de limpieza |
 | [docs/FORMS_CATALOG.md](docs/FORMS_CATALOG.md) | Catálogo de los 15 formularios |
 | [docs/UI_SCREENS.md](docs/UI_SCREENS.md) | Inventario de pantallas y sus columnas |
+| [docs/AUTH.md](docs/AUTH.md) | Roles, permisos y cómo se crea el primer admin |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Pasos para Supabase + Vercel |

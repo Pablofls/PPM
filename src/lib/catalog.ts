@@ -136,7 +136,7 @@ export const formByCode = (code: FormCode): FormMeta =>
 /** Los cuatro formularios que comparten la tabla `reflections`. */
 export const REFLECTION_FORMS = ['form2_1', 'form2_2', 'form2_4', 'form2_5'] as const
 
-/** Secciones del proyecto que todavía no tienen pantalla. Ver regla 8 de CLAUDE.md. */
+/** Secciones del proyecto que todavía no tienen pantalla. Ver regla «Alcance de las pantallas» de CLAUDE.md. */
 export const UPCOMING_SECTIONS = [
   'Apéndice A: Cartas Requeridas',
   'Apéndice B: Reportes',

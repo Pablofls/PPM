@@ -6,7 +6,7 @@ Google Sheets de origen. El `code` es el mismo que la hoja y el que se guarda en
 
 ## Resumen
 
-| Code | Pantalla | Módulo | Hoja origen | Respuestas por alumno | Tabla de respuestas | Pantalla en esta iteración |
+| Code | Pantalla | Módulo | Hoja origen | Respuestas por alumno | Tabla de respuestas | En el esquema actual |
 |---|---|---|---|---|---|---|
 | `form1_0` | 1.0 Datos Demográficos | 1 | `form1_0` | 1 | `demographics` | ✅ |
 | `form1_1` | 1.1 Intereses Profesionales | 1 | `form1_1` | 1 | `holland_results` | ✅ |
@@ -24,19 +24,27 @@ Google Sheets de origen. El `code` es el mismo que la hoja y el que se guarda en
 | `form_busqueda` | Bitácora de búsqueda de empleo | W | `form_busqueda` | **N (semanal)** | `job_search_logs` | ⬜ fuera de alcance |
 | `form_practicas` | Bitácora de prácticas | W | `form_practicas` | **N (semanal)** | `internship_logs` | ⬜ fuera de alcance |
 
+> **Alcance del esquema actual:** solo los 11 formularios marcados con ✅, es
+> decir `form1_0` a `form2_7`. Los apéndices, las bitácoras y las hojas
+> `alumnos` y `fechas_entrega` no tienen tabla todavía.
+
 > No existen `form2_3` ni `form2_6` en el Sheets de origen. La numeración del
 > Módulo 2 salta de 2.2 a 2.4 y de 2.5 a 2.7, y el panel respeta esa numeración
 > porque es la que el profesor y los alumnos ya conocen.
 
 ## Módulos
 
-| Code | Nombre (ES) | Nombre (EN) | Formularios |
-|---|---|---|---|
-| `1` | Conócete | Know Yourself | `form1_0` … `form1_5` |
-| `2` | Actúa | Take Action | `form2_1`, `form2_2`, `form2_4`, `form2_5`, `form2_7` |
-| `A` | Apéndice A: Cartas Requeridas | Appendix A | `formA_1` |
-| `B` | Apéndice B: Reportes | Appendix B | `formB_1` |
-| `W` | Bitácoras semanales | Weekly Logs | `form_busqueda`, `form_practicas` |
+| Code | Nombre (ES) | Nombre (EN) | Formularios | En el esquema |
+|---|---|---|---|---|
+| `1` | Conócete | Know Yourself | `form1_0` … `form1_5` | ✅ |
+| `2` | Actúa | Take Action | `form2_1`, `form2_2`, `form2_4`, `form2_5`, `form2_7` | ✅ |
+| `A` | Apéndice A: Cartas Requeridas | Appendix A | `formA_1` | ⬜ |
+| `B` | Apéndice B: Reportes | Appendix B | `formB_1` | ⬜ |
+| `W` | Bitácoras semanales | Weekly Logs | `form_busqueda`, `form_practicas` | ⬜ |
+
+Solo los módulos 1 y 2 tienen tabla `forms` poblada (`0007_seed_forms.sql`), y
+`forms.module_code` tiene un `CHECK` que hoy solo admite `'1'` y `'2'`. Al
+incorporar los apéndices habrá que ampliarlo.
 
 ## Cardinalidad observada en los datos de origen
 
@@ -69,8 +77,9 @@ agregados; ningún dato de alumno se versiona en este repositorio.
    alumno. Por eso `submissions` admite N filas por alumno y formulario. Aunque hoy
    los demás formularios sean 1:1, un reenvío no debe sobrescribir la respuesta
    anterior.
-2. Cada hoja tiene entre 2 y 4 correos que no existen en `alumnos`. Por eso existe
-   `unmatched_submissions` en lugar de un FK que descarte esas filas.
+2. Cada hoja tiene entre 2 y 4 correos que no existen en la hoja `alumnos`, que
+   está desactualizada. Por eso el esquema actual **deriva la lista de alumnos de
+   los propios formularios**: 46 correos únicos, contra los 42 de esa hoja.
 
 ## Fechas de entrega
 

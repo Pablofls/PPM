@@ -5,14 +5,13 @@ formularios de Google. Reemplaza la implementación actual en Google Apps Script
 
 ## Estado
 
-**Iteración 1: pantallas del Módulo 1 y Módulo 2, sin base de datos.**
+**Iteración 2: autenticación y primer esquema de base de datos.**
 
-La aplicación corre en local y no requiere Supabase, Vercel ni archivo `.env`.
-Las pantallas se muestran con sus columnas y en estado vacío: el objetivo es que
-el profesor valide la estructura antes de migrar los datos.
+Supabase está configurado y la app desplegada en Vercel. El esquema SQL cubre la
+autenticación y los 11 formularios del Módulo 1 y 2; está escrito y verificado
+contra PostgreSQL, pero **todavía no se ejecuta** en Supabase.
 
-El esquema SQL está escrito y verificado contra PostgreSQL, pero **no se ha
-ejecutado** en ningún servidor.
+Las pantallas siguen mostrándose en estado vacío, sin demo data.
 
 ## Cómo correrlo
 
@@ -32,7 +31,8 @@ Abre <http://localhost:5173>.
 | [docs/DATA_MAPPING.md](docs/DATA_MAPPING.md) | Mapeo Google Sheets → PostgreSQL y limpieza de datos |
 | [docs/FORMS_CATALOG.md](docs/FORMS_CATALOG.md) | Catálogo de los 15 formularios |
 | [docs/UI_SCREENS.md](docs/UI_SCREENS.md) | Inventario de pantallas |
-| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Pasos para Supabase + Vercel (iteración 2) |
+| [docs/AUTH.md](docs/AUTH.md) | Roles, permisos y cómo se crea el primer admin |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Pasos para Supabase + Vercel |
 
 ## Aviso sobre datos
 

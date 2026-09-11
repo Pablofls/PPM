@@ -1,8 +1,8 @@
--- 0003_module1.sql — Módulo 1: Conócete (formularios 1.0 a 1.5)
+-- 0004_module1.sql — Módulo 1: Conócete (formularios 1.0 a 1.5)
 -- Ver docs/DATABASE_SCHEMA.md#módulo-1--conócete
 --
--- Todas estas tablas cuelgan de submission_id, nunca de student_id: así un alumno
--- puede tener varias respuestas del mismo formulario y ninguna se sobrescribe.
+-- Todas cuelgan de submission_id, nunca de student_id: así un alumno puede tener
+-- varias respuestas del mismo formulario y ninguna se sobrescribe.
 
 -- ---------------------------------------------------------------------------
 -- 1.0 Datos Demográficos — form1_0
@@ -10,15 +10,16 @@
 create table demographics (
   submission_id  uuid primary key references submissions (id) on delete cascade,
   full_name      text,
-  student_number text,        -- 'matricula'. text y no numérico: es un identificador,
-                              -- no se opera con él y puede tener ceros a la izquierda
+  student_number text,        -- 'matricula'. text y no numérico: es un
+                              -- identificador, no se opera con él
   personal_email citext,
   birth_date     date,
-  birth_country  text,        -- texto libre a propósito: hay 'Mexico', 'MEXICO', 'MX'
+  birth_country  text,        -- texto libre: hay 'Mexico', 'MEXICO', 'MX'
   gender         gender,
-  degree_code    text references degree_programs (code),
+  degree_code    text,        -- 'LMEC', 'LMI'. Sin tabla de catálogo en esta
+                              -- iteración: el control está en el formulario
   semester       smallint,
-  period_code    text references periods (code),
+  period_code    text,        -- 'PR-26', 'OT-26'. Mismo criterio que degree_code
   session_day    session_day,
 
   constraint demographics_semester_range check (semester between 1 and 12)
@@ -43,12 +44,12 @@ create table holland_results (
 -- ---------------------------------------------------------------------------
 -- 1.2 Personalidad (MBTI / 16Personalities) — form1_2
 -- ---------------------------------------------------------------------------
--- En el Sheets esto son 16 columnas con nombre en español (arquitecto, logico, …)
--- de las cuales solo una tiene valor, y ese valor es la letra de identidad (A/T).
+-- En el Sheets son 16 columnas con nombre en español (arquitecto, logico, …) de
+-- las cuales solo una tiene valor, y ese valor es la letra de identidad (A/T).
 -- Aquí se colapsa en mbti_type + identity.
 create table mbti_results (
   submission_id uuid primary key references submissions (id) on delete cascade,
-  report_url    text,          -- 'link'. Texto libre: no siempre es una URL válida
+  report_url    text,          -- 'link'. Texto libre: no siempre es una URL
   mbti_type     mbti_type,     -- cuál de las 16 columnas tenía valor
   identity      mbti_identity, -- asertivo (A) / cauteloso (T)
   energy        mbti_energy,
@@ -79,9 +80,8 @@ create table disc_results (
 
   -- La hoja de origen llega contaminada: el traductor automático del formulario
   -- convierte el estilo 'SC' en 'Carolina del Sur', y hay alumnos que escriben
-  -- texto libre en lugar de su resultado. Esas filas entran con needs_review = true
-  -- en vez de descartarse, y la pantalla 1.3 las marca para que el profesor las
-  -- corrija. Ver docs/DATA_MAPPING.md#form1_3--disc_results
+  -- texto libre en lugar de su resultado. Esas filas entran marcadas en vez de
+  -- descartarse. Ver docs/DATA_MAPPING.md
   needs_review  boolean not null default false,
 
   constraint disc_style_format check (disc_style ~* '^[DISC]{1,4}$')
@@ -90,9 +90,8 @@ create table disc_results (
 -- ---------------------------------------------------------------------------
 -- 1.4 Formulario de Habilidades — form1_4
 -- ---------------------------------------------------------------------------
--- Columnas anchas, réplica exacta de la hoja (decisión deliberada, regla 6 de
--- CLAUDE.md). Agregar o quitar una habilidad requiere ALTER TABLE y actualizar
--- docs/DATABASE_SCHEMA.md.
+-- Columnas anchas, réplica exacta de la hoja (regla «Habilidades: columnas anchas» de CLAUDE.md). Agregar o
+-- quitar una habilidad requiere ALTER TABLE y actualizar DATABASE_SCHEMA.md.
 create table skills_assessment (
   submission_id uuid primary key references submissions (id) on delete cascade,
 

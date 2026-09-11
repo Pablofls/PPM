@@ -4,7 +4,7 @@ Pantallas del panel, sus columnas y su comportamiento. Es la especificación de 
 que se construyó en `src/pages/`.
 
 **Alcance de esta iteración: Módulo 1 y Módulo 2.** Todas las pantallas se renderizan
-en estado vacío, sin demo data (regla 3 de [CLAUDE.md](../CLAUDE.md)).
+en estado vacío, sin demo data (regla «Sin demo data en las pantallas» de [CLAUDE.md](../CLAUDE.md)).
 
 ## Navegación
 

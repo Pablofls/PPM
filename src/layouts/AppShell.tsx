@@ -37,7 +37,7 @@ export function AppShell() {
           {/*
             Las secciones futuras se muestran deshabilitadas a propósito:
             comunican el alcance completo del proyecto sin prometer que ya
-            funcionan. Ver regla 8 de CLAUDE.md.
+            funcionan. Ver regla «Alcance de las pantallas» de CLAUDE.md.
           */}
           <NavGroup title="Próximamente">
             {UPCOMING_SECTIONS.map((section) => (

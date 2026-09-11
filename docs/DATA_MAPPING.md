@@ -3,31 +3,42 @@
 Cómo se traduce cada hoja del Sheets actual a las tablas de
 [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md), y qué limpieza hay que aplicar.
 
-Este documento es la especificación del script de importación de la iteración 2.
-Todavía no existe código de importación.
+Este documento es la especificación del script de importación. Todavía no existe
+código de importación.
 
-> Los ejemplos usan valores ficticios. Ver la regla 2 de [CLAUDE.md](../CLAUDE.md).
+> **Alcance actual:** solo los 11 formularios `form1_0` … `form2_7`. Las hojas
+> `alumnos` y `fechas_entrega`, los apéndices A/B y las bitácoras semanales
+> quedan fuera por ahora; sus secciones se conservan más abajo como referencia
+> para cuando se incorporen.
+
+> Los ejemplos usan valores ficticios. Ver la regla «Nunca datos sensibles» de [CLAUDE.md](../CLAUDE.md).
 
 ## Reglas generales
 
 | Regla | Detalle |
 |---|---|
 | **Llave foránea** | `idCorreo` (correo institucional) → `students.institutional_email` → `students.id` |
+| **Alta de alumnos** | `students` se puebla con los correos vistos en los formularios (upsert). No se importa la hoja `alumnos`: **46 correos únicos** en los 11 formularios |
 | **Correo** | `trim` + `lower`. La columna es `citext`, así que la comparación ya es insensible a mayúsculas |
 | **Marca temporal** | `marcaTemporal` → `submissions.submitted_at`. En `form1_1` el encabezado está mal escrito: **`marcaTemproal`** |
 | **Idioma** | `Español` → `es`, `Inglés` → `en`. La columna existe en todas las hojas de formulario |
-| **Sin correo** | Si `idCorreo` está vacío o no existe en `alumnos` → `unmatched_submissions`, nunca se descarta |
+| **Sin correo** | Si `idCorreo` viene vacío, la fila se registra en el log y no se importa. En los datos actuales **no hay ninguna** |
 | **Filas vacías** | Las hojas traen filas en blanco al final (`form1_3` tiene 999 filas y solo 43 con datos). Se ignora toda fila sin `idCorreo` **y** sin `marcaTemporal` |
 | **Idempotencia** | `source_row_key = form_code + ':' + email + ':' + submitted_at`. Reimportar no duplica |
 | **Números** | El Sheets entrega enteros como float (`123456.0`). Los identificadores (matrícula, teléfono, RFC) van a `text`; las métricas a `smallint`/`numeric` |
 
 ## Orden de importación
 
-1. `periods`, `degree_programs`, `modules`, `forms` (catálogos, `0007_seed_catalogs.sql`)
-2. `students` ← hoja `alumnos`
-3. `form_deadlines` ← hoja `fechas_entrega`
-4. `submissions` + tabla de respuestas, hoja por hoja
-5. Revisión manual de `unmatched_submissions`
+1. `forms` — ya viene sembrado en `0007_seed_forms.sql`
+2. `students` — upsert de cada `idCorreo` distinto encontrado en los 11 formularios
+3. `submissions` + su tabla de respuestas, hoja por hoja
+4. Revisión manual de `disc_results` con `needs_review = true`
+
+## Fuera del alcance actual
+
+Las secciones de `alumnos`, `fechas_entrega`, `formA_1`, `formB_1`,
+`form_busqueda` y `form_practicas` se conservan abajo como referencia, pero **sus
+tablas no existen todavía** en la base de datos.
 
 ---
 

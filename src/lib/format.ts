@@ -1,4 +1,4 @@
-/** Formato de valores para la interfaz. Todo en español (regla 4 de CLAUDE.md). */
+/** Formato de valores para la interfaz. Todo en español (regla «Nomenclatura» de CLAUDE.md). */
 
 const DATE_FORMAT = new Intl.DateTimeFormat('es-MX', {
   day: '2-digit',
