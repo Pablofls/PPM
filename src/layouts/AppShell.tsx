@@ -1,7 +1,8 @@
 import { NavLink, Outlet } from 'react-router-dom'
 
-import { FORMS, UPCOMING_SECTIONS } from '../lib/catalog'
+import { useAuth } from '../auth/AuthProvider'
 import { repository } from '../data/repository'
+import { FORMS, UPCOMING_SECTIONS } from '../lib/catalog'
 
 /**
  * Marco de la aplicación: sidebar fijo y área de contenido.
@@ -10,6 +11,7 @@ import { repository } from '../data/repository'
  * profesor reconozca de inmediato dónde está.
  */
 export function AppShell() {
+  const { profile, signOut } = useAuth()
   const module1 = FORMS.filter((form) => form.moduleCode === '1')
   const module2 = FORMS.filter((form) => form.moduleCode === '2')
 
@@ -55,12 +57,25 @@ export function AppShell() {
 
         {!repository.isConnected && (
           <div className="border-t border-slate-200 px-5 py-3">
-            <p className="text-xs font-medium text-amber-700">Sin base de datos</p>
+            <p className="text-xs font-medium text-amber-700">Sin datos conectados</p>
             <p className="mt-0.5 text-xs text-slate-500">
-              Vista previa de pantallas
+              Las pantallas aún no consultan la base
             </p>
           </div>
         )}
+
+        <div className="border-t border-slate-200 px-5 py-3">
+          <p className="truncate text-xs text-slate-500" title={profile?.email}>
+            {profile?.full_name || profile?.email}
+          </p>
+          <button
+            type="button"
+            onClick={signOut}
+            className="mt-1 text-xs font-medium text-blue-600 hover:text-blue-700"
+          >
+            Cerrar sesión
+          </button>
+        </div>
       </aside>
 
       <main className="flex-1 overflow-x-hidden px-8 py-7">

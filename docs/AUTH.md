@@ -117,11 +117,25 @@ En **Authentication → Providers**:
 
 ## En el frontend
 
+✅ Implementado.
+
 | Archivo | Responsabilidad |
 |---|---|
+| `src/data/supabaseClient.ts` | cliente; avisa si faltan las variables de entorno |
 | `src/auth/AuthProvider.tsx` | sesión y rol en un contexto |
-| `src/auth/LoginPage.tsx` | correo + contraseña |
-| `src/auth/ProtectedRoute.tsx` | sin sesión → login; rol `pendiente` → cuenta pendiente |
+| `src/auth/LoginPage.tsx` | correo + contraseña, con errores en español |
+| `src/auth/PendingPage.tsx` | cuenta sin autorizar o desactivada |
+| `src/auth/ProtectedRoute.tsx` | sin sesión → login; sin rol admin → pendiente |
+
+Todo el panel cuelga de `ProtectedRoute` en `App.tsx`: no hay una sola ruta
+accesible sin sesión y sin rol `admin`. Entrar directo a `/modulo1/habilidades`
+muestra el login.
+
+### Un detalle de implementación que importa
+
+El callback de `onAuthStateChange` se mantiene **síncrono**: hacer `await` de una
+consulta ahí adentro puede bloquear al cliente de Supabase. El perfil se carga en
+un efecto aparte, disparado por el id del usuario.
 
 El rol se lee de `profiles`, **nunca** de algo que el cliente pueda manipular. Y
 aunque alguien falsee el frontend, RLS es lo que realmente protege los datos: el

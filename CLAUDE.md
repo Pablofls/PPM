@@ -14,7 +14,10 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
 - Alcance del esquema: **autenticación + los 11 formularios de Módulo 1 y 2**
   (`form1_0` … `form2_7`). Las hojas `alumnos` y `fechas_entrega`, los apéndices
   A/B y las bitácoras quedan para después.
-- La app sigue corriendo sin base de datos y **sin demo data**.
+- Login con correo y contraseña **funcionando**; el panel completo está detrás
+  de `ProtectedRoute` y exige rol `admin`.
+- Las pantallas **todavía no consultan datos**: `repository.ts` sigue devolviendo
+  listas vacías. Conectarlas es el siguiente paso.
 
 Ver [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) para el estado detallado y los pasos.
 
