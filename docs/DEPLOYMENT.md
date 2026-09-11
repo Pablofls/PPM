@@ -28,9 +28,9 @@ posterior es un archivo nuevo.
 | Pantallas React | ✅ Listas, corren en local con `npm run dev` |
 | SQL del esquema | ✅ Escrito en `supabase/migrations/`, **sin ejecutar** |
 | Proyecto de Supabase | ✅ Creado — ref `sovinakodrmgxytgapry` |
-| Variables de entorno | ⬜ Pendientes |
+| Variables de entorno (local) | ✅ `.env.local` con la llave pública |
+| Proyecto de Vercel | ⬜ En proceso |
 | Importación desde el Sheets | ⬜ No escrita — la especificación es [DATA_MAPPING.md](DATA_MAPPING.md) |
-| Proyecto de Vercel | ⬜ No creado |
 
 ## Paso 1 — Proyecto de Supabase ✅
 
@@ -91,10 +91,38 @@ no duplica respuestas.
 
 ## Paso 5 — Vercel
 
-1. Importar el repositorio de GitHub.
+1. Importar el repositorio `Pablofls/PPM` desde GitHub.
 2. Framework preset: **Vite**. Build: `npm run build`. Output: `dist`.
-3. Cargar `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` en Environment Variables.
-4. Verificar el despliegue de preview antes de promover a producción.
+   Vercel lo detecta solo; no hay que escribirlo.
+3. Cargar `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` en Environment Variables,
+   marcadas para Production, Preview y Development.
+4. Verificar el despliegue abriendo una ruta profunda, no solo la raíz
+   (por ejemplo `/modulo1/personalidad`), para confirmar el rewrite de abajo.
+
+### Por qué existe `vercel.json`
+
+El panel es una SPA: React Router maneja las rutas en el navegador, y en el
+servidor **solo existe `index.html`**. Sin configuración, al abrir o recargar
+`/modulo1/personalidad` Vercel buscaría un archivo en esa ruta, no lo encontraría
+y devolvería 404.
+
+```json
+{ "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] }
+```
+
+Esto le dice a Vercel que sirva `index.html` para cualquier ruta, y que React
+Router decida qué pantalla mostrar. Los archivos que sí existen en `dist/`
+(el JS, el CSS, el favicon) se sirven antes de aplicar el rewrite, así que no se
+rompen.
+
+Importa porque el profesor va a guardar rutas como marcador y a compartir vistas
+filtradas: todas esas URLs entran directo a una ruta profunda.
+
+### El sitio queda público
+
+Un proyecto de Vercel es accesible para cualquiera que tenga la URL. Hoy no hay
+riesgo porque no hay datos, pero **la autenticación del paso 6 no es opcional
+antes de cargar datos de alumnos**.
 
 ## Paso 6 — Acceso del profesor
 
