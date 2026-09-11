@@ -31,3 +31,7 @@ dist-ssr
 # Exportaciones del Google Sheets: contienen datos personales de alumnos
 *.xlsx
 *.csv
+
+# SQL de importación: contiene datos personales de alumnos.
+# Se regenera con scripts/generar_import.py
+import_sql/

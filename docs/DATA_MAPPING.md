@@ -27,6 +27,26 @@ código de importación.
 | **Idempotencia** | `source_row_key = form_code + ':' + email + ':' + submitted_at`. Reimportar no duplica |
 | **Números** | El Sheets entrega enteros como float (`123456.0`). Los identificadores (matrícula, teléfono, RFC) van a `text`; las métricas a `smallint`/`numeric` |
 
+## El generador
+
+`scripts/generar_import.py` implementa todo lo de este documento y produce el SQL
+listo para pegar en el SQL Editor:
+
+```bash
+python3 scripts/generar_import.py "ruta/al/datos procesados.xlsx" import_sql
+```
+
+**El SQL generado contiene datos personales y no se commitea**: `import_sql/`
+está en `.gitignore`. Lo que se versiona es el generador, que es código revisable
+y reejecutable.
+
+Al terminar imprime un reporte con cada transformación no trivial que aplicó y
+cuántas filas afectó.
+
+La importación es **idempotente**: cada entrega lleva un `source_row_key` único y
+todos los `INSERT` usan `ON CONFLICT DO NOTHING`. Reejecutar no duplica nada;
+está probado.
+
 ## Orden de importación
 
 1. `forms` — ya viene sembrado en `0007_seed_forms.sql`
@@ -183,9 +203,13 @@ gana la columna `identidad` y la fila se marca en el log de importación.
 | Valor en el Sheets | Qué es | Acción |
 |---|---|---|
 | `CAROLINA DEL SUR` | El estilo DISC **`SC`** que el traductor automático del formulario convirtió a "South Carolina" → "Carolina del Sur" | Corregir a `SC` y marcar `needs_review = true` |
-| `YA HABIA CONTESTADO` | El alumno escribió texto en vez de su resultado | `disc_style = NULL`, `needs_review = true`, conservar el texto en `explanation` |
-| `Formalista` / `Formalists` | Categoría, no estilo, capturada en la columna equivocada | Mover a `disc_category`, `needs_review = true` |
-| `IS`, `Csi` en `discCategoria` | Estilo capturado en la columna de categoría | Mover a `disc_style`, `needs_review = true` |
+| `YA HABIA CONTESTADO`, `UNDERSTANDING DISC` | El alumno escribió texto en vez de su resultado | `disc_style = NULL`, `needs_review = true` |
+| `DISC` | Es el nombre de la prueba, no un resultado. Pasa el `CHECK` pero no significa nada | `disc_style = NULL`, `needs_review = true` |
+| `Fact-finders` | Categoría, no estilo, capturada en la columna equivocada | Mover a `disc_category`, `needs_review = true` |
+| `IS`, `Csi`, `Ci`, `Id`, `c` en `discCategoria` | Estilo capturado en la columna de categoría | Mover a `disc_style`, `needs_review = true` |
+| `coaches`, `COACHES`, `Formalista`, `Formalistas`, `Formalist`, `asessors`, `Harmonizer`, `Producer`, `Explorer` | La misma categoría escrita de formas distintas | Normalizar a la forma canónica |
+
+En total, **9 de las 43 respuestas** quedan con `needs_review = true`.
 
 Ninguna fila se descarta: todo lo dudoso entra con `needs_review = true` y la
 pantalla 1.3 lo muestra con una marca para que el profesor lo revise.
@@ -221,6 +245,22 @@ pantalla 1.3 lo muestra con una marca para que el profesor lo revise.
 **Escala** (`skill_level`), de menor a mayor: `Novato` → `novato`,
 `Principiante` → `principiante`, `Intermedio` → `intermedio`,
 `Avanzado` → `avanzado`, `Experto` → `experto`.
+
+#### Tres problemas en esta hoja que rompen el enum
+
+Sobre 1452 celdas de habilidad, **39 de los 44 alumnos** traen al menos una celda
+que el enum rechazaría tal cual:
+
+| Problema | Celdas | Regla aplicada |
+|---|---|---|
+| Nivel **en inglés** (el formulario existe en dos idiomas) | 247 | `Novice`→`novato`, `Beginner`→`principiante`, `Intermediate`→`intermedio`, `Advanced`→`avanzado`, `Expert`→`experto` |
+| Typo **`Esperto`** | 42 | → `experto` |
+| **Varios niveles** marcados (`Avanzado, Experto`) | 17 | se toma el **más alto** |
+
+> Lo de los varios niveles es una interpretación: el formulario permitió marcar
+> más de una casilla, y se asume que quien marcó «Intermedio, Avanzado» alcanza
+> el avanzado. Si el profesor prefiere otro criterio, se cambia en
+> `scripts/generar_import.py` y se vuelve a importar.
 
 > El orden de la escala importa para las pantallas. `Novato` es el nivel más bajo
 > y `Experto` el más alto; el orden del enum en Postgres respeta esa secuencia, así
