@@ -38,7 +38,7 @@ export function DataTable<T>({
   onRowClick,
 }: DataTableProps<T>) {
   return (
-    <div className="overflow-hidden rounded border border-ink-200 bg-white">
+    <div className="overflow-hidden rounded-xl border border-ink-200 bg-white shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
@@ -48,7 +48,7 @@ export function DataTable<T>({
                   key={column.key}
                   scope="col"
                   className={[
-                    'px-4 py-2.5 text-left text-[11px] font-medium tracking-widest text-ink-500 uppercase whitespace-nowrap',
+                    'px-4 py-2.5 text-left text-[11px] font-semibold tracking-wider text-ink-500 uppercase whitespace-nowrap',
                     column.width ?? '',
                     column.sticky
                       ? 'sticky left-0 z-10 bg-ink-50 after:absolute after:top-0 after:right-0 after:h-full after:w-px after:bg-ink-200'
@@ -78,7 +78,7 @@ export function DataTable<T>({
                   <td
                     key={column.key}
                     className={[
-                      'px-4 py-2.5 align-top text-ink-700',
+                      'px-4 py-3 align-top text-ink-700',
                       // La columna fija repite el fondo de la fila: si no, el
                       // hover se le ve por debajo.
                       column.sticky
@@ -136,7 +136,7 @@ function TableEmptyState({
   if (!isConnected) {
     return (
       <div className="mx-auto max-w-md text-center">
-        <p className="font-serif text-base text-ink-800">Fuente de datos sin conectar</p>
+        <p className="text-base font-semibold tracking-tight text-ink-900">Fuente de datos sin conectar</p>
         <p className="mt-1 text-sm text-ink-500">Faltan las variables de entorno de Supabase.</p>
       </div>
     )
@@ -144,7 +144,7 @@ function TableEmptyState({
 
   return (
     <div className="mx-auto max-w-md text-center">
-      <p className="font-serif text-base text-ink-800">Sin respuestas todavía</p>
+      <p className="text-base font-semibold tracking-tight text-ink-900">Sin respuestas todavía</p>
       <p className="mt-1 text-sm text-ink-500">
         No hay respuestas que coincidan con estos filtros.
       </p>

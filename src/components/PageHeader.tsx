@@ -12,10 +12,6 @@ interface PageHeaderProps {
  * Encabezado de las pantallas de formulario: título, contadores y las acciones
  * "Procesar datos" y "Exportar datos".
  *
- * Los contadores van en una sola línea separados por filetes, no en tres
- * tarjetas: son tres números del mismo formulario y leerlos juntos es lo que
- * dice cómo va el grupo.
- *
  * Las acciones existen en la plataforma actual en Apps Script; se conservan
  * deshabilitadas para no dar a entender que se eliminaron.
  */
@@ -27,14 +23,14 @@ export function PageHeader({
   isConnected,
 }: PageHeaderProps) {
   return (
-    <header className="mb-7 border-b border-ink-200 pb-6">
-      <div className="flex flex-wrap items-end justify-between gap-6">
+    <header className="mb-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-2xl">
-          <p className="tnum text-xs font-medium tracking-widest text-ink-400 uppercase">
-            Formulario {label}
-          </p>
-          <h1 className="mt-2 font-serif text-3xl leading-tight text-ink-950">{title}</h1>
-          <p className="mt-2 text-sm text-ink-500">{subtitle}</p>
+          <h1 className="flex items-baseline gap-2.5 text-2xl font-semibold tracking-tight text-ink-950">
+            <span className="tnum text-ink-300">{label}</span>
+            {title}
+          </h1>
+          <p className="mt-1.5 text-sm text-ink-500">{subtitle}</p>
         </div>
 
         <div className="flex gap-2">
@@ -43,11 +39,16 @@ export function PageHeader({
         </div>
       </div>
 
-      <dl className="mt-6 flex flex-wrap items-baseline gap-x-10 gap-y-3">
+      <dl className="mt-5 grid gap-3 sm:grid-cols-3 lg:max-w-2xl">
         <Stat label="Respuestas" value={summary?.responses} isConnected={isConnected} />
         <Stat label="Sin responder" value={summary?.pending} isConnected={isConnected} />
-        {/* Es el único contador que pide algo del profesor: va subrayado. */}
-        <Stat label="Entregas tarde" value={summary?.late} isConnected={isConnected} highlight />
+        {/* Es el único contador que pide algo del profesor: lleva el acento. */}
+        <Stat
+          label="Entregas tarde"
+          value={summary?.late}
+          isConnected={isConnected}
+          highlight
+        />
       </dl>
     </header>
   )
@@ -62,22 +63,25 @@ function Stat({
   label: string
   value: number | null | undefined
   isConnected: boolean
-  /** Marca el número en amarillo cuando hay algo que atender. */
+  /** Marca el contador cuando hay algo que atender. */
   highlight?: boolean
 }) {
   const hasValue = isConnected && value != null
+  const marked = highlight && hasValue && value > 0
+
   return (
-    <div className="flex items-baseline gap-2.5 border-l border-ink-200 pl-4 first:border-l-0 first:pl-0">
-      <dd
-        className={`tnum font-serif text-2xl text-ink-900 ${
-          highlight && hasValue && value > 0
-            ? 'bg-accent-300 px-1.5 decoration-clone'
-            : ''
-        }`}
-      >
+    <div
+      className={`rounded-xl border bg-white px-4 py-3 shadow-sm ${
+        marked ? 'border-accent-400' : 'border-ink-200'
+      }`}
+    >
+      <dt className="flex items-center gap-1.5 text-xs font-medium text-ink-500">
+        {marked && <span className="size-1.5 rounded-full bg-accent-500" />}
+        {label}
+      </dt>
+      <dd className="tnum mt-1 text-2xl font-semibold tracking-tight text-ink-950">
         {hasValue ? value : <span className="text-ink-300">—</span>}
       </dd>
-      <dt className="text-sm text-ink-500">{label}</dt>
     </div>
   )
 }
@@ -88,7 +92,7 @@ function ActionButton({ children }: { children: string }) {
       type="button"
       disabled
       title="Disponible cuando se conecte la base de datos"
-      className="cursor-not-allowed rounded border border-ink-200 px-3 py-1.5 text-sm text-ink-400"
+      className="cursor-not-allowed rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm font-medium text-ink-400 shadow-sm"
     >
       {children}
     </button>

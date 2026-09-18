@@ -12,9 +12,9 @@ export function PendingPage() {
 
   return (
     <div className="flex min-h-full items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md rounded border border-ink-200 bg-white">
+      <div className="w-full max-w-md rounded-xl border border-ink-200 bg-white shadow-sm">
         <div className="px-8 py-8">
-          <h1 className="font-serif text-2xl text-ink-950">
+          <h1 className="text-xl font-semibold tracking-tight text-ink-950">
             {isDeactivated
               ? "Cuenta desactivada"
               : "Cuenta pendiente de autorización"}
@@ -36,7 +36,7 @@ export function PendingPage() {
           <button
             type="button"
             onClick={signOut}
-            className="mt-6 rounded border border-ink-200 px-4 py-2 text-sm text-ink-700 hover:bg-ink-50"
+            className="mt-6 rounded-lg border border-ink-200 px-4 py-2 text-sm font-medium text-ink-700 shadow-sm hover:bg-ink-50"
           >
             Cerrar sesión
           </button>

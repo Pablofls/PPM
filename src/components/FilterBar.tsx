@@ -91,7 +91,7 @@ export function FilterBar({ filters, onChange, onClear, children }: FilterBarPro
           value={filters.search}
           onChange={(event) => onChange('search', event.target.value)}
           placeholder="Buscar por correo institucional…"
-          className="w-72 rounded border border-ink-200 bg-white px-3 py-1.5 text-sm text-ink-900 placeholder:text-ink-400 focus:border-ink-400 focus:outline-none"
+          className="w-72 rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 shadow-sm placeholder:text-ink-400 focus:border-ink-400 focus:ring-2 focus:ring-ink-900/5 focus:outline-none"
         />
       </div>
 
@@ -132,7 +132,7 @@ export function FilterBar({ filters, onChange, onClear, children }: FilterBarPro
         <button
           type="button"
           onClick={onClear}
-          className="ml-1 text-sm text-ink-500 underline-offset-4 hover:text-ink-900 hover:underline"
+          className="ml-1 rounded-lg px-2.5 py-2 text-sm font-medium text-ink-500 hover:bg-ink-100 hover:text-ink-900"
         >
           Limpiar
         </button>
@@ -157,10 +157,10 @@ export function Select({
       aria-label={label}
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className={`rounded border px-3 py-1.5 text-sm focus:border-ink-400 focus:outline-none ${
+      className={`rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-ink-400 focus:ring-2 focus:ring-ink-900/5 focus:outline-none ${
         // Un filtro puesto cambia de fondo: con seis selects iguales, el color
         // es lo que avisa que la tabla no muestra todo.
-        value ? 'border-ink-300 bg-ink-100 font-medium text-ink-900' : 'border-ink-200 bg-white text-ink-500'
+        value ? 'border-ink-900 bg-ink-900 font-medium text-white' : 'border-ink-200 bg-white text-ink-500'
       }`}
     >
       <option value="">{label}</option>

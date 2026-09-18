@@ -52,11 +52,11 @@ export function StudentPanel<T extends BaseRow>({
       <aside
         role="dialog"
         aria-label="Detalle del alumno"
-        className="relative flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-ink-200 bg-white"
+        className="relative flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-ink-200 bg-white shadow-2xl"
       >
         <div className="flex items-start justify-between gap-3 border-b border-ink-200 px-6 py-5">
           <div className="min-w-0">
-            <h2 className="truncate font-serif text-xl text-ink-950">
+            <h2 className="truncate text-lg font-semibold tracking-tight text-ink-950">
               {row.fullName ?? row.institutionalEmail}
             </h2>
             <p className="mt-1 truncate text-sm text-ink-500">{row.institutionalEmail}</p>
@@ -65,7 +65,7 @@ export function StudentPanel<T extends BaseRow>({
             type="button"
             onClick={onClose}
             aria-label="Cerrar"
-            className="rounded p-1.5 text-ink-400 hover:bg-ink-50 hover:text-ink-800"
+            className="rounded-lg p-1.5 text-ink-400 hover:bg-ink-100 hover:text-ink-900"
           >
             ✕
           </button>
@@ -94,7 +94,7 @@ export function StudentPanel<T extends BaseRow>({
 
         {children && (
           <div className="border-b border-ink-200 px-6 py-5">
-            <h3 className="mb-3 text-[11px] font-medium tracking-widest text-ink-400 uppercase">
+            <h3 className="mb-3 text-[11px] font-semibold tracking-wider text-ink-500 uppercase">
               {form.label} {form.name}
             </h3>
             {children(row)}
@@ -102,7 +102,7 @@ export function StudentPanel<T extends BaseRow>({
         )}
 
         <div className="px-6 py-5">
-          <h3 className="mb-3 text-[11px] font-medium tracking-widest text-ink-400 uppercase">
+          <h3 className="mb-3 text-[11px] font-semibold tracking-wider text-ink-500 uppercase">
             Historial de respuestas
           </h3>
           {historyError ? (

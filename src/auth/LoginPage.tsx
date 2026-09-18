@@ -27,7 +27,7 @@ export function LoginPage() {
     <div className="flex min-h-full items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="mb-8">
-          <h1 className="font-serif text-3xl leading-tight text-ink-950">
+          <h1 className="text-3xl font-semibold tracking-tight text-ink-950">
             Prácticas Profesionales
           </h1>
           <p className="mt-2 text-sm text-ink-500">
@@ -36,7 +36,7 @@ export function LoginPage() {
         </div>
 
         {!isSupabaseConfigured && (
-          <p className="mb-4 border-l-2 border-accent-400 bg-accent-100 px-4 py-3 text-sm text-ink-700">
+          <p className="mb-4 rounded-lg border-l-4 border-accent-400 bg-accent-100 px-4 py-3 text-sm text-ink-700">
             Faltan las variables de entorno <code>VITE_SUPABASE_URL</code> y{' '}
             <code>VITE_SUPABASE_ANON_KEY</code>. Sin ellas no se puede iniciar
             sesión.
@@ -45,7 +45,7 @@ export function LoginPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="rounded border border-ink-200 bg-white p-6"
+          className="rounded-xl border border-ink-200 bg-white p-6 shadow-sm"
         >
           <label className="block">
             <span className="text-sm text-ink-700">
@@ -58,7 +58,7 @@ export function LoginPage() {
               required
               autoComplete="email"
               autoFocus
-              className="mt-1.5 w-full rounded border border-ink-200 px-3 py-2 text-sm focus:border-ink-400 focus:outline-none"
+              className="mt-1.5 w-full rounded-lg border border-ink-200 px-3 py-2 text-sm focus:border-ink-400 focus:ring-2 focus:ring-ink-900/5 focus:outline-none"
             />
           </label>
 
@@ -70,12 +70,12 @@ export function LoginPage() {
               onChange={(event) => setPassword(event.target.value)}
               required
               autoComplete="current-password"
-              className="mt-1.5 w-full rounded border border-ink-200 px-3 py-2 text-sm focus:border-ink-400 focus:outline-none"
+              className="mt-1.5 w-full rounded-lg border border-ink-200 px-3 py-2 text-sm focus:border-ink-400 focus:ring-2 focus:ring-ink-900/5 focus:outline-none"
             />
           </label>
 
           {error && (
-            <p role="alert" className="mt-4 border-l-2 border-red-400 bg-red-50 px-3 py-2 text-sm text-red-800">
+            <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">
               {error}
             </p>
           )}
@@ -83,7 +83,7 @@ export function LoginPage() {
           <button
             type="submit"
             disabled={submitting || !isSupabaseConfigured}
-            className="mt-6 w-full rounded bg-accent-400 px-4 py-2.5 text-sm font-medium text-ink-900 transition-colors hover:bg-accent-500 focus:outline-2 focus:outline-offset-2 focus:outline-ink-900 disabled:cursor-not-allowed disabled:bg-ink-100 disabled:text-ink-400"
+            className="mt-6 w-full rounded-lg bg-accent-400 px-4 py-2.5 text-sm font-medium text-ink-900 transition-colors hover:bg-accent-500 focus:outline-2 focus:outline-offset-2 focus:outline-ink-900 disabled:cursor-not-allowed disabled:bg-ink-100 disabled:text-ink-400"
           >
             {submitting ? 'Entrando…' : 'Entrar'}
           </button>

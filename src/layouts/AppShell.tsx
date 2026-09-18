@@ -9,8 +9,8 @@ import { FORMS, UPCOMING_SECTIONS } from '../lib/catalog'
  * arriba y contenido al centro.
  *
  * El rail es oscuro y el contenido claro, como en las plataformas académicas:
- * la navegación deja de competir con la tabla, que es lo que el profesor
- * viene a leer.
+ * la navegación deja de competir con la tabla, que es lo que el profesor viene
+ * a leer.
  */
 export function AppShell() {
   const { profile, signOut } = useAuth()
@@ -21,19 +21,15 @@ export function AppShell() {
 
   return (
     <div className="flex min-h-full">
-      <aside className="flex w-64 shrink-0 flex-col bg-ink-900">
-        <div className="px-6 py-6">
-          <p className="font-serif text-lg leading-tight text-white">
-            Prácticas
-            <br />
-            Profesionales
+      <aside className="flex w-64 shrink-0 flex-col bg-ink-950">
+        <div className="px-5 py-5">
+          <p className="text-[15px] leading-tight font-semibold tracking-tight text-white">
+            Prácticas Profesionales
           </p>
-          <p className="mt-2 text-[11px] tracking-widest text-ink-400 uppercase">
-            Panel del profesor
-          </p>
+          <p className="mt-1 text-xs text-ink-400">Panel del profesor</p>
         </div>
 
-        <nav className="flex-1 overflow-y-auto pb-6">
+        <nav className="flex-1 overflow-y-auto px-2 pb-6">
           <NavGroup title="Módulo 1 · Conócete">
             {module1.map((form) => (
               <NavItem key={form.code} to={form.path} label={form.label} name={form.name} />
@@ -56,7 +52,7 @@ export function AppShell() {
               <li key={section}>
                 <span
                   title="Fuera del alcance de esta iteración"
-                  className="block cursor-not-allowed py-1.5 pr-4 pl-11 text-sm text-ink-500"
+                  className="block cursor-not-allowed rounded-lg px-3 py-2 text-sm text-ink-600"
                 >
                   {section}
                 </span>
@@ -66,35 +62,35 @@ export function AppShell() {
         </nav>
 
         {!repository.isConnected && (
-          <p className="border-t border-white/10 px-6 py-4 text-xs leading-relaxed text-ink-400">
+          <p className="border-t border-white/10 px-5 py-4 text-xs leading-relaxed text-ink-400">
             Sin datos conectados. Las pantallas aún no consultan la base.
           </p>
         )}
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between gap-6 border-b border-ink-200 bg-white px-10 py-3">
-          <p className="truncate text-sm text-ink-500">
+        <header className="sticky top-0 z-20 flex items-center justify-between gap-6 border-b border-ink-200 bg-white/90 px-8 py-3 backdrop-blur">
+          <p className="truncate text-sm font-medium text-ink-600">
             {currentForm
               ? `Módulo ${currentForm.moduleCode} · ${currentForm.label} ${currentForm.name}`
               : 'Panel de Prácticas Profesionales'}
           </p>
 
-          <div className="flex shrink-0 items-center gap-4 text-sm">
+          <div className="flex shrink-0 items-center gap-3 text-sm">
             <span className="max-w-56 truncate text-ink-700" title={profile?.email}>
               {profile?.full_name || profile?.email}
             </span>
             <button
               type="button"
               onClick={signOut}
-              className="text-ink-500 underline-offset-4 hover:text-ink-900 hover:underline"
+              className="rounded-lg px-2.5 py-1.5 font-medium text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-900"
             >
               Cerrar sesión
             </button>
           </div>
         </header>
 
-        <main className="flex-1 overflow-x-hidden px-10 py-8">
+        <main className="flex-1 overflow-x-hidden px-8 py-7">
           <Outlet />
         </main>
       </div>
@@ -104,11 +100,11 @@ export function AppShell() {
 
 function NavGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="mb-7">
-      <p className="mb-2 px-6 text-[11px] font-medium tracking-widest text-ink-400 uppercase">
+    <div className="mb-6">
+      <p className="mb-1.5 px-3 text-[11px] font-semibold tracking-widest text-ink-500 uppercase">
         {title}
       </p>
-      <ul>{children}</ul>
+      <ul className="space-y-0.5">{children}</ul>
     </div>
   )
 }
@@ -117,22 +113,35 @@ function NavItem({ to, label, name }: { to: string; label: string; name: string 
   return (
     <li>
       {/*
-        La marca de la pantalla activa es una barra amarilla a ras del borde del
-        rail, no una pastilla: el menú se lee como una lista continua y el
-        amarillo aparece una sola vez en pantalla.
+        La pantalla activa se marca con la barra amarilla y el fondo claro; el
+        resto del rail queda en un solo tono para que solo haya un punto de
+        color en toda la pantalla.
       */}
       <NavLink
         to={to}
         className={({ isActive }) =>
-          `flex items-baseline gap-3 border-l-3 py-1.5 pr-4 pl-5 text-sm transition-colors ${
+          `relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
             isActive
-              ? 'border-accent-400 bg-white/5 text-white'
-              : 'border-transparent text-ink-300 hover:bg-white/5 hover:text-white'
+              ? 'bg-white/10 font-semibold text-white'
+              : 'font-medium text-ink-300 hover:bg-white/5 hover:text-white'
           }`
         }
       >
-        <span className="tnum w-6 shrink-0 text-xs text-ink-500">{label}</span>
-        <span className="truncate">{name}</span>
+        {({ isActive }) => (
+          <>
+            {isActive && (
+              <span className="absolute top-1 bottom-1 -left-2 w-1 rounded-r-full bg-accent-400" />
+            )}
+            <span
+              className={`tnum w-6 shrink-0 text-xs ${
+                isActive ? 'text-accent-400' : 'text-ink-500'
+              }`}
+            >
+              {label}
+            </span>
+            <span className="truncate">{name}</span>
+          </>
+        )}
       </NavLink>
     </li>
   )
