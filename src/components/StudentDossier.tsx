@@ -10,7 +10,6 @@ import type {
 } from '../data/types'
 import type { FormCode, FormMeta } from '../lib/catalog'
 import {
-  capitalize,
   formatDate,
   formatGender,
   formatSemester,
@@ -18,7 +17,9 @@ import {
   formatWeekRange,
   toHref,
 } from '../lib/format'
+import { HOLLAND_LABELS } from '../lib/catalog'
 import { Badge, Dash } from './Badge'
+import { HollandRadar } from './HollandRadar'
 import { SubmissionTimeline } from './SubmissionTimeline'
 
 interface StudentDossierProps<T extends BaseRow> {
@@ -98,10 +99,20 @@ export function StudentDossier<T extends BaseRow>({
               <p className="text-sm text-red-800">{error}</p>
             ) : (
               <>
-                <Identity dossier={dossier} row={row} />
-                <Interests dossier={dossier} />
-                <Personality dossier={dossier} />
-                <Values dossier={dossier} />
+                {/*
+                  Dos columnas en pantalla ancha, como la tarjeta anterior: el
+                  perfil a la izquierda y el radar a la derecha. En móvil se
+                  apilan, que es lo que la versión de Apps Script no hacía.
+                */}
+                <div className="grid gap-7 lg:grid-cols-[1fr_auto]">
+                  <div className="min-w-0 space-y-6">
+                    <Identity dossier={dossier} row={row} />
+                    <Personality dossier={dossier} />
+                    <Values dossier={dossier} />
+                  </div>
+                  <Interests dossier={dossier} />
+                </div>
+
                 <Internship dossier={dossier} />
                 <JobSearchLogs rows={jobSearch} />
                 <InternshipLogs rows={internship} />
@@ -159,23 +170,30 @@ function Identity<T extends BaseRow>({
         )}
       </div>
 
-      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
-        <Field label="Fecha nac." value={formatDate(dossier?.birthDate ?? null)} />
-        <Field label="Edad" value={age(dossier?.birthDate ?? null)} />
-        <Field label="Carrera" value={row.degreeCode} />
-        <Field label="Semestre" value={formatSemester(row.semester)} />
-        <Field label="Período" value={row.periodCode} />
-        <Field label="Frecuencia" value={formatSessionDay(row.sessionDay)} />
-        <Field label="País" value={dossier?.birthCountry ?? null} />
-        <Field label="Sexo" value={formatGender(dossier?.gender ?? null)} />
+      <dl className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2">
+        <InfoCard label="Fecha nac." value={formatDate(dossier?.birthDate ?? null)} />
+        <InfoCard label="Edad" value={age(dossier?.birthDate ?? null)} />
+        <InfoCard label="Carrera" value={row.degreeCode} />
+        <InfoCard label="Semestre" value={formatSemester(row.semester)} />
+        <InfoCard label="Período" value={row.periodCode} />
+        <InfoCard label="País" value={dossier?.birthCountry ?? null} />
+        <InfoCard label="Sexo" value={formatGender(dossier?.gender ?? null)} />
+        <InfoCard label="Frecuencia" value={formatSessionDay(row.sessionDay)} />
       </dl>
     </section>
   )
 }
 
-/** I — Intereses Profesionales (Holland). */
+/** I — Intereses Profesionales (Holland): radar y puntuaciones. */
 function Interests({ dossier }: { dossier: Dossier | null }) {
   if (!dossier?.hollandTypes.length) return null
+
+  // El formulario solo guarda los tres intereses más altos. Los otros tres ejes
+  // del radar van en cero: es la información que existe, no un dato inventado.
+  const scores: Record<string, number> = {}
+  for (const interes of dossier.hollandTypes) {
+    if (interes.score !== null) scores[interes.type] = interes.score
+  }
 
   return (
     <Section
@@ -183,20 +201,27 @@ function Interests({ dossier }: { dossier: Dossier | null }) {
       hint="Holland Codes"
       badge={dossier.hollandCode}
     >
-      <div className="flex flex-wrap gap-2">
-        {dossier.hollandTypes.map((interes, index) => (
-          <div
-            key={`${interes.type}-${index}`}
-            className="rounded-lg border border-ink-200 px-3 py-2"
-          >
-            <p className="text-sm font-medium text-ink-900">
-              {capitalize(interes.type)}
-            </p>
-            <p className="tnum mt-0.5 text-xs text-ink-500">
-              {interes.score === null ? '—' : `${interes.score} puntos`}
-            </p>
-          </div>
-        ))}
+      <div className="lg:w-72">
+        <HollandRadar scores={scores} />
+
+        <div className="mt-3 flex flex-wrap justify-center gap-2">
+          {dossier.hollandTypes.map((interes, index) => (
+            <div
+              key={`${interes.type}-${index}`}
+              className="min-w-16 rounded-lg border border-ink-200 bg-ink-50 px-3 py-2 text-center"
+            >
+              <p className="text-lg leading-none font-bold text-ink-900">
+                {interes.type}
+              </p>
+              <p className="tnum mt-1 text-sm font-semibold text-ink-700">
+                {interes.score ?? '—'}
+              </p>
+              <p className="mt-0.5 text-[10px] text-ink-500">
+                {HOLLAND_LABELS[interes.type] ?? interes.type}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
     </Section>
   )
@@ -211,7 +236,7 @@ function Personality({ dossier }: { dossier: Dossier | null }) {
   const report = toHref(dossier.mbtiReportUrl)
 
   return (
-    <div className="grid gap-6 sm:grid-cols-2">
+    <div className="space-y-6">
       {hasMbti && (
         <Section title="II — Personalidad" hint="Myers-Briggs">
           <div className="flex flex-wrap items-center gap-2">
@@ -282,11 +307,32 @@ function Internship({ dossier }: { dossier: Dossier | null }) {
 
   return (
     <Section title="V — Datos de Prácticas Profesionales">
-      <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-        {presentes.map(([etiqueta, valor]) => (
-          <Field key={etiqueta} label={etiqueta} value={valor} />
-        ))}
-      </dl>
+      <div className="overflow-hidden rounded-lg border border-ink-200">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr>
+              <th className="w-40 border-b border-ink-200 bg-ink-50 px-3 py-2 text-left text-[11px] font-semibold tracking-wider text-ink-500 uppercase">
+                Campo
+              </th>
+              <th className="border-b border-ink-200 bg-ink-50 px-3 py-2 text-left text-[11px] font-semibold tracking-wider text-ink-500 uppercase">
+                Información
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {presentes.map(([etiqueta, valor]) => (
+              <tr key={etiqueta} className="align-top">
+                <td className="border-b border-ink-100 px-3 py-2 text-[11px] font-semibold tracking-wider whitespace-nowrap text-ink-500 uppercase">
+                  {etiqueta}
+                </td>
+                <td className="border-b border-ink-100 px-3 py-2 break-words text-ink-800">
+                  {valor}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </Section>
   )
 }
@@ -438,11 +484,16 @@ function Section({
   )
 }
 
-function Field({ label, value }: { label: string; value: string | null }) {
+/** Dato del alumno en recuadro, como en la tarjeta de la plataforma anterior. */
+function InfoCard({ label, value }: { label: string; value: string | null }) {
   return (
-    <div>
-      <dt className="text-xs text-ink-400">{label}</dt>
-      <dd className="mt-0.5 text-sm break-words text-ink-800">{value || <Dash />}</dd>
+    <div className="rounded-lg border border-ink-100 bg-ink-50 px-3 py-2">
+      <dt className="text-[10px] font-semibold tracking-wider text-ink-400 uppercase">
+        {label}
+      </dt>
+      <dd className="mt-0.5 truncate text-sm font-medium text-ink-900" title={value ?? ''}>
+        {value || <Dash />}
+      </dd>
     </div>
   )
 }

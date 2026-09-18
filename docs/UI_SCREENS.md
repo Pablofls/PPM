@@ -88,8 +88,26 @@ clic; aquí la arma `v_student_dossier` en una sola consulta.
 **Una sección sin datos no se dibuja.** Un alumno que no contestó el 1.2 no ve un
 recuadro vacío de Personalidad; ve un expediente más corto.
 
-**Sin radar de Holland.** La plataforma anterior lo dibujaba con Chart.js. Los
-tres intereses se muestran con su puntuación; la gráfica se decidirá después.
+#### El radar de Holland
+
+`HollandRadar` dibuja el hexágono RIASEC en **SVG**, sin librería de gráficas.
+Son seis ejes fijos y una sola serie: unas coordenadas polares. Chart.js pesa
+unos 70 KB comprimido; el radar completo agregó **2.5 KB** al bundle. Es el mismo
+criterio por el que la tabla de datos es propia y no TanStack.
+
+Dos diferencias con la versión de Apps Script:
+
+- **Los ejes van en orden RIASEC fijo.** La anterior los ordenaba por puntuación,
+  así que cada alumno tenía el radar en un orden distinto y dos siluetas iguales
+  no significaban lo mismo. Con el orden fijo, la forma sí se puede comparar.
+- **La escala nunca baja de 12.** Un alumno con puntuaciones de 7/6/4 tendría el
+  polígono pegado al borde y parecería que va mejor de lo que va.
+
+El formulario solo guarda los tres intereses más altos, así que los otros tres
+ejes valen cero. Es la información que existe, no un dato inventado.
+
+Verificado con seis perfiles, incluidos el de puntuaciones más bajas (7/6/4), el
+máximo real (16) y el vacío.
 
 #### Historial de respuestas
 
@@ -279,5 +297,6 @@ de horas: así viene del formulario.
 | Una fila por alumno, historial en el expediente | La tabla se mantiene legible sin perder los reenvíos |
 | El expediente es cruzado, no por formulario | La pregunta del profesor es «¿cómo va este alumno?», no «¿quién contestó el 1.2?» |
 | Botones *Procesar* y *Exportar* presentes pero deshabilitados | Existen en la plataforma actual; ocultarlos daría a entender que se eliminaron |
-| Sin gráficas en esta iteración | Primero hay que validar que los datos y columnas son los correctos |
+| El radar en SVG propio, sin Chart.js | Seis ejes y una serie no justifican 70 KB de librería |
+| Sin gráficas en las pantallas de tabla | Ahí lo que se valida son los datos y las columnas |
 | Secciones futuras visibles y deshabilitadas | Comunican el alcance completo sin prometer funcionalidad |
