@@ -22,11 +22,14 @@ import type {
   FormSummary,
   HollandRow,
   IndeedRow,
+  InternshipLogRow,
   InternshipRow,
+  JobSearchLogRow,
   MbtiRow,
   PanelFilters,
   ReflectionRow,
   SkillsRow,
+  StudentDossier,
   SubmissionHistoryEntry,
   ValuesRow,
 } from './types'
@@ -67,6 +70,20 @@ export interface PanelRepository {
     studentId: string,
     formCode: FormCode,
   ): Promise<SubmissionHistoryEntry[]>
+
+  /**
+   * Expediente del alumno: todo lo que se sabe de él, sin importar desde qué
+   * pantalla se abrió. `null` si el alumno no existe.
+   */
+  getStudentDossier(studentId: string): Promise<StudentDossier | null>
+
+  /**
+   * Las dos bitácoras semanales, de la semana más reciente a la más antigua.
+   *
+   * No pasan por `latest_submissions`: el punto de una bitácora es verlas todas.
+   */
+  getJobSearchLogs(studentId: string): Promise<JobSearchLogRow[]>
+  getInternshipLogs(studentId: string): Promise<InternshipLogRow[]>
 }
 
 /** Respaldo sin base de datos, para cuando faltan las variables de entorno. */
@@ -107,6 +124,15 @@ export const emptyRepository: PanelRepository = {
     return []
   },
   async getSubmissionHistory() {
+    return []
+  },
+  async getStudentDossier() {
+    return null
+  },
+  async getJobSearchLogs() {
+    return []
+  },
+  async getInternshipLogs() {
     return []
   },
 }

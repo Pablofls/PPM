@@ -165,7 +165,8 @@ export const REFLECTION_FORMS = ['form2_1', 'form2_2', 'form2_4', 'form2_5'] as 
 
 /** Secciones del proyecto que todavía no tienen pantalla. Ver regla «Alcance de las pantallas» de CLAUDE.md. */
 export const UPCOMING_SECTIONS = [
-  'Bitácoras semanales',
+  // Las bitácoras semanales salieron de esta lista: ya existen, pero dentro del
+  // expediente del alumno, no como pantalla propia del rail.
   'Grupos',
   'Estado de Entregas',
   'Alumnos Registrados',

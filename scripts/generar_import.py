@@ -10,8 +10,9 @@ Lo que sí se versiona es este generador: es revisable, reejecutable y deja clar
 qué transformación se le aplicó a cada columna.
 
 Especificación de las transformaciones: docs/DATA_MAPPING.md
-Alcance: los 11 formularios form1_0 … form2_7. Las hojas `alumnos` y
-`fechas_entrega` se ignoran a propósito.
+Alcance: los 11 formularios form1_0 … form2_7, los dos apéndices y las dos
+bitácoras semanales. Las hojas `alumnos` y `fechas_entrega` se ignoran a
+propósito.
 
 La importación es idempotente: cada entrega lleva un `source_row_key` único y
 todos los INSERT usan ON CONFLICT DO NOTHING. Volver a correr el SQL no duplica.
@@ -23,7 +24,7 @@ import re
 import sys
 import unicodedata
 from collections import Counter, defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, time
 from pathlib import Path
 
 import openpyxl
@@ -403,6 +404,53 @@ def horas(valor) -> int | None:
     return n if 0 <= n <= 2000 else None
 
 
+def horas_semanales(valor) -> float | None:
+    """
+    'horas' de form_practicas: la columna más sucia del Sheets. Llega en cuatro
+    tipos distintos porque Excel reinterpretó parte de los números como fechas.
+
+    Ver docs/DATA_MAPPING.md#bitácoras-semanales para el desglose.
+    """
+    if valor is None:
+        return None
+
+    if isinstance(valor, (datetime, date)):
+        solo = valor.date() if isinstance(valor, datetime) else valor
+        if solo.year == 1900:
+            # Excel convirtió el número en fecha: el serial ES el número de horas.
+            # El epoch aquí es 1899-12-31 y no 1899-12-30 como en anio(): antes
+            # del 1900-03-01 el 29 de febrero fantasma de Excel todavía no
+            # desplaza la cuenta.
+            serial = (solo - date(1899, 12, 31)).days
+            anotar('horas mal convertidas por Excel', f'{solo} -> {serial}')
+            return float(serial)
+        # Una fecha moderna en el campo de horas es captura del alumno, no un
+        # serial: 2026-05-25 como serial serían 46167 horas.
+        anotar('horas capturadas como fecha (se descartan)', str(solo))
+        return None
+
+    if isinstance(valor, time):
+        anotar('horas capturadas como hora del día (se descartan)', str(valor))
+        return None
+
+    if isinstance(valor, (int, float)):
+        n = float(valor)
+        if 0 <= n <= 500:
+            return n
+        anotar('horas fuera de rango (se descartan)', str(valor)[:40])
+        return None
+
+    # Texto: '31.20'. Se lee como decimal; podría ser '31 horas 20 minutos',
+    # pero no hay forma de saberlo desde el dato.
+    encontrados = re.search(r'\d+(?:[.,]\d+)?', str(valor))
+    if not encontrados:
+        anotar('horas sin número reconocible', str(valor)[:40])
+        return None
+    n = float(encontrados.group().replace(',', '.'))
+    anotar('horas extraídas de texto', f'{str(valor)[:30]} -> {n}')
+    return n if 0 <= n <= 500 else None
+
+
 def anio(valor) -> int | None:
     """'anioEmpresa' llega como número, como texto y a veces como fecha."""
     if valor is None:
@@ -487,18 +535,35 @@ def bloque_values(filas: list[list[str]]) -> str:
     return ',\n  '.join('(' + ', '.join(f) + ')' for f in filas)
 
 
-def sql_entregas(form_code: str, entregas: list[dict]) -> str:
-    """Inserta en `submissions`, ligando por correo institucional."""
+def sql_entregas(form_code: str, entregas: list[dict], con_semana: bool = False) -> str:
+    """
+    Inserta en `submissions`, ligando por correo institucional.
+
+    `con_semana` solo aplica a las bitácoras: son los únicos formularios donde
+    week_start/week_end tienen valor.
+    """
     filas = [
         [lit(e['email']), lit(e['submitted_at']), lit(e['language']), lit(e['key'])]
         for e in entregas
     ]
+    columnas = 'email, submitted_at, language, source_row_key'
+    destino = 'student_id, form_code, submitted_at, language, source_row_key'
+    origen = (f'st.id, {lit(form_code)}, v.submitted_at::timestamptz, '
+              'v.language::language, v.source_row_key')
+
+    if con_semana:
+        for fila, e in zip(filas, entregas):
+            fila.extend([lit(e['week_start']), lit(e['week_end'])])
+        columnas += ', week_start, week_end'
+        destino += ', week_start, week_end'
+        origen += ', v.week_start::date, v.week_end::date'
+
     return f"""-- Entregas de {form_code} ({len(entregas)})
-insert into submissions (student_id, form_code, submitted_at, language, source_row_key)
-select st.id, {lit(form_code)}, v.submitted_at::timestamptz, v.language::language, v.source_row_key
+insert into submissions ({destino})
+select {origen}
 from (values
   {bloque_values(filas)}
-) as v(email, submitted_at, language, source_row_key)
+) as v({columnas})
 join students st on st.institutional_email = v.email
 on conflict (source_row_key) do nothing;
 """
@@ -545,11 +610,11 @@ def main() -> int:
     # --- Alumnos ----------------------------------------------------------
     # La lista se DERIVA de los correos que aparecen en los formularios: la hoja
     # `alumnos` no se importa en esta iteración.
-    # Las bitácoras semanales (form_busqueda, form_practicas) y la hoja
-    # fechas_entrega quedan fuera: todavía no tienen tabla.
+    # La hoja fechas_entrega queda fuera: todavía no tiene tabla.
     FORMULARIOS = ['form1_0', 'form1_1', 'form1_2', 'form1_3', 'form1_4',
                    'form1_5', 'form2_1', 'form2_2', 'form2_4', 'form2_5',
-                   'form2_7', 'formA_1', 'formB_1']
+                   'form2_7', 'formA_1', 'formB_1',
+                   'form_busqueda', 'form_practicas']
 
     hojas = {f: leer_hoja(libro, f) for f in FORMULARIOS}
 
@@ -585,6 +650,9 @@ on conflict (institutional_email) do nothing;
                 'language': idioma(fila.get('idioma')),
                 # Idempotencia: identifica la respuesta de forma única.
                 'key': f"{form_code}:{c}:{ts:%Y-%m-%dT%H:%M:%S}",
+                # Solo las bitácoras las traen; en el resto quedan en None.
+                'week_start': solo_fecha(fila.get('inicioSemana')),
+                'week_end': solo_fecha(fila.get('finalSemana')),
                 'fila': fila,
             })
         return salida_e
@@ -848,6 +916,35 @@ on conflict (institutional_email) do nothing;
         'salary': '::numeric', 'has_linkedin_profile': '::boolean',
         'linkedin_connections': '::int'})
     archivos.append(('11_formB_1_companies.sql', sql))
+
+    # --- Bitácora de búsqueda (form_busqueda) -------------------------------
+    # Las dos bitácoras son los únicos formularios de respuesta múltiple: un
+    # alumno acumula hasta 10 entregas y cada una es una fila de submissions.
+    ent = entregas_de('form_busqueda')
+    cols = ['activities', 'applications', 'interviews', 'learnings', 'next_steps']
+    filas = [[clave(e),
+              lit(texto(e['fila'].get('actividades'))),
+              lit(texto(e['fila'].get('aplicaciones'))),
+              lit(texto(e['fila'].get('entrevistas'))),
+              lit(texto(e['fila'].get('aprendizajes'))),
+              lit(texto(e['fila'].get('siguientesPasos')))] for e in ent]
+    sql = CABECERA.format(titulo='Bitácora — Reporte de Búsqueda (form_busqueda)')
+    sql += sql_entregas('form_busqueda', ent, con_semana=True) + '\n'
+    sql += sql_respuestas('job_search_logs', cols, filas, {})
+    archivos.append(('12_form_busqueda_logs.sql', sql))
+
+    # --- Bitácora de prácticas (form_practicas) -----------------------------
+    ent = entregas_de('form_practicas')
+    cols = ['activities', 'hours_worked', 'skills_practiced', 'proposal']
+    filas = [[clave(e),
+              lit(texto(e['fila'].get('actividades'))),
+              lit(horas_semanales(e['fila'].get('horas'))),
+              lit(texto(e['fila'].get('habilidades'))),
+              lit(texto(e['fila'].get('propuesta')))] for e in ent]
+    sql = CABECERA.format(titulo='Bitácora — Reporte de Prácticas (form_practicas)')
+    sql += sql_entregas('form_practicas', ent, con_semana=True) + '\n'
+    sql += sql_respuestas('internship_logs', cols, filas, {'hours_worked': '::numeric'})
+    archivos.append(('13_form_practicas_logs.sql', sql))
 
     # --- Escritura ---------------------------------------------------------
     for nombre, contenido in archivos:

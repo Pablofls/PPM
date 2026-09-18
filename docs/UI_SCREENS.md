@@ -3,8 +3,9 @@
 Pantallas del panel, sus columnas y su comportamiento. Es la especificación de lo
 que se construyó en `src/pages/`.
 
-**Alcance de esta iteración: Módulo 1 y Módulo 2.** Todas las pantallas se renderizan
-en estado vacío, sin demo data (regla «Sin demo data en las pantallas» de [CLAUDE.md](../CLAUDE.md)).
+**Alcance actual: Módulo 1, Módulo 2 y los Apéndices A/B**, más el expediente del
+alumno. No hay demo data en ninguna pantalla: lo que se ve sale de la base
+(regla «Sin demo data en las pantallas» de [CLAUDE.md](../CLAUDE.md)).
 
 ## Navegación
 
@@ -31,7 +32,6 @@ PPM
 ├── APÉNDICE B · REPORTES
 │   └── B.1 Formulario de Inicio
 └── PRÓXIMAMENTE  (visible pero deshabilitado)
-    ├── Bitácoras semanales
     ├── Grupos
     ├── Estado de Entregas
     └── Alumnos Registrados
@@ -54,8 +54,8 @@ Todas las pantallas de formulario comparten el mismo esqueleto:
    - Idioma · Frecuencia · Carrera · Semestre · Período
 4. **Tabla de datos** — una fila por alumno (la respuesta más reciente, vía
    `latest_submissions`). Encabezados fijos y scroll horizontal propio.
-5. **Panel de alumno** — al hacer clic en una fila se abre un panel lateral con el
-   detalle completo y el **historial de respuestas** de ese formulario.
+5. **Expediente del alumno** — al hacer clic en una fila se abre con todo lo que
+   se sabe del alumno, sin importar desde qué pantalla se abrió.
 
 ### Estado vacío
 
@@ -64,15 +64,48 @@ que explica que la fuente de datos aún no está conectada. **El encabezado se
 mantiene visible**: es lo que le permite al profesor evaluar si las columnas son las
 correctas, que es el objetivo de esta presentación.
 
-### Historial de respuestas
+### Expediente del alumno
 
-`SubmissionTimeline` lista todas las respuestas de un alumno a un formulario,
-ordenadas de la más reciente a la más antigua, marcando cuál es la vigente.
+`StudentDossier` es la ventana que se abre al hacer clic en un nombre. Reemplazó
+al panel lateral por formulario, que solo mostraba la pantalla en la que estabas
+parado: para responder *«¿cómo va este alumno?»* había que recorrer las trece.
 
-La tabla muestra una fila por alumno, pero el historial completo siempre está a un
-clic. Esto es indispensable para las bitácoras semanales (donde un alumno tiene
-hasta 10 respuestas) y protege al resto de los formularios: si un alumno reenvía,
-la respuesta anterior sigue consultable.
+Es la misma idea de la tarjeta **ADN Profesional** de la plataforma anterior, con
+las mismas secciones romanas. Ahí se armaba leyendo ocho hojas del Sheets en cada
+clic; aquí la arma `v_student_dossier` en una sola consulta.
+
+| Sección | De dónde sale |
+|---|---|
+| Identidad, edad y datos académicos | 1.0 |
+| I — Intereses Profesionales | 1.1 |
+| II — Personalidad · III — Comportamiento | 1.2 y 1.3 |
+| IV — Valores | 1.5 |
+| V — Datos de Prácticas Profesionales | B.1 |
+| VI — Reporte de Búsqueda | `form_busqueda` |
+| VII — Reporte de Prácticas | `form_practicas` |
+| Detalle del formulario y su historial | la pantalla desde la que se abrió |
+
+**Una sección sin datos no se dibuja.** Un alumno que no contestó el 1.2 no ve un
+recuadro vacío de Personalidad; ve un expediente más corto.
+
+**Sin radar de Holland.** La plataforma anterior lo dibujaba con Chart.js. Los
+tres intereses se muestran con su puntuación; la gráfica se decidirá después.
+
+#### Historial de respuestas
+
+`SubmissionTimeline` lista todas las respuestas de un alumno al formulario desde
+el que se abrió el expediente, de la más reciente a la más antigua, marcando cuál
+es la vigente. Si un alumno reenvía, la respuesta anterior sigue consultable.
+
+#### Las bitácoras semanales viven aquí
+
+`form_busqueda` y `form_practicas` **no tienen pantalla en el rail**, igual que en
+la plataforma anterior: son las secciones VI y VII del expediente.
+
+En VII, la columna **Acumulado** suma las horas semana por semana y el pie muestra
+el total. Ordena por **semana reportada**, no por fecha de envío: una bitácora
+atrasada se acomoda donde corresponde. La plataforma anterior ordenaba comparando
+`dd/MM/yyyy` como texto, así que `09/04` quedaba antes que `16/03`.
 
 ---
 
@@ -84,7 +117,7 @@ Columnas, en el mismo orden que la plataforma actual:
 
 | Columna | Campo | Formato |
 |---|---|---|
-| Nombre | `full_name` | texto, enlace al panel del alumno |
+| Nombre | `full_name` | texto, abre el expediente del alumno |
 | Matrícula | `student_number` | texto |
 | Correo Institucional | `institutional_email` | texto, truncado con tooltip |
 | Idioma | `language` | badge (Español / Inglés) |
@@ -193,7 +226,7 @@ de página parametrizado por `form_code`. Cambian el título y el subtítulo.
 | Columna | Campo |
 |---|---|
 | Nombre · Correo · Idioma | comunes |
-| Puestos | `positions` — texto multilínea, se muestra completo en el panel |
+| Puestos | `positions` — texto multilínea, se muestra completo en el expediente |
 | Vacantes | `position_url_1/2/3` — 3 enlaces numerados |
 | Compañías | `companies` — texto multilínea |
 | Perfiles | `company_url_1/2/3` — 3 enlaces numerados |
@@ -221,7 +254,7 @@ distinta a la del Módulo 1 y 2:
 Nombre · Idioma · Empresa · RFC · Página Web · Año Empresa · Horas · Remunerada ·
 Departamento · Nombre Jefe · Puesto Jefe · Horario.
 
-El panel lateral abre la descripción de actividades, la relación con la carrera y
+El expediente abre la descripción de actividades, la relación con la carrera y
 con su desarrollo profesional, las restricciones, la validación de la empresa y
 los datos de contacto del jefe.
 
@@ -234,7 +267,7 @@ El sueldo se formatea como moneda. El horario es texto descriptivo, no un númer
 de horas: así viene del formulario.
 
 > Los datos de contacto del jefe (nombre, correo, teléfono) **solo aparecen en el
-> panel lateral**, no en la tabla. Son datos de terceros y no tienen por qué estar
+> expediente**, no en la tabla. Son datos de terceros y no tienen por qué estar
 > a la vista en una pantalla que alguien puede proyectar.
 
 ## Decisiones de interfaz
@@ -243,7 +276,8 @@ de horas: así viene del formulario.
 |---|---|
 | Encabezado de tabla visible en estado vacío | El objetivo de la demo es validar columnas, no ver datos |
 | Los filtros viven en la URL (`?idioma=es&periodo=PR-26`) | El profesor puede compartir o guardar una vista filtrada |
-| Una fila por alumno, historial en el panel lateral | La tabla se mantiene legible sin perder los reenvíos |
+| Una fila por alumno, historial en el expediente | La tabla se mantiene legible sin perder los reenvíos |
+| El expediente es cruzado, no por formulario | La pregunta del profesor es «¿cómo va este alumno?», no «¿quién contestó el 1.2?» |
 | Botones *Procesar* y *Exportar* presentes pero deshabilitados | Existen en la plataforma actual; ocultarlos daría a entender que se eliminaron |
 | Sin gráficas en esta iteración | Primero hay que validar que los datos y columnas son los correctos |
 | Secciones futuras visibles y deshabilitadas | Comunican el alcance completo sin prometer funcionalidad |

@@ -22,11 +22,14 @@ import type {
   FormSummary,
   HollandRow,
   IndeedRow,
+  InternshipLogRow,
   InternshipRow,
+  JobSearchLogRow,
   MbtiRow,
   PanelFilters,
   ReflectionRow,
   SkillsRow,
+  StudentDossier,
   SubmissionHistoryEntry,
   ValuesRow,
 } from './types'
@@ -346,6 +349,134 @@ export const supabaseRepository: PanelRepository = {
       isLatest: index === 0,
     }))
   },
+
+  async getStudentDossier(studentId): Promise<StudentDossier | null> {
+    const { data, error } = await supabase
+      .from('v_student_dossier')
+      .select('*')
+      .eq('student_id', studentId)
+      .maybeSingle()
+
+    if (error) throw new Error(`No se pudo cargar el expediente: ${error.message}`)
+    if (!data) return null
+
+    const record = data as PanelRecord
+
+    // Los tres intereses llegan como columnas sueltas y se arman en una lista:
+    // la pantalla los pinta en orden y un alumno puede tener solo uno o ninguno.
+    const hollandTypes = (
+      [
+        ['holland_first_type', 'holland_first_score'],
+        ['holland_second_type', 'holland_second_score'],
+        ['holland_third_type', 'holland_third_score'],
+      ] as const
+    )
+      .map(([tipo, puntaje]) => ({
+        type: str(record[tipo]),
+        score: num(record[puntaje]),
+      }))
+      .filter((interes): interes is { type: string; score: number | null } =>
+        interes.type !== null,
+      )
+
+    return {
+      studentId: str(record.student_id) ?? '',
+      institutionalEmail: str(record.institutional_email) ?? '',
+      fullName: str(record.full_name),
+      language: null,
+      sessionDay: (str(record.session_day) as 'lunes' | 'miercoles' | null) ?? null,
+      degreeCode: str(record.degree_code),
+      semester: num(record.semester),
+      periodCode: str(record.period_code),
+
+      studentNumber: str(record.student_number),
+      personalEmail: str(record.personal_email),
+      birthDate: str(record.birth_date),
+      birthCountry: str(record.birth_country),
+      gender: (str(record.gender) as StudentDossier['gender']) ?? null,
+
+      hollandCode: str(record.holland_code),
+      hollandTypes,
+
+      mbtiType: str(record.mbti_type),
+      mbtiIdentity: str(record.mbti_identity),
+      mbtiReportUrl: str(record.mbti_report_url),
+
+      discStyle: str(record.disc_style),
+      discCategory: str(record.disc_category),
+      discNeedsReview: bool(record.disc_needs_review) ?? false,
+
+      topValues: Array.isArray(record.top_values)
+        ? (record.top_values as string[])
+        : [],
+      valuesScore: num(record.values_score),
+      valuesReportUrl: str(record.values_report_url),
+
+      companyName: str(record.company_name),
+      industry: str(record.industry),
+      address: str(record.address),
+      department: str(record.department),
+      supervisorInfo: str(record.supervisor_info),
+      supervisorEmail: str(record.supervisor_email),
+      supervisorPhone: str(record.supervisor_phone),
+      companyWebsite: str(record.company_website),
+      hasContract: bool(record.has_contract),
+      salary: num(record.salary),
+      linkedinUrl: str(record.linkedin_url),
+    }
+  },
+
+  async getJobSearchLogs(studentId): Promise<JobSearchLogRow[]> {
+    const data = await fetchLogs('v_student_job_search_logs', studentId)
+    return data.map((record) => ({
+      ...weeklyLogBase(record),
+      applications: str(record.applications),
+      interviews: str(record.interviews),
+      learnings: str(record.learnings),
+      nextSteps: str(record.next_steps),
+    }))
+  },
+
+  async getInternshipLogs(studentId): Promise<InternshipLogRow[]> {
+    const data = await fetchLogs('v_student_internship_logs', studentId)
+    return data.map((record) => ({
+      ...weeklyLogBase(record),
+      hoursWorked: num(record.hours_worked),
+      skillsPracticed: str(record.skills_practiced),
+      proposal: str(record.proposal),
+      cumulativeHours: num(record.cumulative_hours),
+      totalHours: num(record.total_hours),
+    }))
+  },
+}
+
+/**
+ * Las dos bitácoras se consultan igual: todas las semanas de un alumno, de la
+ * más reciente a la más antigua.
+ *
+ * Se ordena por `week_start` y no por `submitted_at` porque lo que el profesor
+ * lee es la semana reportada, no cuándo se acordó de reportarla.
+ */
+async function fetchLogs(view: string, studentId: string): Promise<PanelRecord[]> {
+  const { data, error } = await supabase
+    .from(view)
+    .select('*')
+    .eq('student_id', studentId)
+    .order('week_start', { ascending: false, nullsFirst: false })
+    .order('submitted_at', { ascending: false })
+
+  if (error) throw new Error(`No se pudo cargar la bitácora: ${error.message}`)
+  return (data ?? []) as PanelRecord[]
+}
+
+function weeklyLogBase(record: PanelRecord) {
+  return {
+    submissionId: str(record.submission_id) ?? '',
+    submittedAt: str(record.submitted_at),
+    weekStart: str(record.week_start),
+    weekEnd: str(record.week_end),
+    activities: str(record.activities),
+  }
 }
 
 const REFLECTION_VIEW = 'v_panel_reflections'

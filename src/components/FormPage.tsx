@@ -9,7 +9,7 @@ import { Dash, LanguageBadge } from './Badge'
 import { DataTable, type Column } from './DataTable'
 import { FilterBar, useFilters } from './FilterBar'
 import { PageHeader } from './PageHeader'
-import { StudentPanel } from './StudentPanel'
+import { StudentDossier } from './StudentDossier'
 
 interface FormPageProps<T extends BaseRow> {
   form: FormMeta
@@ -35,13 +35,13 @@ interface FormPageProps<T extends BaseRow> {
   pageSize?: number
   /** Oculta el botón "Procesar datos", que los apéndices no tienen. */
   hideProcessAction?: boolean
-  /** Detalle específico del formulario dentro del panel lateral. */
+  /** Detalle específico del formulario dentro del expediente del alumno. */
   renderDetail?: (row: T) => ReactNode
 }
 
 /**
  * Estructura compartida por todas las pantallas de formulario:
- * encabezado, filtros, tabla y panel del alumno.
+ * encabezado, filtros, tabla y expediente del alumno.
  *
  * Cada pantalla solo aporta sus columnas y su consulta.
  */
@@ -93,9 +93,9 @@ export function FormPage<T extends BaseRow>({
         onRowClick={setSelectedRow}
       />
 
-      <StudentPanel row={selectedRow} form={form} onClose={() => setSelectedRow(null)}>
+      <StudentDossier row={selectedRow} form={form} onClose={() => setSelectedRow(null)}>
         {renderDetail}
-      </StudentPanel>
+      </StudentDossier>
     </>
   )
 }

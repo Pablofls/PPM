@@ -150,6 +150,82 @@ export interface CompanyRow extends BaseRow {
   linkedinUrl: string | null
 }
 
+/**
+ * Expediente del alumno: lo que se sabe de él en todos los formularios.
+ *
+ * Las filas `*Row` responden «¿quiénes contestaron este formulario?». Esta
+ * responde la contraria, y es lo que se abre al hacer clic en un nombre.
+ * Todo es opcional salvo la identidad: un alumno que solo contestó el 1.0
+ * aparece igual, con el resto vacío.
+ */
+export interface StudentDossier extends StudentColumns {
+  studentNumber: string | null
+  personalEmail: string | null
+  birthDate: string | null
+  birthCountry: string | null
+  gender: Gender | null
+
+  /** 1.1 Intereses Profesionales */
+  hollandCode: string | null
+  hollandTypes: { type: string; score: number | null }[]
+
+  /** 1.2 Personalidad */
+  mbtiType: string | null
+  mbtiIdentity: string | null
+  mbtiReportUrl: string | null
+
+  /** 1.3 Estilos de Comportamiento */
+  discStyle: string | null
+  discCategory: string | null
+  discNeedsReview: boolean
+
+  /** 1.5 Valores */
+  topValues: string[]
+  valuesScore: number | null
+  valuesReportUrl: string | null
+
+  /** B.1: los datos de la práctica en curso */
+  companyName: string | null
+  industry: string | null
+  address: string | null
+  department: string | null
+  supervisorInfo: string | null
+  supervisorEmail: string | null
+  supervisorPhone: string | null
+  companyWebsite: string | null
+  hasContract: boolean | null
+  salary: number | null
+  linkedinUrl: string | null
+}
+
+/** Campos comunes a las dos bitácoras semanales. */
+interface WeeklyLogBase {
+  submissionId: string
+  submittedAt: string | null
+  weekStart: string | null
+  weekEnd: string | null
+  activities: string | null
+}
+
+/** Una semana de la bitácora de búsqueda de empleo (`form_busqueda`). */
+export interface JobSearchLogRow extends WeeklyLogBase {
+  applications: string | null
+  interviews: string | null
+  learnings: string | null
+  nextSteps: string | null
+}
+
+/** Una semana de la bitácora de prácticas (`form_practicas`). */
+export interface InternshipLogRow extends WeeklyLogBase {
+  hoursWorked: number | null
+  skillsPracticed: string | null
+  proposal: string | null
+  /** Horas acumuladas hasta esta semana, inclusive. La calcula la vista. */
+  cumulativeHours: number | null
+  /** Total del alumno. Igual en todas sus filas. */
+  totalHours: number | null
+}
+
 /** Una entrada del historial de respuestas de un alumno a un formulario. */
 export interface SubmissionHistoryEntry {
   submissionId: string
