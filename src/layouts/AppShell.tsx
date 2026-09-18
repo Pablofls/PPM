@@ -24,7 +24,7 @@ export function AppShell() {
 
   return (
     <div className="flex min-h-full">
-      <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col bg-ink-950">
+      <aside className="sticky top-0 flex h-screen w-72 shrink-0 flex-col bg-ink-950">
         <div className="px-5 py-5">
           <p className="text-[15px] leading-tight font-semibold tracking-tight text-white">
             Prácticas Profesionales
@@ -32,7 +32,7 @@ export function AppShell() {
           <p className="mt-1 text-xs text-ink-400">Panel del profesor</p>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-2 pb-6">
+        <nav className="rail-scroll flex-1 overflow-y-auto px-2 pb-6">
           {secciones.map((seccion) => (
             <NavGroup key={seccion.moduleCode} title={seccion.titulo}>
               {seccion.formularios.map((form) => (
