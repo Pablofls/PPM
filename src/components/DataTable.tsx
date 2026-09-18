@@ -1,4 +1,13 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+
+/**
+ * Filas por página. Ochenta llenan varias pantallas de scroll sin volver
+ * interminable la tabla, y dejan ver de corrido a un grupo completo.
+ */
+const DEFAULT_PAGE_SIZE = 80
+
+/** Alto de la barra superior fija, para no dejar la tabla debajo de ella. */
+const HEADER_OFFSET = 104
 
 export interface Column<T> {
   key: string
@@ -19,7 +28,7 @@ interface DataTableProps<T> {
   isConnected: boolean
   /** Mensaje si la consulta falló. Se muestra en lugar del estado vacío. */
   error?: string | null
-  /** Filas por página. Sin este valor la tabla muestra todo y no pagina. */
+  /** Filas por página. `0` desactiva la paginación y muestra todo. */
   pageSize?: number
   onRowClick?: (row: T) => void
 }
@@ -37,26 +46,41 @@ export function DataTable<T>({
   loading = false,
   isConnected,
   error = null,
-  pageSize,
+  pageSize = DEFAULT_PAGE_SIZE,
   onRowClick,
 }: DataTableProps<T>) {
   const [page, setPage] = useState(1)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const totalPages = pageSize ? Math.max(1, Math.ceil(rows.length / pageSize)) : 1
 
-  // Al cambiar los filtros, la página actual puede quedar fuera de rango.
+  // Un cambio de filtros trae otro conjunto de filas: la página 4 del anterior
+  // no significa nada en el nuevo, y puede ni existir.
   useEffect(() => {
-    if (page > totalPages) setPage(1)
-  }, [page, totalPages])
+    setPage(1)
+  }, [rows])
 
+  // Cambiar de página desde el pie deja la vista al final de la tabla, sobre
+  // las últimas filas de la página nueva. Hay que volver al encabezado.
+  useEffect(() => {
+    if (page === 1) return
+    const container = containerRef.current
+    if (!container) return
+    const top = container.getBoundingClientRect().top + window.scrollY
+    window.scrollTo({ top: top - HEADER_OFFSET, behavior: 'smooth' })
+  }, [page])
+
+  const firstIndex = pageSize ? (page - 1) * pageSize : 0
   const visibleRows = useMemo(() => {
     if (!pageSize) return rows
-    const inicio = (page - 1) * pageSize
-    return rows.slice(inicio, inicio + pageSize)
-  }, [rows, page, pageSize])
+    return rows.slice(firstIndex, firstIndex + pageSize)
+  }, [rows, firstIndex, pageSize])
 
   return (
-    <div className="overflow-hidden rounded-xl border border-ink-200 bg-white shadow-sm">
+    <div
+      ref={containerRef}
+      className="overflow-hidden rounded-xl border border-ink-200 bg-white shadow-sm"
+    >
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
@@ -123,7 +147,82 @@ export function DataTable<T>({
           <TableEmptyState loading={loading} isConnected={isConnected} error={error} />
         </div>
       )}
+
+      {totalPages > 1 && (
+        <Pager
+          page={page}
+          totalPages={totalPages}
+          firstRow={firstIndex + 1}
+          lastRow={firstIndex + visibleRows.length}
+          totalRows={rows.length}
+          onChange={setPage}
+        />
+      )}
     </div>
+  )
+}
+
+/**
+ * Paginador.
+ *
+ * El pie dice siempre cuántas filas hay en total: con los filtros arriba y 80
+ * filas a la vista, el total es la única forma de saber si la consulta trajo
+ * 81 respuestas o 400.
+ */
+function Pager({
+  page,
+  totalPages,
+  firstRow,
+  lastRow,
+  totalRows,
+  onChange,
+}: {
+  page: number
+  totalPages: number
+  firstRow: number
+  lastRow: number
+  totalRows: number
+  onChange: (page: number) => void
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ink-200 bg-ink-50 px-4 py-3">
+      <p className="tnum text-sm text-ink-500">
+        {firstRow}–{lastRow} de {totalRows}
+      </p>
+
+      <div className="flex items-center gap-2">
+        <PagerButton onClick={() => onChange(page - 1)} disabled={page === 1}>
+          Anterior
+        </PagerButton>
+        <p className="tnum px-1 text-sm text-ink-600">
+          Página {page} de {totalPages}
+        </p>
+        <PagerButton onClick={() => onChange(page + 1)} disabled={page === totalPages}>
+          Siguiente
+        </PagerButton>
+      </div>
+    </div>
+  )
+}
+
+function PagerButton({
+  children,
+  onClick,
+  disabled,
+}: {
+  children: string
+  onClick: () => void
+  disabled: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-sm font-medium text-ink-700 shadow-sm transition-colors hover:bg-ink-100 disabled:cursor-not-allowed disabled:bg-ink-50 disabled:text-ink-300 disabled:shadow-none"
+    >
+      {children}
+    </button>
   )
 }
 

@@ -146,7 +146,6 @@ export function CompaniesPage() {
     <FormPage
       form={form}
       columns={columns}
-      pageSize={10}
       filterMode="solo-busqueda"
       searchPlaceholder="Buscar por nombre o empresa…"
       hideProcessAction

@@ -31,7 +31,7 @@ interface FormPageProps<T extends BaseRow> {
   filterMode?: 'completos' | 'solo-busqueda'
   /** Texto del buscador. */
   searchPlaceholder?: string
-  /** Filas por página. Sin valor, la tabla no pagina. */
+  /** Filas por página. Sin valor, las 80 de `DataTable`. */
   pageSize?: number
   /** Oculta el botón "Procesar datos", que los apéndices no tienen. */
   hideProcessAction?: boolean
