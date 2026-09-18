@@ -9,8 +9,8 @@ formularios de Google. Reemplaza la implementación actual en Google Apps Script
 El profesor autorizó el proyecto el 10 de septiembre de 2026.
 
 - Supabase configurado (ref `sovinakodrmgxytgapry`) y Vercel desplegado.
-- Las migraciones `0001`–`0012` **ya se ejecutaron**. Un archivo ejecutado no se
-  vuelve a editar: el siguiente cambio es `0013_…`.
+- Las migraciones `0001`–`0014` **ya se ejecutaron**. Un archivo ejecutado no se
+  vuelve a editar: el siguiente cambio es `0015_…`.
 - Alcance del esquema: **autenticación + los 11 formularios de Módulo 1 y 2 +
   los dos apéndices + las dos bitácoras semanales**. Las hojas `alumnos` y
   `fechas_entrega` quedan para después.
@@ -28,7 +28,7 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   correo institucional, contraseña = matrícula) con
   `create_student_accounts()`, y el alumno entra a `/alumno`, hoy solo una
   pantalla de bienvenida. **No lee ninguna tabla todavía**; ver `docs/AUTH.md`.
-  Las migraciones `0013` y `0014` están **pendientes de ejecutar**.
+  Falta correr `create_student_accounts()` para dar de alta a los alumnos.
 - Las **bitácoras semanales** (`form_busqueda`, `form_practicas`) no son una
   pantalla del rail: se leen dentro del **expediente del alumno**, que reemplaza
   al panel lateral por formulario. Es como funcionaba la tarjeta *ADN

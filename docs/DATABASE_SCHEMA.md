@@ -9,9 +9,7 @@
 
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
-- **Última migración aplicada:** `0012_views_dossier.sql` (2026-09-17)
-- **Pendiente de ejecutar:** `0013_role_alumno.sql` y `0014_student_accounts.sql`
-  (cuentas de alumno)
+- **Última migración aplicada:** `0014_student_accounts.sql` (2026-09-18)
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
   bitácoras semanales.
 
@@ -726,8 +724,8 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0010_views_appendices.sql` | `v_panel_internships`, `v_panel_companies` | ✅ 2026-09-17 |
 | `0011_weekly_logs.sql` | `week_start`/`week_end`, `job_search_logs`, `internship_logs`, RLS y catálogo | ✅ 2026-09-17 |
 | `0012_views_dossier.sql` | `v_student_dossier` y las dos vistas de bitácora | ✅ 2026-09-17 |
-| `0013_role_alumno.sql` | valor `alumno` de `app_role` | ⏳ pendiente |
-| `0014_student_accounts.sql` | `profiles.student_id`, `current_student_id()`, `create_student_accounts()` | ⏳ pendiente |
+| `0013_role_alumno.sql` | valor `alumno` de `app_role` | ✅ 2026-09-18 |
+| `0014_student_accounts.sql` | `profiles.student_id`, `current_student_id()`, `create_student_accounts()` | ✅ 2026-09-18 |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.

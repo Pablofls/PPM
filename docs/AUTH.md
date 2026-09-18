@@ -6,7 +6,8 @@ Cómo entra la gente al panel y qué puede ver cada quien.
 - **Implementación:** `supabase/migrations/0001_auth.sql`
 - **Implementación del rol `alumno`:** `supabase/migrations/0013_role_alumno.sql`
   y `0014_student_accounts.sql`
-- **Estado:** ✅ `0001` ejecutado el 2026-09-11. `0013` y `0014` ⏳ pendientes
+- **Estado:** ✅ `0001` ejecutado el 2026-09-11; `0013` y `0014`, el 2026-09-18.
+  Falta correr `create_student_accounts()` para dar de alta a los alumnos
 
 ## Principio
 
