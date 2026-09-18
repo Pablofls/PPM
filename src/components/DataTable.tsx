@@ -38,20 +38,20 @@ export function DataTable<T>({
   onRowClick,
 }: DataTableProps<T>) {
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded border border-ink-200 bg-white">
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b-2 border-brand-700 bg-brand-800">
+            <tr className="border-b border-ink-200 bg-ink-50">
               {columns.map((column) => (
                 <th
                   key={column.key}
                   scope="col"
                   className={[
-                    'px-4 py-3 text-left text-xs font-semibold tracking-wide text-white uppercase whitespace-nowrap',
+                    'px-4 py-2.5 text-left text-[11px] font-medium tracking-widest text-ink-500 uppercase whitespace-nowrap',
                     column.width ?? '',
                     column.sticky
-                      ? 'sticky left-0 z-10 bg-brand-800 after:absolute after:top-0 after:right-0 after:h-full after:w-px after:bg-brand-600'
+                      ? 'sticky left-0 z-10 bg-ink-50 after:absolute after:top-0 after:right-0 after:h-full after:w-px after:bg-ink-200'
                       : '',
                   ].join(' ')}
                 >
@@ -63,26 +63,26 @@ export function DataTable<T>({
           <tbody>
             {rows.map((row) => (
               /*
-                El rayado alterno se hace con `even:` y no con un borde por fila:
-                con muchas columnas y scroll horizontal, el fondo es lo que
-                mantiene al ojo en la misma fila.
+                Filetes finos y nada de rayado: el hover es lo que mantiene al
+                ojo en la fila cuando hay scroll horizontal, y con el rayado
+                encima la tabla se ensucia.
               */
               <tr
                 key={rowKey(row)}
                 onClick={() => onRowClick?.(row)}
-                className={`group border-b border-slate-100 last:border-0 even:bg-slate-50/70 ${
-                  onRowClick ? 'cursor-pointer hover:bg-accent-50 even:hover:bg-accent-50' : ''
+                className={`group border-b border-ink-100 last:border-0 ${
+                  onRowClick ? 'cursor-pointer hover:bg-ink-50' : ''
                 }`}
               >
                 {columns.map((column) => (
                   <td
                     key={column.key}
                     className={[
-                      'px-4 py-3 align-top text-slate-700',
+                      'px-4 py-2.5 align-top text-ink-700',
                       // La columna fija repite el fondo de la fila: si no, el
-                      // rayado y el hover se le ven por debajo.
+                      // hover se le ve por debajo.
                       column.sticky
-                        ? 'sticky left-0 z-10 bg-white group-even:bg-slate-50 group-hover:bg-accent-50 group-even:group-hover:bg-accent-50'
+                        ? 'sticky left-0 z-10 bg-white group-hover:bg-ink-50 after:absolute after:top-0 after:right-0 after:h-full after:w-px after:bg-ink-100'
                         : '',
                     ].join(' ')}
                   >
@@ -101,7 +101,7 @@ export function DataTable<T>({
         saldría de la vista en las pantallas con muchas columnas.
       */}
       {rows.length === 0 && (
-        <div className="border-t border-slate-200 px-4 py-16">
+        <div className="border-t border-ink-100 px-4 py-20">
           <TableEmptyState loading={loading} isConnected={isConnected} error={error} />
         </div>
       )}
@@ -123,33 +123,29 @@ function TableEmptyState({
   if (error) {
     return (
       <div className="mx-auto max-w-md text-center">
-        <p className="text-sm font-semibold text-red-700">No se pudieron cargar los datos</p>
-        <p className="mt-1 text-sm text-slate-500">{error}</p>
+        <p className="text-sm font-medium text-red-800">No se pudieron cargar los datos</p>
+        <p className="mt-1 text-sm text-ink-500">{error}</p>
       </div>
     )
   }
 
   if (loading) {
-    return <p className="text-center text-sm text-slate-500">Cargando respuestas…</p>
+    return <p className="text-center text-sm text-ink-500">Cargando respuestas…</p>
   }
 
   if (!isConnected) {
     return (
       <div className="mx-auto max-w-md text-center">
-        <p className="text-sm font-medium text-slate-700">
-          Fuente de datos sin conectar
-        </p>
-        <p className="mt-1 text-sm text-slate-500">
-          Faltan las variables de entorno de Supabase.
-        </p>
+        <p className="font-serif text-base text-ink-800">Fuente de datos sin conectar</p>
+        <p className="mt-1 text-sm text-ink-500">Faltan las variables de entorno de Supabase.</p>
       </div>
     )
   }
 
   return (
     <div className="mx-auto max-w-md text-center">
-      <p className="text-sm font-medium text-slate-700">Sin respuestas todavía</p>
-      <p className="mt-1 text-sm text-slate-500">
+      <p className="font-serif text-base text-ink-800">Sin respuestas todavía</p>
+      <p className="mt-1 text-sm text-ink-500">
         No hay respuestas que coincidan con estos filtros.
       </p>
     </div>

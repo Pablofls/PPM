@@ -28,7 +28,7 @@ function NumberedLinks({ urls, label }: { urls: (string | null)[]; label: string
           href={link.href!}
           target="_blank"
           rel="noreferrer"
-          className="text-sm font-medium whitespace-nowrap text-brand-600 hover:text-brand-700 hover:underline"
+          className="text-sm font-medium whitespace-nowrap text-ink-700 underline underline-offset-2 hover:text-ink-950 hover:underline"
         >
           {label} {link.index}
         </a>
@@ -44,7 +44,7 @@ function NumberedLinks({ urls, label }: { urls: (string | null)[]; label: string
 function MultilineCell({ value }: { value: string | null }) {
   if (!value) return <Dash />
   return (
-    <p className="line-clamp-3 max-w-80 whitespace-pre-line text-slate-600">{value}</p>
+    <p className="line-clamp-3 max-w-80 whitespace-pre-line text-ink-600">{value}</p>
   )
 }
 
@@ -86,14 +86,14 @@ export function IndeedPage() {
       renderDetail={(row) => (
         <div className="space-y-4 text-sm">
           <div>
-            <p className="text-xs text-slate-500">Puestos investigados</p>
-            <p className="mt-1 whitespace-pre-line text-slate-700">
+            <p className="text-xs text-ink-500">Puestos investigados</p>
+            <p className="mt-1 whitespace-pre-line text-ink-700">
               {row.positions || '—'}
             </p>
           </div>
           <div>
-            <p className="text-xs text-slate-500">Compañías investigadas</p>
-            <p className="mt-1 whitespace-pre-line text-slate-700">
+            <p className="text-xs text-ink-500">Compañías investigadas</p>
+            <p className="mt-1 whitespace-pre-line text-ink-700">
               {row.companies || '—'}
             </p>
           </div>

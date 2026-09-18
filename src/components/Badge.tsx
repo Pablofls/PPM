@@ -3,12 +3,12 @@ import type { ReactNode } from 'react'
 type Tone = 'neutral' | 'blue' | 'green' | 'amber' | 'red' | 'violet'
 
 const TONES: Record<Tone, string> = {
-  neutral: 'bg-slate-100 text-slate-700 ring-slate-200',
-  blue: 'bg-brand-50 text-brand-700 ring-brand-200',
-  green: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-  amber: 'bg-accent-100 text-accent-800 ring-accent-300',
-  red: 'bg-red-50 text-red-700 ring-red-200',
-  violet: 'bg-violet-50 text-violet-700 ring-violet-200',
+  neutral: 'bg-ink-100 text-ink-600',
+  blue: 'bg-sky-50 text-sky-800',
+  green: 'bg-emerald-50 text-emerald-800',
+  amber: 'bg-accent-200 text-ink-800',
+  red: 'bg-red-50 text-red-800',
+  violet: 'bg-violet-50 text-violet-800',
 }
 
 export function Badge({
@@ -20,7 +20,7 @@ export function Badge({
 }) {
   return (
     <span
-      className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset whitespace-nowrap ${TONES[tone]}`}
+      className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium whitespace-nowrap ${TONES[tone]}`}
     >
       {children}
     </span>
@@ -55,5 +55,5 @@ export function SubmissionStateBadge({ value }: { value: string }) {
 
 /** Marcador para valores nulos. Un guion se lee mejor que una celda vacía. */
 export function Dash() {
-  return <span className="text-slate-300">—</span>
+  return <span className="text-ink-300">—</span>
 }

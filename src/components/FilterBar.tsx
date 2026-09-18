@@ -84,14 +84,14 @@ export function FilterBar({ filters, onChange, onClear, children }: FilterBarPro
   const hasActiveFilters = Object.values(filters).some(Boolean)
 
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+    <div className="mb-4 flex flex-wrap items-center gap-2">
       <div className="relative">
         <input
           type="search"
           value={filters.search}
           onChange={(event) => onChange('search', event.target.value)}
           placeholder="Buscar por correo institucional…"
-          className="w-72 rounded-lg border border-slate-300 bg-white py-2 pr-3 pl-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 focus:outline-none"
+          className="w-72 rounded border border-ink-200 bg-white px-3 py-1.5 text-sm text-ink-900 placeholder:text-ink-400 focus:border-ink-400 focus:outline-none"
         />
       </div>
 
@@ -132,7 +132,7 @@ export function FilterBar({ filters, onChange, onClear, children }: FilterBarPro
         <button
           type="button"
           onClick={onClear}
-          className="ml-1 rounded-lg px-2 py-1 text-sm font-medium text-brand-700 hover:bg-brand-50"
+          className="ml-1 text-sm text-ink-500 underline-offset-4 hover:text-ink-900 hover:underline"
         >
           Limpiar
         </button>
@@ -157,10 +157,10 @@ export function Select({
       aria-label={label}
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className={`rounded-lg border px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-100 focus:outline-none ${
-        value
-          ? 'border-brand-200 bg-brand-50 font-medium text-brand-800'
-          : 'border-slate-300 bg-white text-slate-500'
+      className={`rounded border px-3 py-1.5 text-sm focus:border-ink-400 focus:outline-none ${
+        // Un filtro puesto cambia de fondo: con seis selects iguales, el color
+        // es lo que avisa que la tabla no muestra todo.
+        value ? 'border-ink-300 bg-ink-100 font-medium text-ink-900' : 'border-ink-200 bg-white text-ink-500'
       }`}
     >
       <option value="">{label}</option>

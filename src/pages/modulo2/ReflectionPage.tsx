@@ -37,7 +37,7 @@ export function ReflectionPage({ formCode }: { formCode: FormCode }) {
       width: 'min-w-96',
       render: (row) =>
         row.reason ? (
-          <p className="line-clamp-2 max-w-96 text-slate-600">{row.reason}</p>
+          <p className="line-clamp-2 max-w-96 text-ink-600">{row.reason}</p>
         ) : (
           <Dash />
         ),
@@ -72,8 +72,8 @@ export function ReflectionPage({ formCode }: { formCode: FormCode }) {
       }
       renderDetail={(row) => (
         <div className="text-sm">
-          <p className="text-xs text-slate-500">Respuesta completa</p>
-          <p className="mt-1 whitespace-pre-line text-slate-700">{row.reason || '—'}</p>
+          <p className="text-xs text-ink-500">Respuesta completa</p>
+          <p className="mt-1 whitespace-pre-line text-ink-700">{row.reason || '—'}</p>
         </div>
       )}
     />

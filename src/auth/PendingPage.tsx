@@ -12,22 +12,21 @@ export function PendingPage() {
 
   return (
     <div className="flex min-h-full items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md overflow-hidden rounded-xl border border-slate-200 bg-white text-center shadow-sm">
-        <div className="h-1.5 bg-accent-400" />
-        <div className="px-6 py-8">
-          <h1 className="text-xl font-semibold text-slate-900">
+      <div className="w-full max-w-md rounded border border-ink-200 bg-white">
+        <div className="px-8 py-8">
+          <h1 className="font-serif text-2xl text-ink-950">
             {isDeactivated
               ? "Cuenta desactivada"
               : "Cuenta pendiente de autorización"}
           </h1>
 
-          <p className="mt-3 text-sm text-slate-600">
+          <p className="mt-3 text-sm leading-relaxed text-ink-600">
             {isDeactivated
               ? "Tu cuenta existe pero está desactivada. Pide a un administrador que la reactive."
               : "Tu cuenta se creó correctamente, pero todavía no tiene permisos para ver el panel. Un administrador tiene que autorizarla."}
           </p>
 
-          <p className="mt-4 text-sm text-slate-500">
+          <p className="mt-4 text-sm text-ink-500">
             Entraste como{" "}
             <span className="font-medium">
               {profile?.email ?? session?.user?.email}
@@ -37,7 +36,7 @@ export function PendingPage() {
           <button
             type="button"
             onClick={signOut}
-            className="mt-6 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50"
+            className="mt-6 rounded border border-ink-200 px-4 py-2 text-sm text-ink-700 hover:bg-ink-50"
           >
             Cerrar sesión
           </button>

@@ -19,14 +19,14 @@ function Dimension({ value, pct }: { value: string | null; pct: number | null })
   return (
     <div className="min-w-32">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-slate-800">{capitalize(value)}</span>
+        <span className="text-ink-800">{capitalize(value)}</span>
         {pct !== null && (
-          <span className="text-xs text-slate-500 tabular-nums">{pct}%</span>
+          <span className="text-xs text-ink-500 tabular-nums">{pct}%</span>
         )}
       </div>
       {pct !== null && (
-        <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-slate-100">
-          <div className="h-full rounded-full bg-brand-500" style={{ width: `${pct}%` }} />
+        <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-ink-100">
+          <div className="h-full rounded-full bg-ink-400" style={{ width: `${pct}%` }} />
         </div>
       )}
     </div>
@@ -80,13 +80,13 @@ const columns: Column<MbtiRow>[] = [
 export function ReportLink({ url }: { url: string | null }) {
   if (!url) return <Dash />
   const href = toHref(url)
-  if (!href) return <span className="text-slate-500">{url}</span>
+  if (!href) return <span className="text-ink-500">{url}</span>
   return (
     <a
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="font-medium text-brand-600 hover:text-brand-700 hover:underline"
+      className="font-medium text-ink-700 underline underline-offset-2 hover:text-ink-950 hover:underline"
     >
       Ver reporte
     </a>

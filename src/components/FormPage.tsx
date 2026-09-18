@@ -86,7 +86,7 @@ export function studentColumns<T extends BaseRow>(): Column<T>[] {
       sticky: true,
       render: (row) =>
         row.fullName ? (
-          <span className="font-medium text-brand-700">{row.fullName}</span>
+          <span className="font-medium text-ink-900">{row.fullName}</span>
         ) : (
           <Dash />
         ),

@@ -44,7 +44,7 @@ export function StudentPanel<T extends BaseRow>({
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
       <div
-        className="absolute inset-0 bg-brand-950/30"
+        className="absolute inset-0 bg-ink-950/25"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -52,41 +52,39 @@ export function StudentPanel<T extends BaseRow>({
       <aside
         role="dialog"
         aria-label="Detalle del alumno"
-        className="relative flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-slate-200 bg-white shadow-xl"
+        className="relative flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-ink-200 bg-white"
       >
-        <div className="flex items-start justify-between gap-3 border-b-4 border-accent-400 bg-brand-800 px-6 py-4">
+        <div className="flex items-start justify-between gap-3 border-b border-ink-200 px-6 py-5">
           <div className="min-w-0">
-            <h2 className="truncate text-base font-semibold text-white">
+            <h2 className="truncate font-serif text-xl text-ink-950">
               {row.fullName ?? row.institutionalEmail}
             </h2>
-            <p className="mt-0.5 truncate text-sm text-brand-200">
-              {row.institutionalEmail}
-            </p>
+            <p className="mt-1 truncate text-sm text-ink-500">{row.institutionalEmail}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Cerrar"
-            className="rounded-lg p-1.5 text-brand-200 hover:bg-white/10 hover:text-white"
+            className="rounded p-1.5 text-ink-400 hover:bg-ink-50 hover:text-ink-800"
           >
             ✕
           </button>
         </div>
 
-        <div className="border-b border-slate-200 px-6 py-4">
+        <div className="border-b border-ink-200 px-6 py-5">
           <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
             <Field label="Carrera" value={row.degreeCode} />
             <Field label="Semestre" value={formatSemester(row.semester)} />
             <Field label="Período" value={row.periodCode} />
             <Field label="Frecuencia" value={formatSessionDay(row.sessionDay)} />
             <div>
-              <dt className="text-xs text-slate-500">Idioma</dt>
+              <dt className="text-xs text-ink-400">Idioma</dt>
               <dd className="mt-0.5">
                 <LanguageBadge value={row.language} />
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-slate-500">Entrega</dt>
+              <dt className="text-xs text-ink-400">Entrega</dt>
               <dd className="mt-0.5">
                 <SubmissionStateBadge value={row.submissionState} />
               </dd>
@@ -95,20 +93,20 @@ export function StudentPanel<T extends BaseRow>({
         </div>
 
         {children && (
-          <div className="border-b border-slate-200 px-6 py-4">
-            <h3 className="mb-3 text-xs font-semibold tracking-wider text-brand-700 uppercase">
+          <div className="border-b border-ink-200 px-6 py-5">
+            <h3 className="mb-3 text-[11px] font-medium tracking-widest text-ink-400 uppercase">
               {form.label} {form.name}
             </h3>
             {children(row)}
           </div>
         )}
 
-        <div className="px-6 py-4">
-          <h3 className="mb-3 text-xs font-semibold tracking-wider text-brand-700 uppercase">
+        <div className="px-6 py-5">
+          <h3 className="mb-3 text-[11px] font-medium tracking-widest text-ink-400 uppercase">
             Historial de respuestas
           </h3>
           {historyError ? (
-            <p className="text-sm text-red-700">{historyError}</p>
+            <p className="text-sm text-red-800">{historyError}</p>
           ) : (
             <SubmissionTimeline entries={history} isConnected={repository.isConnected} />
           )}
@@ -121,8 +119,8 @@ export function StudentPanel<T extends BaseRow>({
 function Field({ label, value }: { label: string; value: string | null }) {
   return (
     <div>
-      <dt className="text-xs text-slate-500">{label}</dt>
-      <dd className="mt-0.5 text-slate-800">{value || <Dash />}</dd>
+      <dt className="text-xs text-ink-400">{label}</dt>
+      <dd className="mt-0.5 text-ink-800">{value || <Dash />}</dd>
     </div>
   )
 }

@@ -13,10 +13,10 @@ function HollandType({ letter, score }: { letter: string | null; score: number |
   if (!letter) return <Dash />
   return (
     <div className="whitespace-nowrap">
-      <span className="font-medium text-slate-800">{letter}</span>
-      <span className="ml-1.5 text-slate-500">{HOLLAND_LABELS[letter] ?? ''}</span>
+      <span className="font-medium text-ink-800">{letter}</span>
+      <span className="ml-1.5 text-ink-500">{HOLLAND_LABELS[letter] ?? ''}</span>
       {score !== null && (
-        <span className="ml-2 text-xs text-slate-400 tabular-nums">{score} pts</span>
+        <span className="ml-2 text-xs text-ink-400 tabular-nums">{score} pts</span>
       )}
     </div>
   )

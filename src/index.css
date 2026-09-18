@@ -1,35 +1,41 @@
 @import 'tailwindcss';
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap');
 
 /**
- * Paleta institucional.
+ * Paleta y tipografía del panel.
  *
- * `brand` es el azul del panel (barra lateral, encabezados, enlaces) y `accent`
- * es el amarillo institucional. El amarillo se usa como acento —marca activa, franja del
- * encabezado, dato destacado—, nunca como fondo de superficies grandes: a ese
- * tamaño cansa la vista y deja de señalar lo importante.
+ * `ink` es una escala de grises cálidos: es lo que sostiene casi toda la
+ * interfaz. `accent` es el amarillo institucional y se reserva para tres cosas
+ * —la sección activa del menú, el botón principal y el dato vigente—; en
+ * superficies grandes satura la vista y deja de señalar.
+ *
+ * Los títulos van en serif y el resto en la sans del sistema: es la mezcla de
+ * las plataformas académicas y separa de un vistazo "dónde estoy" de "qué dice
+ * la tabla".
  */
 @theme {
-  --color-brand-50: #eef4fb;
-  --color-brand-100: #d9e6f5;
-  --color-brand-200: #b6cdea;
-  --color-brand-300: #86aad9;
-  --color-brand-400: #4f80c2;
-  --color-brand-500: #2d5fa4;
-  --color-brand-600: #1e4a85;
-  --color-brand-700: #17396a;
-  --color-brand-800: #132d52;
-  --color-brand-900: #0d1f3a;
-  --color-brand-950: #08152a;
+  --color-ink-50: #f6f4ef;
+  --color-ink-100: #ebe7de;
+  --color-ink-200: #dcd6c9;
+  --color-ink-300: #b9b2a4;
+  --color-ink-400: #918a7c;
+  --color-ink-500: #6f6960;
+  --color-ink-600: #55504a;
+  --color-ink-700: #403c37;
+  --color-ink-800: #2e2c28;
+  --color-ink-900: #24231f;
+  --color-ink-950: #1a1917;
 
-  --color-accent-50: #fffaeb;
-  --color-accent-100: #fff3c6;
-  --color-accent-200: #ffe788;
-  --color-accent-300: #ffd94a;
-  --color-accent-400: #ffc72c;
-  --color-accent-500: #f0ac00;
-  --color-accent-600: #cc8a02;
-  --color-accent-700: #a26606;
-  --color-accent-800: #864f0c;
+  --color-accent-100: #fcfadd;
+  --color-accent-200: #f9f4b0;
+  --color-accent-300: #f6ee74;
+  --color-accent-400: #f2e63d;
+  --color-accent-500: #e3d41c;
+  --color-accent-600: #b9ab12;
+
+  --color-paper: #faf9f5;
+
+  --font-serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
 }
 
 html,
@@ -39,5 +45,10 @@ body,
 }
 
 body {
-  @apply bg-slate-100 text-slate-900 antialiased;
+  @apply bg-paper text-ink-900 antialiased;
+}
+
+/* Los números de las tablas y los contadores se leen en columna. */
+.tnum {
+  font-variant-numeric: tabular-nums;
 }

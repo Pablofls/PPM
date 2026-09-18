@@ -19,14 +19,14 @@ export function SubmissionTimeline({
 }) {
   if (!isConnected) {
     return (
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-ink-500">
         El historial de respuestas aparecerá cuando se conecte la base de datos.
       </p>
     )
   }
 
   if (entries.length === 0) {
-    return <p className="text-sm text-slate-500">Este alumno aún no responde el formulario.</p>
+    return <p className="text-sm text-ink-500">Este alumno aún no responde el formulario.</p>
   }
 
   return (
@@ -36,22 +36,20 @@ export function SubmissionTimeline({
           <div className="mt-1.5 flex flex-col items-center">
             <span
               className={`size-2 rounded-full ${
-                entry.isLatest ? 'bg-accent-400 ring-2 ring-accent-200' : 'bg-slate-300'
+                entry.isLatest ? 'bg-accent-400' : 'bg-ink-200'
               }`}
             />
-            <span className="mt-1 w-px flex-1 bg-slate-200" />
+            <span className="mt-1 w-px flex-1 bg-ink-100" />
           </div>
           <div className="pb-1">
-            <p className="text-sm font-medium text-slate-800">
+            <p className="text-sm font-medium text-ink-800">
               {formatDateTime(entry.submittedAt)}
               {entry.isLatest && (
-                <span className="ml-2 rounded-full bg-accent-100 px-2 py-0.5 text-xs font-medium text-accent-800">
-                  vigente
-                </span>
+                <span className="ml-2 text-xs font-normal text-ink-500">vigente</span>
               )}
             </p>
             {entry.weekStart && (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-ink-500">
                 Semana {formatWeekRange(entry.weekStart, entry.weekEnd)}
               </p>
             )}

@@ -27,7 +27,7 @@ const columns: Column<DiscRow>[] = [
     width: 'min-w-72',
     render: (row) =>
       row.explanation ? (
-        <p className="line-clamp-2 max-w-72 text-slate-600">{row.explanation}</p>
+        <p className="line-clamp-2 max-w-72 text-ink-600">{row.explanation}</p>
       ) : (
         <Dash />
       ),
@@ -56,14 +56,14 @@ export function BehaviorPage() {
       renderDetail={(row) => (
         <div className="space-y-3 text-sm">
           {row.needsReview && (
-            <p className="rounded-lg border-l-4 border-accent-400 bg-accent-50 px-3 py-2 text-accent-800">
+            <p className="border-l-2 border-accent-400 bg-accent-100 px-3 py-2 text-ink-700">
               Esta respuesta llegó con un valor que no corresponde a un estilo DISC
               válido. Conviene revisarla contra el formulario original.
             </p>
           )}
           <div>
-            <p className="text-xs text-slate-500">Explicación del alumno</p>
-            <p className="mt-1 whitespace-pre-line text-slate-700">
+            <p className="text-xs text-ink-500">Explicación del alumno</p>
+            <p className="mt-1 whitespace-pre-line text-ink-700">
               {row.explanation || '—'}
             </p>
           </div>
