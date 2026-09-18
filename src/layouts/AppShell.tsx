@@ -2,7 +2,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
 import { useAuth } from '../auth/AuthProvider'
 import { repository } from '../data/repository'
-import { FORMS, UPCOMING_SECTIONS } from '../lib/catalog'
+import { FORMS, MODULE_TITLES, UPCOMING_SECTIONS } from '../lib/catalog'
 
 /**
  * Marco de la aplicación: rail de navegación a la izquierda, barra de cuenta
@@ -15,8 +15,11 @@ import { FORMS, UPCOMING_SECTIONS } from '../lib/catalog'
 export function AppShell() {
   const { profile, signOut } = useAuth()
   const location = useLocation()
-  const module1 = FORMS.filter((form) => form.moduleCode === '1')
-  const module2 = FORMS.filter((form) => form.moduleCode === '2')
+  const secciones = (['1', '2', 'A', 'B'] as const).map((moduleCode) => ({
+    moduleCode,
+    titulo: MODULE_TITLES[moduleCode],
+    formularios: FORMS.filter((form) => form.moduleCode === moduleCode),
+  }))
   const currentForm = FORMS.find((form) => form.path === location.pathname)
 
   return (
@@ -30,17 +33,13 @@ export function AppShell() {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-2 pb-6">
-          <NavGroup title="Módulo 1 · Conócete">
-            {module1.map((form) => (
-              <NavItem key={form.code} to={form.path} label={form.label} name={form.name} />
-            ))}
-          </NavGroup>
-
-          <NavGroup title="Módulo 2 · Actúa">
-            {module2.map((form) => (
-              <NavItem key={form.code} to={form.path} label={form.label} name={form.name} />
-            ))}
-          </NavGroup>
+          {secciones.map((seccion) => (
+            <NavGroup key={seccion.moduleCode} title={seccion.titulo}>
+              {seccion.formularios.map((form) => (
+                <NavItem key={form.code} to={form.path} label={form.label} name={form.name} />
+              ))}
+            </NavGroup>
+          ))}
 
           {/*
             Las secciones futuras se muestran deshabilitadas a propósito:

@@ -9,7 +9,8 @@
 
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
-- **Última migración aplicada:** `0009_appendices.sql` (2026-09-17)
+- **Última migración aplicada:** `0009_appendices.sql` (2026-09-17).
+  `0010_views_appendices.sql` está escrito y **pendiente de ejecutar**
 - **Datos del Sheets:** importados (46 alumnos, 397 entregas)
 
 ## Índice
@@ -43,8 +44,7 @@ Esta versión cubre **autenticación**, los **11 formularios del Módulo 1 y 2**
 | `form_busqueda`, `form_practicas` | Bitácoras semanales: son los únicos formularios de respuesta múltiple |
 | Catálogos `periods`, `degree_programs`, `modules` | Por ahora esos valores son `text` |
 
-Los apéndices tienen **tabla pero no pantalla**: la regla «Alcance de las
-pantallas» exige pedirlas explícitamente.
+Los apéndices ya tienen **tabla y pantalla**.
 
 ---
 
@@ -420,7 +420,7 @@ escribe el alumno a mano y no es fiable parsearlo.
 
 ## Apéndices
 
-Definidos en `0009_appendices.sql`. **Tienen tabla pero no pantalla.**
+Definidos en `0009_appendices.sql`; sus vistas de panel en `0010_views_appendices.sql`.
 
 > Estas dos tablas contienen datos sensibles de **terceros** —teléfonos y correos
 > de jefes, RFC de empresas y sueldos—, no solo de alumnos. No se exportan ni se
@@ -507,6 +507,8 @@ vigente**, ya unida con los datos del alumno, para que el frontend haga un
 | `v_panel_values` | 1.5 Valores | `form1_5` |
 | `v_panel_reflections` | 2.1, 2.2, 2.4, 2.5 | los cuatro, se filtra por `form_code` |
 | `v_panel_indeed` | 2.7 Indeed | `form2_7` |
+| `v_panel_internships` | A.1 Carta Formal de Aceptación | `formA_1` |
+| `v_panel_companies` | B.1 Formulario de Inicio | `formB_1` |
 
 Todas exponen las mismas columnas de filtrado (`institutional_email`,
 `language`, `session_day`, `degree_code`, `semester`, `period_code`), así que el
@@ -582,6 +584,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0007_seed_forms.sql` | catálogo de los 11 formularios | ✅ 2026-09-11 |
 | `0008_views_panel.sql` | las 8 vistas `v_panel_*` que alimentan las pantallas | ✅ 2026-09-11 |
 | `0009_appendices.sql` | `internship_applications`, `company_profiles`, RLS y catálogo | ✅ 2026-09-17 |
+| `0010_views_appendices.sql` | `v_panel_internships`, `v_panel_companies` | ❌ **pendiente** |
 
 > **Estos archivos ya no se editan.** Cualquier cambio posterior es un archivo
 > nuevo, `0008_…` en adelante.

@@ -26,9 +26,11 @@ PPM
 │   ├── 2.4 Cover Letter
 │   ├── 2.5 Elevator Pitch
 │   └── 2.7 Indeed
+├── APÉNDICE A · CARTAS REQUERIDAS
+│   └── A.1 Carta Formal de Aceptación
+├── APÉNDICE B · REPORTES
+│   └── B.1 Formulario de Inicio
 └── PRÓXIMAMENTE  (visible pero deshabilitado)
-    ├── Apéndice A: Cartas Requeridas
-    ├── Apéndice B: Reportes
     ├── Bitácoras semanales
     ├── Grupos
     ├── Estado de Entregas
@@ -200,6 +202,40 @@ Las URLs de Indeed son muy largas; se muestran como enlaces numerados
 (`Vacante 1`, `Vacante 2`, `Vacante 3`) y no como texto crudo.
 
 ---
+
+## Apéndices
+
+Las dos pantallas replican la estructura de la plataforma anterior, que es
+distinta a la del Módulo 1 y 2:
+
+| | Módulo 1 y 2 | Apéndices |
+|---|---|---|
+| Buscador | por correo institucional | **por nombre o empresa** |
+| Filtros | Idioma, Frecuencia, Carrera, Semestre, Período | **solo Período** |
+| Acciones | Procesar datos · Exportar datos | **solo Exportar datos** |
+| Filas | todas, con scroll | **paginadas de 10 en 10** |
+| Correo del alumno | columna propia | **no se muestra**: identifica la empresa |
+
+### A.1 Carta Formal de Aceptación · `formA_1`
+
+Nombre · Idioma · Empresa · RFC · Página Web · Año Empresa · Horas · Remunerada ·
+Departamento · Nombre Jefe · Puesto Jefe · Horario.
+
+El panel lateral abre la descripción de actividades, la relación con la carrera y
+con su desarrollo profesional, las restricciones, la validación de la empresa y
+los datos de contacto del jefe.
+
+### B.1 Formulario de Inicio · `formB_1`
+
+Nombre · Idioma · Empresa · Página Web · Giro · Misión · Visión · Valores ·
+Dirección · Horario · Departamento · Contrato · Sueldo · Contactos LinkedIn.
+
+El sueldo se formatea como moneda. El horario es texto descriptivo, no un número
+de horas: así viene del formulario.
+
+> Los datos de contacto del jefe (nombre, correo, teléfono) **solo aparecen en el
+> panel lateral**, no en la tabla. Son datos de terceros y no tienen por qué estar
+> a la vista en una pantalla que alguien puede proyectar.
 
 ## Decisiones de interfaz
 

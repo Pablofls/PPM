@@ -20,7 +20,9 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
 - Los datos del Sheets **están importados**: 46 alumnos y 397 entregas. El SQL se genera con
   `scripts/generar_import.py` y **nunca se commitea**: `import_sql/` está en
   `.gitignore` porque lleva datos personales.
-- Los apéndices tienen tabla pero **no pantalla**.
+- Los apéndices ya tienen tabla y pantalla. Su estructura es distinta a la del
+  Módulo 1 y 2 (buscador por empresa, paginación, sin filtros académicos), como
+  en la plataforma anterior.
 
 Ver [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) para el estado detallado y los pasos.
 
@@ -159,6 +161,7 @@ src/
   layouts/                AppShell con el sidebar
   pages/modulo1/          Pantallas 1.0 – 1.5
   pages/modulo2/          Pantallas 2.1, 2.2, 2.4, 2.5, 2.7
+  pages/apendices/        Pantallas A.1 y B.1
   auth/                   Sesión, login y protección de rutas
   lib/                    Utilidades y catálogos de la UI
 ```

@@ -16,11 +16,13 @@ import type { FormCode } from '../lib/catalog'
 import { isSupabaseConfigured } from './supabaseClient'
 import { supabaseRepository } from './supabaseRepository'
 import type {
+  CompanyRow,
   DemographicsRow,
   DiscRow,
   FormSummary,
   HollandRow,
   IndeedRow,
+  InternshipRow,
   MbtiRow,
   PanelFilters,
   ReflectionRow,
@@ -48,6 +50,10 @@ export interface PanelRepository {
   /** Sirve a 2.1, 2.2, 2.4 y 2.5: comparten la tabla `reflections`. */
   getReflections(formCode: FormCode, filters: PanelFilters): Promise<ReflectionRow[]>
   getIndeed(filters: PanelFilters): Promise<IndeedRow[]>
+
+  /** Apéndices. Su búsqueda es por nombre de alumno o de empresa. */
+  getInternships(filters: PanelFilters): Promise<InternshipRow[]>
+  getCompanies(filters: PanelFilters): Promise<CompanyRow[]>
 
   /**
    * Historial completo de un alumno en un formulario, de la respuesta más
@@ -92,6 +98,12 @@ export const emptyRepository: PanelRepository = {
     return []
   },
   async getIndeed() {
+    return []
+  },
+  async getInternships() {
+    return []
+  },
+  async getCompanies() {
     return []
   },
   async getSubmissionHistory() {

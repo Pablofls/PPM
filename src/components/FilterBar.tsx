@@ -76,12 +76,23 @@ interface FilterBarProps {
   filters: PanelFilters
   onChange: (key: keyof PanelFilters, value: string) => void
   onClear: () => void
+  /** `'solo-busqueda'` oculta los cinco selectores compartidos. */
+  mode?: 'completos' | 'solo-busqueda'
+  searchPlaceholder?: string
   /** Controles adicionales de una pantalla específica, p. ej. el grupo de habilidades. */
   children?: React.ReactNode
 }
 
-export function FilterBar({ filters, onChange, onClear, children }: FilterBarProps) {
+export function FilterBar({
+  filters,
+  onChange,
+  onClear,
+  mode = 'completos',
+  searchPlaceholder = 'Buscar por correo institucional…',
+  children,
+}: FilterBarProps) {
   const hasActiveFilters = Object.values(filters).some(Boolean)
+  const showSelectors = mode === 'completos'
 
   return (
     <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -90,35 +101,40 @@ export function FilterBar({ filters, onChange, onClear, children }: FilterBarPro
           type="search"
           value={filters.search}
           onChange={(event) => onChange('search', event.target.value)}
-          placeholder="Buscar por correo institucional…"
+          placeholder={searchPlaceholder}
           className="w-72 rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 shadow-sm placeholder:text-ink-400 focus:border-ink-400 focus:ring-2 focus:ring-ink-900/5 focus:outline-none"
         />
       </div>
 
-      <Select
-        label="Idioma"
-        value={filters.language}
-        options={LANGUAGE_OPTIONS}
-        onChange={(value) => onChange('language', value)}
-      />
-      <Select
-        label="Frecuencia"
-        value={filters.sessionDay}
-        options={SESSION_DAY_OPTIONS}
-        onChange={(value) => onChange('sessionDay', value)}
-      />
-      <Select
-        label="Carrera"
-        value={filters.degree}
-        options={DEGREE_OPTIONS}
-        onChange={(value) => onChange('degree', value)}
-      />
-      <Select
-        label="Semestre"
-        value={filters.semester}
-        options={SEMESTER_OPTIONS}
-        onChange={(value) => onChange('semester', value)}
-      />
+      {showSelectors && (
+        <>
+          <Select
+            label="Idioma"
+            value={filters.language}
+            options={LANGUAGE_OPTIONS}
+            onChange={(value) => onChange('language', value)}
+          />
+          <Select
+            label="Frecuencia"
+            value={filters.sessionDay}
+            options={SESSION_DAY_OPTIONS}
+            onChange={(value) => onChange('sessionDay', value)}
+          />
+          <Select
+            label="Carrera"
+            value={filters.degree}
+            options={DEGREE_OPTIONS}
+            onChange={(value) => onChange('degree', value)}
+          />
+          <Select
+            label="Semestre"
+            value={filters.semester}
+            options={SEMESTER_OPTIONS}
+            onChange={(value) => onChange('semester', value)}
+          />
+        </>
+      )}
+
       <Select
         label="Período"
         value={filters.period}

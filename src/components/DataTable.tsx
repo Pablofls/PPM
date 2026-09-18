@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 
 export interface Column<T> {
   key: string
@@ -19,6 +19,8 @@ interface DataTableProps<T> {
   isConnected: boolean
   /** Mensaje si la consulta falló. Se muestra en lugar del estado vacío. */
   error?: string | null
+  /** Filas por página. Sin este valor la tabla muestra todo y no pagina. */
+  pageSize?: number
   onRowClick?: (row: T) => void
 }
 
@@ -35,8 +37,24 @@ export function DataTable<T>({
   loading = false,
   isConnected,
   error = null,
+  pageSize,
   onRowClick,
 }: DataTableProps<T>) {
+  const [page, setPage] = useState(1)
+
+  const totalPages = pageSize ? Math.max(1, Math.ceil(rows.length / pageSize)) : 1
+
+  // Al cambiar los filtros, la página actual puede quedar fuera de rango.
+  useEffect(() => {
+    if (page > totalPages) setPage(1)
+  }, [page, totalPages])
+
+  const visibleRows = useMemo(() => {
+    if (!pageSize) return rows
+    const inicio = (page - 1) * pageSize
+    return rows.slice(inicio, inicio + pageSize)
+  }, [rows, page, pageSize])
+
   return (
     <div className="overflow-hidden rounded-xl border border-ink-200 bg-white shadow-sm">
       <div className="overflow-x-auto">
@@ -61,7 +79,7 @@ export function DataTable<T>({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {visibleRows.map((row) => (
               /*
                 Filetes finos y nada de rayado: el hover es lo que mantiene al
                 ojo en la fila cuando hay scroll horizontal, y con el rayado

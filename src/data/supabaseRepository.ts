@@ -16,11 +16,13 @@ import { SKILL_GROUPS } from '../lib/catalog'
 import type { PanelRepository } from './repository'
 import { supabase } from './supabaseClient'
 import type {
+  CompanyRow,
   DemographicsRow,
   DiscRow,
   FormSummary,
   HollandRow,
   IndeedRow,
+  InternshipRow,
   MbtiRow,
   PanelFilters,
   ReflectionRow,
@@ -51,6 +53,31 @@ function applyFilters<T extends PostgrestFilterBuilder<any, any, any, any, any>>
   if (filters.semester) next = next.eq('semester', Number(filters.semester)) as T
   if (filters.period) next = next.eq('period_code', filters.period) as T
   return next
+}
+
+/**
+ * Filtrado de los apéndices.
+ *
+ * Su buscador es por **nombre de alumno o de empresa**, no por correo, igual que
+ * en la plataforma anterior. El resto de los filtros compartidos no aplica: esas
+ * pantallas no los tienen.
+ */
+async function fetchAppendix(view: string, filters: PanelFilters): Promise<PanelRecord[]> {
+  let query = supabase.from(view).select('*')
+
+  if (filters.search) {
+    const patron = `%${filters.search}%`
+    query = query.or(`full_name.ilike.${patron},company_name.ilike.${patron}`)
+  }
+  if (filters.period) query = query.eq('period_code', filters.period)
+
+  const { data, error } = await query.order('full_name', {
+    ascending: true,
+    nullsFirst: false,
+  })
+
+  if (error) throw new Error(`No se pudieron cargar los datos: ${error.message}`)
+  return (data ?? []) as PanelRecord[]
 }
 
 async function fetchRows(view: string, filters: PanelFilters): Promise<PanelRecord[]> {
@@ -244,6 +271,56 @@ export const supabaseRepository: PanelRepository = {
     }))
   },
 
+  async getInternships(filters) {
+    const rows = await fetchAppendix('v_panel_internships', filters)
+    return rows.map<InternshipRow>((record) => ({
+      ...baseRow(record),
+      companyName: str(record.company_name),
+      companyWebsite: str(record.company_website),
+      companyTaxId: str(record.company_tax_id),
+      companyFoundedYear: num(record.company_founded_year),
+      requiredHours: num(record.required_hours),
+      internshipOption: str(record.internship_option),
+      restrictions: str(record.restrictions),
+      department: str(record.department),
+      supervisorName: str(record.supervisor_name),
+      supervisorRole: str(record.supervisor_role),
+      supervisorEmail: str(record.supervisor_email),
+      supervisorPhone: str(record.supervisor_phone),
+      schedule: str(record.schedule),
+      isPaid: bool(record.is_paid),
+      description: str(record.description),
+      careerRelation: str(record.career_relation),
+      professionalRelation: str(record.professional_relation),
+      companyValidation: str(record.company_validation),
+    }))
+  },
+
+  async getCompanies(filters) {
+    const rows = await fetchAppendix('v_panel_companies', filters)
+    return rows.map<CompanyRow>((record) => ({
+      ...baseRow(record),
+      companyName: str(record.company_name),
+      companyWebsite: str(record.company_website),
+      industry: str(record.industry),
+      mission: str(record.mission),
+      vision: str(record.vision),
+      companyValues: str(record.company_values),
+      address: str(record.address),
+      workSchedule: str(record.work_schedule),
+      department: str(record.department),
+      supervisorInfo: str(record.supervisor_info),
+      supervisorEmail: str(record.supervisor_email),
+      supervisorPhone: str(record.supervisor_phone),
+      activities: str(record.activities),
+      hasContract: bool(record.has_contract),
+      salary: num(record.salary),
+      hasLinkedinProfile: bool(record.has_linkedin_profile),
+      linkedinConnections: num(record.linkedin_connections),
+      linkedinUrl: str(record.linkedin_url),
+    }))
+  },
+
   async getSubmissionHistory(studentId, formCode): Promise<SubmissionHistoryEntry[]> {
     // Aquí sí se consulta `submissions` directamente: el panel del alumno
     // muestra TODAS sus respuestas, no solo la vigente.
@@ -285,4 +362,6 @@ const VIEW_BY_FORM: Record<FormCode, string> = {
   form2_4: REFLECTION_VIEW,
   form2_5: REFLECTION_VIEW,
   form2_7: 'v_panel_indeed',
+  formA_1: 'v_panel_internships',
+  formB_1: 'v_panel_companies',
 }

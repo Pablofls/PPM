@@ -21,6 +21,8 @@ export type FormCode =
   | 'form2_4'
   | 'form2_5'
   | 'form2_7'
+  | 'formA_1'
+  | 'formB_1'
 
 export interface FormMeta {
   code: FormCode
@@ -33,7 +35,7 @@ export interface FormMeta {
 }
 
 /**
- * Los 11 formularios con pantalla en esta iteración.
+ * Los 13 formularios con pantalla.
  *
  * No existen 2.3 ni 2.6: la numeración del Módulo 2 salta de 2.2 a 2.4 y de 2.5
  * a 2.7 en el original, y se respeta porque es la que el profesor y los alumnos
@@ -128,7 +130,32 @@ export const FORMS: FormMeta[] = [
     subtitle: 'Vacantes y compañías que el alumno investigó en Indeed',
     path: '/modulo2/indeed',
   },
+  {
+    code: 'formA_1',
+    moduleCode: 'A',
+    label: 'A.1',
+    name: 'Carta Formal de Aceptación',
+    subtitle: 'Empresa donde el alumno realizará sus prácticas profesionales',
+    path: '/apendice-a/carta-de-aceptacion',
+  },
+  {
+    code: 'formB_1',
+    moduleCode: 'B',
+    label: 'B.1',
+    name: 'Formulario de Inicio',
+    subtitle: 'Perfil de la empresa y condiciones de la práctica',
+    path: '/apendice-b/formulario-de-inicio',
+  },
 ]
+
+/** Títulos de las secciones del sidebar, como en la plataforma anterior. */
+export const MODULE_TITLES: Record<ModuleCode, string> = {
+  '1': 'Módulo 1 · Conócete',
+  '2': 'Módulo 2 · Actúa',
+  A: 'Apéndice A · Cartas Requeridas',
+  B: 'Apéndice B · Reportes',
+  W: 'Bitácoras semanales',
+}
 
 export const formByCode = (code: FormCode): FormMeta =>
   FORMS.find((form) => form.code === code)!
@@ -138,8 +165,6 @@ export const REFLECTION_FORMS = ['form2_1', 'form2_2', 'form2_4', 'form2_5'] as 
 
 /** Secciones del proyecto que todavía no tienen pantalla. Ver regla «Alcance de las pantallas» de CLAUDE.md. */
 export const UPCOMING_SECTIONS = [
-  'Apéndice A: Cartas Requeridas',
-  'Apéndice B: Reportes',
   'Bitácoras semanales',
   'Grupos',
   'Estado de Entregas',

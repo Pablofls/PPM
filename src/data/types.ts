@@ -106,6 +106,50 @@ export interface IndeedRow extends BaseRow {
   companyUrls: (string | null)[]
 }
 
+/** A.1 Carta Formal de Aceptación — `internship_applications` */
+export interface InternshipRow extends BaseRow {
+  companyName: string | null
+  companyWebsite: string | null
+  companyTaxId: string | null
+  companyFoundedYear: number | null
+  requiredHours: number | null
+  internshipOption: string | null
+  restrictions: string | null
+  department: string | null
+  supervisorName: string | null
+  supervisorRole: string | null
+  supervisorEmail: string | null
+  supervisorPhone: string | null
+  schedule: string | null
+  isPaid: boolean | null
+  description: string | null
+  careerRelation: string | null
+  professionalRelation: string | null
+  companyValidation: string | null
+}
+
+/** B.1 Formulario de Inicio — `company_profiles` */
+export interface CompanyRow extends BaseRow {
+  companyName: string | null
+  companyWebsite: string | null
+  industry: string | null
+  mission: string | null
+  vision: string | null
+  companyValues: string | null
+  address: string | null
+  workSchedule: string | null
+  department: string | null
+  supervisorInfo: string | null
+  supervisorEmail: string | null
+  supervisorPhone: string | null
+  activities: string | null
+  hasContract: boolean | null
+  salary: number | null
+  hasLinkedinProfile: boolean | null
+  linkedinConnections: number | null
+  linkedinUrl: string | null
+}
+
 /** Una entrada del historial de respuestas de un alumno a un formulario. */
 export interface SubmissionHistoryEntry {
   submissionId: string

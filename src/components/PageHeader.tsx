@@ -6,6 +6,8 @@ interface PageHeaderProps {
   subtitle: string
   summary: FormSummary | null
   isConnected: boolean
+  /** Los apéndices solo tienen "Exportar datos". */
+  hideProcessAction?: boolean
 }
 
 /**
@@ -21,6 +23,7 @@ export function PageHeader({
   subtitle,
   summary,
   isConnected,
+  hideProcessAction = false,
 }: PageHeaderProps) {
   return (
     <header className="mb-6">
@@ -34,7 +37,7 @@ export function PageHeader({
         </div>
 
         <div className="flex gap-2">
-          <ActionButton>Procesar datos</ActionButton>
+          {!hideProcessAction && <ActionButton>Procesar datos</ActionButton>}
           <ActionButton>Exportar datos</ActionButton>
         </div>
       </div>

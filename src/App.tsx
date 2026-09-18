@@ -9,6 +9,8 @@ import { InterestsPage } from './pages/modulo1/InterestsPage'
 import { PersonalityPage } from './pages/modulo1/PersonalityPage'
 import { SkillsPage } from './pages/modulo1/SkillsPage'
 import { ValuesPage } from './pages/modulo1/ValuesPage'
+import { CompaniesPage } from './pages/apendices/CompaniesPage'
+import { InternshipsPage } from './pages/apendices/InternshipsPage'
 import { IndeedPage } from './pages/modulo2/IndeedPage'
 import { ReflectionPage } from './pages/modulo2/ReflectionPage'
 
@@ -52,6 +54,14 @@ export default function App() {
               <Route path="cover-letter" element={<ReflectionPage formCode="form2_4" />} />
               <Route path="elevator-pitch" element={<ReflectionPage formCode="form2_5" />} />
               <Route path="indeed" element={<IndeedPage />} />
+            </Route>
+
+            <Route path="apendice-a">
+              <Route path="carta-de-aceptacion" element={<InternshipsPage />} />
+            </Route>
+
+            <Route path="apendice-b">
+              <Route path="formulario-de-inicio" element={<CompaniesPage />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/modulo1/datos-demograficos" replace />} />

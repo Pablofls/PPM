@@ -23,6 +23,18 @@ interface FormPageProps<T extends BaseRow> {
   }
   /** Controles extra en la barra de filtros. */
   filterControls?: ReactNode
+  /**
+   * `'completos'` muestra los cinco selectores compartidos.
+   * `'solo-busqueda'` deja únicamente el buscador: es lo que tienen las
+   * pantallas de los apéndices en la plataforma anterior.
+   */
+  filterMode?: 'completos' | 'solo-busqueda'
+  /** Texto del buscador. */
+  searchPlaceholder?: string
+  /** Filas por página. Sin valor, la tabla no pagina. */
+  pageSize?: number
+  /** Oculta el botón "Procesar datos", que los apéndices no tienen. */
+  hideProcessAction?: boolean
   /** Detalle específico del formulario dentro del panel lateral. */
   renderDetail?: (row: T) => ReactNode
 }
@@ -38,6 +50,10 @@ export function FormPage<T extends BaseRow>({
   columns,
   useRows,
   filterControls,
+  filterMode = 'completos',
+  searchPlaceholder,
+  pageSize,
+  hideProcessAction = false,
   renderDetail,
 }: FormPageProps<T>) {
   const [filters, setFilter, clearFilters] = useFilters()
@@ -53,9 +69,16 @@ export function FormPage<T extends BaseRow>({
         subtitle={form.subtitle}
         summary={summary}
         isConnected={repository.isConnected}
+        hideProcessAction={hideProcessAction}
       />
 
-      <FilterBar filters={filters} onChange={setFilter} onClear={clearFilters}>
+      <FilterBar
+        filters={filters}
+        onChange={setFilter}
+        onClear={clearFilters}
+        mode={filterMode}
+        searchPlaceholder={searchPlaceholder}
+      >
         {filterControls}
       </FilterBar>
 
@@ -66,6 +89,7 @@ export function FormPage<T extends BaseRow>({
         loading={loading}
         isConnected={repository.isConnected}
         error={error}
+        pageSize={pageSize}
         onRowClick={setSelectedRow}
       />
 
@@ -76,9 +100,16 @@ export function FormPage<T extends BaseRow>({
   )
 }
 
-/** Columnas del alumno, presentes al inicio de todas las pantallas. */
-export function studentColumns<T extends BaseRow>(): Column<T>[] {
-  return [
+/**
+ * Columnas del alumno, presentes al inicio de todas las pantallas.
+ *
+ * `omitEmail` deja fuera el correo institucional: las pantallas de los apéndices
+ * no lo muestran, porque ahí la columna que identifica el registro es la empresa.
+ */
+export function studentColumns<T extends BaseRow>(
+  { omitEmail = false }: { omitEmail?: boolean } = {},
+): Column<T>[] {
+  const columnas: Column<T>[] = [
     {
       key: 'fullName',
       header: 'Nombre',
@@ -107,6 +138,10 @@ export function studentColumns<T extends BaseRow>(): Column<T>[] {
       render: (row) => <LanguageBadge value={row.language} />,
     },
   ]
+
+  return omitEmail
+    ? columnas.filter((columna) => columna.key !== 'institutionalEmail')
+    : columnas
 }
 
 /** Columnas de contexto académico, al final de las pantallas que no son 1.0. */
