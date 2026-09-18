@@ -56,7 +56,7 @@ export function BehaviorPage() {
       renderDetail={(row) => (
         <div className="space-y-3 text-sm">
           {row.needsReview && (
-            <p className="rounded-lg bg-amber-50 px-3 py-2 text-amber-800">
+            <p className="rounded-lg border-l-4 border-accent-400 bg-accent-50 px-3 py-2 text-accent-800">
               Esta respuesta llegó con un valor que no corresponde a un estilo DISC
               válido. Conviene revisarla contra el formulario original.
             </p>

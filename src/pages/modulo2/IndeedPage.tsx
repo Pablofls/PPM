@@ -28,7 +28,7 @@ function NumberedLinks({ urls, label }: { urls: (string | null)[]; label: string
           href={link.href!}
           target="_blank"
           rel="noreferrer"
-          className="text-sm font-medium whitespace-nowrap text-blue-600 hover:text-blue-700 hover:underline"
+          className="text-sm font-medium whitespace-nowrap text-brand-600 hover:text-brand-700 hover:underline"
         >
           {label} {link.index}
         </a>

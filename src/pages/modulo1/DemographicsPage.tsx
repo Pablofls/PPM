@@ -24,7 +24,7 @@ const columns: Column<DemographicsRow>[] = [
     sticky: true,
     render: (row) =>
       row.fullName ? (
-        <span className="font-medium text-blue-700">{row.fullName}</span>
+        <span className="font-medium text-brand-700">{row.fullName}</span>
       ) : (
         <Dash />
       ),

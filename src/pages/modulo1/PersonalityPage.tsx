@@ -26,7 +26,7 @@ function Dimension({ value, pct }: { value: string | null; pct: number | null })
       </div>
       {pct !== null && (
         <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-slate-100">
-          <div className="h-full rounded-full bg-blue-500" style={{ width: `${pct}%` }} />
+          <div className="h-full rounded-full bg-brand-500" style={{ width: `${pct}%` }} />
         </div>
       )}
     </div>
@@ -86,7 +86,7 @@ export function ReportLink({ url }: { url: string | null }) {
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
+      className="font-medium text-brand-600 hover:text-brand-700 hover:underline"
     >
       Ver reporte
     </a>

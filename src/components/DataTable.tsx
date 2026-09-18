@@ -42,16 +42,16 @@ export function DataTable<T>({
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50">
+            <tr className="border-b-2 border-brand-700 bg-brand-800">
               {columns.map((column) => (
                 <th
                   key={column.key}
                   scope="col"
                   className={[
-                    'px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-600 uppercase whitespace-nowrap',
+                    'px-4 py-3 text-left text-xs font-semibold tracking-wide text-white uppercase whitespace-nowrap',
                     column.width ?? '',
                     column.sticky
-                      ? 'sticky left-0 z-10 bg-slate-50 after:absolute after:top-0 after:right-0 after:h-full after:w-px after:bg-slate-200'
+                      ? 'sticky left-0 z-10 bg-brand-800 after:absolute after:top-0 after:right-0 after:h-full after:w-px after:bg-brand-600'
                       : '',
                   ].join(' ')}
                 >
@@ -62,11 +62,16 @@ export function DataTable<T>({
           </thead>
           <tbody>
             {rows.map((row) => (
+              /*
+                El rayado alterno se hace con `even:` y no con un borde por fila:
+                con muchas columnas y scroll horizontal, el fondo es lo que
+                mantiene al ojo en la misma fila.
+              */
               <tr
                 key={rowKey(row)}
                 onClick={() => onRowClick?.(row)}
-                className={`border-b border-slate-100 last:border-0 ${
-                  onRowClick ? 'cursor-pointer hover:bg-slate-50' : ''
+                className={`group border-b border-slate-100 last:border-0 even:bg-slate-50/70 ${
+                  onRowClick ? 'cursor-pointer hover:bg-accent-50 even:hover:bg-accent-50' : ''
                 }`}
               >
                 {columns.map((column) => (
@@ -74,7 +79,11 @@ export function DataTable<T>({
                     key={column.key}
                     className={[
                       'px-4 py-3 align-top text-slate-700',
-                      column.sticky ? 'sticky left-0 z-10 bg-white' : '',
+                      // La columna fija repite el fondo de la fila: si no, el
+                      // rayado y el hover se le ven por debajo.
+                      column.sticky
+                        ? 'sticky left-0 z-10 bg-white group-even:bg-slate-50 group-hover:bg-accent-50 group-even:group-hover:bg-accent-50'
+                        : '',
                     ].join(' ')}
                   >
                     {column.render(row)}
@@ -114,7 +123,7 @@ function TableEmptyState({
   if (error) {
     return (
       <div className="mx-auto max-w-md text-center">
-        <p className="text-sm font-medium text-red-700">No se pudieron cargar los datos</p>
+        <p className="text-sm font-semibold text-red-700">No se pudieron cargar los datos</p>
         <p className="mt-1 text-sm text-slate-500">{error}</p>
       </div>
     )

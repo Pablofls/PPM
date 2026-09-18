@@ -1,10 +1,35 @@
 @import 'tailwindcss';
 
+/**
+ * Paleta institucional.
+ *
+ * `brand` es el azul del panel (barra lateral, encabezados, enlaces) y `accent`
+ * es el amarillo institucional. El amarillo se usa como acento —marca activa, franja del
+ * encabezado, dato destacado—, nunca como fondo de superficies grandes: a ese
+ * tamaño cansa la vista y deja de señalar lo importante.
+ */
 @theme {
-  --color-brand-50: oklch(0.97 0.014 254);
-  --color-brand-100: oklch(0.93 0.032 254);
-  --color-brand-600: oklch(0.55 0.19 258);
-  --color-brand-700: oklch(0.48 0.18 258);
+  --color-brand-50: #eef4fb;
+  --color-brand-100: #d9e6f5;
+  --color-brand-200: #b6cdea;
+  --color-brand-300: #86aad9;
+  --color-brand-400: #4f80c2;
+  --color-brand-500: #2d5fa4;
+  --color-brand-600: #1e4a85;
+  --color-brand-700: #17396a;
+  --color-brand-800: #132d52;
+  --color-brand-900: #0d1f3a;
+  --color-brand-950: #08152a;
+
+  --color-accent-50: #fffaeb;
+  --color-accent-100: #fff3c6;
+  --color-accent-200: #ffe788;
+  --color-accent-300: #ffd94a;
+  --color-accent-400: #ffc72c;
+  --color-accent-500: #f0ac00;
+  --color-accent-600: #cc8a02;
+  --color-accent-700: #a26606;
+  --color-accent-800: #864f0c;
 }
 
 html,
@@ -14,5 +39,5 @@ body,
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply bg-slate-100 text-slate-900 antialiased;
 }

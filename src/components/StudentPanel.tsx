@@ -44,7 +44,7 @@ export function StudentPanel<T extends BaseRow>({
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
       <div
-        className="absolute inset-0 bg-slate-900/20"
+        className="absolute inset-0 bg-brand-950/30"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -54,18 +54,20 @@ export function StudentPanel<T extends BaseRow>({
         aria-label="Detalle del alumno"
         className="relative flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-slate-200 bg-white shadow-xl"
       >
-        <div className="flex items-start justify-between border-b border-slate-200 px-6 py-4">
-          <div>
-            <h2 className="text-base font-semibold text-slate-900">
+        <div className="flex items-start justify-between gap-3 border-b-4 border-accent-400 bg-brand-800 px-6 py-4">
+          <div className="min-w-0">
+            <h2 className="truncate text-base font-semibold text-white">
               {row.fullName ?? row.institutionalEmail}
             </h2>
-            <p className="mt-0.5 text-sm text-slate-500">{row.institutionalEmail}</p>
+            <p className="mt-0.5 truncate text-sm text-brand-200">
+              {row.institutionalEmail}
+            </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Cerrar"
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            className="rounded-lg p-1.5 text-brand-200 hover:bg-white/10 hover:text-white"
           >
             ✕
           </button>
@@ -94,7 +96,7 @@ export function StudentPanel<T extends BaseRow>({
 
         {children && (
           <div className="border-b border-slate-200 px-6 py-4">
-            <h3 className="mb-3 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+            <h3 className="mb-3 text-xs font-semibold tracking-wider text-brand-700 uppercase">
               {form.label} {form.name}
             </h3>
             {children(row)}
@@ -102,7 +104,7 @@ export function StudentPanel<T extends BaseRow>({
         )}
 
         <div className="px-6 py-4">
-          <h3 className="mb-3 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+          <h3 className="mb-3 text-xs font-semibold tracking-wider text-brand-700 uppercase">
             Historial de respuestas
           </h3>
           {historyError ? (

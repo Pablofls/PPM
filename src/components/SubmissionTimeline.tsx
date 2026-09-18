@@ -36,7 +36,7 @@ export function SubmissionTimeline({
           <div className="mt-1.5 flex flex-col items-center">
             <span
               className={`size-2 rounded-full ${
-                entry.isLatest ? 'bg-blue-600' : 'bg-slate-300'
+                entry.isLatest ? 'bg-accent-400 ring-2 ring-accent-200' : 'bg-slate-300'
               }`}
             />
             <span className="mt-1 w-px flex-1 bg-slate-200" />
@@ -45,7 +45,9 @@ export function SubmissionTimeline({
             <p className="text-sm font-medium text-slate-800">
               {formatDateTime(entry.submittedAt)}
               {entry.isLatest && (
-                <span className="ml-2 text-xs font-normal text-blue-600">vigente</span>
+                <span className="ml-2 rounded-full bg-accent-100 px-2 py-0.5 text-xs font-medium text-accent-800">
+                  vigente
+                </span>
               )}
             </p>
             {entry.weekStart && (
