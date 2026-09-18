@@ -9,8 +9,7 @@
 
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
-- **Última migración aplicada:** `0009_appendices.sql` (2026-09-17).
-  `0010_views_appendices.sql` está escrito y **pendiente de ejecutar**
+- **Última migración aplicada:** `0010_views_appendices.sql` (2026-09-17)
 - **Datos del Sheets:** importados (46 alumnos, 397 entregas)
 
 ## Índice
@@ -584,7 +583,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0007_seed_forms.sql` | catálogo de los 11 formularios | ✅ 2026-09-11 |
 | `0008_views_panel.sql` | las 8 vistas `v_panel_*` que alimentan las pantallas | ✅ 2026-09-11 |
 | `0009_appendices.sql` | `internship_applications`, `company_profiles`, RLS y catálogo | ✅ 2026-09-17 |
-| `0010_views_appendices.sql` | `v_panel_internships`, `v_panel_companies` | ❌ **pendiente** |
+| `0010_views_appendices.sql` | `v_panel_internships`, `v_panel_companies` | ✅ 2026-09-17 |
 
 > **Estos archivos ya no se editan.** Cualquier cambio posterior es un archivo
 > nuevo, `0008_…` en adelante.
@@ -596,7 +595,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | Tablas | 14 |
 | Tablas con RLS activo | **14** |
 | Políticas | 16 |
-| Vistas | 2, ambas con `security_invoker = on` |
+| Vistas | 12, todas con `security_invoker = on` |
 | Índices `idx_*` | 5 |
 | Formularios en el catálogo | 13 |
 | Alumnos | 46 |
