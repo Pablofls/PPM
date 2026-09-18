@@ -64,7 +64,22 @@ def lit(valor) -> str:
             return 'null'
         partes = ','.join('"' + str(v).replace('"', '\\"') + '"' for v in valor)
         return "'{" + partes + "}'"
-    return "'" + str(valor).replace("'", "''") + "'"
+    texto_plano = str(valor)
+
+    # Los saltos de línea reales dentro de un literal rompen al SQL Editor de
+    # Supabase, que divide el script en sentencias antes de enviarlo: parte la
+    # cadena a la mitad y lee el resto del texto como SQL. Con E'...' el dato se
+    # conserva idéntico y cada sentencia queda en una sola línea física.
+    if any(c in texto_plano for c in '\n\r\t\\'):
+        escapado = (texto_plano
+                    .replace('\\', '\\\\')   # primero: en E'' el backslash es escape
+                    .replace("'", "''")
+                    .replace('\n', '\\n')
+                    .replace('\r', '\\r')
+                    .replace('\t', '\\t'))
+        return "E'" + escapado + "'"
+
+    return "'" + texto_plano.replace("'", "''") + "'"
 
 
 def texto(valor) -> str | None:

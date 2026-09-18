@@ -47,6 +47,20 @@ La importación es **idempotente**: cada entrega lleva un `source_row_key` únic
 todos los `INSERT` usan `ON CONFLICT DO NOTHING`. Reejecutar no duplica nada;
 está probado.
 
+### Por qué los literales van en una sola línea
+
+Las respuestas de los alumnos traen saltos de línea. Un literal SQL puede
+contenerlos sin problema —PostgreSQL los acepta— pero **el SQL Editor de
+Supabase divide el script en sentencias antes de enviarlo**, y ahí parte la
+cadena a la mitad: el resto del texto se interpreta como SQL y falla con errores
+tan desconcertantes como `relation "modern" does not exist`, donde `modern` era
+una palabra dentro de la respuesta de un alumno.
+
+Por eso `lit()` emite `E'…'` con `\n` escapado cuando el texto lleva saltos de
+línea, tabuladores o barras invertidas. El dato llega idéntico —en la base los
+saltos siguen siendo saltos— pero cada sentencia ocupa una sola línea física y
+es inmune a cómo el editor trocee el script.
+
 ## Orden de importación
 
 1. `forms` — ya viene sembrado en `0007_seed_forms.sql`
