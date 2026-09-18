@@ -31,7 +31,7 @@ export function LoginPage() {
             Prácticas Profesionales
           </h1>
           <p className="mt-2 text-sm text-ink-500">
-            Panel del profesor · acceso para personal autorizado
+            Entra con tu correo institucional
           </p>
         </div>
 
@@ -89,8 +89,9 @@ export function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-4 text-xs text-ink-400">
-          El acceso lo autoriza un administrador.
+        <p className="mt-4 text-xs leading-relaxed text-ink-400">
+          Alumnos: su contraseña es su matrícula. El acceso del profesor lo
+          autoriza un administrador.
         </p>
       </div>
     </div>

@@ -4,7 +4,9 @@ Cómo entra la gente al panel y qué puede ver cada quien.
 
 - **Proveedor:** Supabase Auth, **correo + contraseña**
 - **Implementación:** `supabase/migrations/0001_auth.sql`
-- **Estado:** ✅ ejecutado en Supabase el 2026-09-11; falta crear el primer admin
+- **Implementación del rol `alumno`:** `supabase/migrations/0013_role_alumno.sql`
+  y `0014_student_accounts.sql`
+- **Estado:** ✅ `0001` ejecutado el 2026-09-11. `0013` y `0014` ⏳ pendientes
 
 ## Principio
 
@@ -19,16 +21,69 @@ usuario recién registrado puede iniciar sesión y no ve ni una fila.
 | Rol | Qué puede hacer |
 |---|---|
 | `pendiente` | Iniciar sesión y ver su propio perfil. **Nada más.** Es el rol con el que nace todo usuario |
+| `alumno` | Iniciar sesión y ver su pantalla de bienvenida. Hoy **no lee ninguna tabla de datos**: no hay política que lo mencione |
 | `admin` | Leer todas las pantallas del panel y administrar los roles de los demás |
 
-Todas las pantallas de este primer despliegue son **admin-only**. Cuando existan
-roles con menos permisos se agregan con:
+Todas las pantallas **con datos** son admin-only. El alumno tiene una sola ruta,
+`/alumno`, con su propia guardia (`StudentRoute`), y por ahora solo muestra lo
+que ya trae su sesión: su nombre y su correo.
+
+> Que `alumno` no lea nada no es un pendiente olvidado: es el orden correcto.
+> Primero existen las cuentas, luego se abre —una por una y con su política— la
+> información que cada alumno puede ver de sí mismo. La condición siempre será
+> `student_id = public.current_student_id()`, nunca `authenticated`.
+
+## Cómo se crean las cuentas de los alumnos
+
+El alumno **no se registra**: la cuenta se la crea el profesor.
+
+- **Usuario:** su correo institucional.
+- **Contraseña:** su matrícula.
+- **Quiénes:** los alumnos que contestaron el formulario **1.0 Datos
+  Demográficos**, porque es de ahí de donde sale la matrícula. Un alumno sin 1.0
+  no tiene contraseña posible y la función lo reporta como omitido.
+
+En el **SQL Editor de Supabase**, después de pegar `0013` y `0014` (en ese orden
+y en dos ejecuciones distintas):
 
 ```sql
-alter type app_role add value 'alumno';
+select * from public.create_student_accounts();
 ```
 
-…y las políticas de las tablas que ese rol pueda leer.
+Devuelve una fila por alumno: `creado`, `ya existía: perfil enlazado` u
+`omitido: sin matrícula en el 1.0`. Es **idempotente**: volver a correrla da de
+alta a los alumnos nuevos y no le cambia la contraseña a nadie.
+
+`profiles.student_id` es lo que une la cuenta con el alumno. Se enlaza por
+correo una sola vez, al crear la cuenta; de ahí en adelante manda el id, para que
+corregirle el correo a alguien no lo desconecte de sus propias entregas.
+
+### Lo que hay que saber de este esquema de contraseñas
+
+La matrícula **no es un secreto**: aparece en las listas del grupo y en el panel
+del profesor. Cualquiera que conozca la matrícula de un compañero y su correo
+institucional puede entrar a su cuenta.
+
+Hoy eso no expone nada —el rol `alumno` no lee ninguna tabla—, pero deja de ser
+aceptable **el día que la vista del alumno muestre sus datos**. Antes de ese
+paso hace falta decidir una de dos:
+
+- obligar a cambiar la contraseña en el primer inicio de sesión, o
+- mandar un enlace mágico al correo institucional en vez de usar contraseña.
+
+Nota práctica: Supabase exige 10 caracteres mínimo al cambiar o restablecer una
+contraseña por la API. Una matrícula de 6 dígitos funciona para entrar, porque el
+alta se hace en la base y esa política solo la aplica la API, pero el alumno no
+podrá *ponerse* una contraseña corta.
+
+### Por qué el alta se hace en SQL y no con la API
+
+Crear usuarios por la API de Supabase necesita la llave `service_role`, que este
+proyecto no tiene y no debe tener: viajaría en el bundle del navegador. El SQL
+Editor ya es un contexto administrativo, así que `create_student_accounts()`
+escribe directo en `auth.users` y `auth.identities`, con el mismo hash bcrypt
+que usa Supabase Auth. La contraseña en claro no se guarda en ninguna columna, y
+la función no es ejecutable por nadie con sesión en el navegador.
 
 ## Las contraseñas
 
@@ -125,7 +180,9 @@ En **Authentication → Providers**:
 | `src/auth/AuthProvider.tsx` | sesión y rol en un contexto |
 | `src/auth/LoginPage.tsx` | correo + contraseña, con errores en español |
 | `src/auth/PendingPage.tsx` | cuenta sin autorizar o desactivada |
-| `src/auth/ProtectedRoute.tsx` | sin sesión → login; sin rol admin → pendiente |
+| `src/auth/ProtectedRoute.tsx` | sin sesión → login; rol alumno → `/alumno`; sin rol admin → pendiente |
+| `src/auth/StudentRoute.tsx` | la guardia gemela de la vista del alumno |
+| `src/pages/alumno/StudentHome.tsx` | pantalla de bienvenida del alumno |
 
 Todo el panel cuelga de `ProtectedRoute` en `App.tsx`: no hay una sola ruta
 accesible sin sesión y sin rol `admin`. Entrar directo a `/modulo1/habilidades`

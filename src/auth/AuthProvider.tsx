@@ -15,8 +15,10 @@ export interface Profile {
   id: string
   email: string
   full_name: string | null
-  role: 'admin' | 'pendiente'
+  role: 'admin' | 'alumno' | 'pendiente'
   is_active: boolean
+  /** El alumno al que corresponde la cuenta. `null` en el profesor. */
+  student_id: string | null
 }
 
 interface AuthState {
@@ -24,8 +26,10 @@ interface AuthState {
   profile: Profile | null
   /** `true` mientras se resuelve la sesión o el perfil. */
   loading: boolean
-  /** Único criterio de acceso al panel. */
+  /** Único criterio de acceso al panel del profesor. */
   isAdmin: boolean
+  /** Único criterio de acceso a la vista del alumno. */
+  isStudent: boolean
   signIn: (email: string, password: string) => Promise<string | null>
   signOut: () => Promise<void>
 }
@@ -71,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     supabase
       .from('profiles')
-      .select('id, email, full_name, role, is_active')
+      .select('id, email, full_name, role, is_active, student_id')
       .eq('id', userId)
       .maybeSingle()
       .then(({ data }) => {
@@ -104,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile,
       loading: loadingSession || loadingProfile,
       isAdmin: profile?.role === 'admin' && profile.is_active,
+      isStudent: profile?.role === 'alumno' && profile.is_active,
       signIn,
       signOut,
     }),

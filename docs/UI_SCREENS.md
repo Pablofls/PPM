@@ -4,7 +4,7 @@ Pantallas del panel, sus columnas y su comportamiento. Es la especificación de 
 que se construyó en `src/pages/`.
 
 **Alcance actual: Módulo 1, Módulo 2 y los Apéndices A/B**, más el expediente del
-alumno. No hay demo data en ninguna pantalla: lo que se ve sale de la base
+alumno y la bienvenida del portal del alumno. No hay demo data en ninguna pantalla: lo que se ve sale de la base
 (regla «Sin demo data en las pantallas» de [CLAUDE.md](../CLAUDE.md)).
 
 ## Navegación
@@ -287,6 +287,31 @@ de horas: así viene del formulario.
 > Los datos de contacto del jefe (nombre, correo, teléfono) **solo aparecen en el
 > expediente**, no en la tabla. Son datos de terceros y no tienen por qué estar
 > a la vista en una pantalla que alguien puede proyectar.
+
+## Portal del alumno
+
+Lo que ve un usuario con rol `alumno`. Es **una sola pantalla**, fuera del
+`AppShell`: el rail es la navegación del profesor y un alumno no tiene once
+pantallas que recorrer.
+
+### Bienvenida · `/alumno`
+
+`src/pages/alumno/StudentHome.tsx`, protegida por `StudentRoute`.
+
+| Bloque | Contenido |
+|---|---|
+| Encabezado | «Prácticas Profesionales · Portal del alumno», correo y *Cerrar sesión* |
+| Saludo | Su nombre, tal como lo registró en el 1.0 |
+| Tu cuenta | Nombre, correo institucional y el recordatorio de que la contraseña es su matrícula |
+| Próximamente | Mis entregas · Mi expediente · Mis bitácoras, deshabilitadas |
+
+No consulta ninguna tabla: todo sale de su propio `profiles`. El rol `alumno` no
+tiene política de lectura sobre los datos, así que hoy no podría leer ni sus
+propias entregas. Ver [AUTH.md](AUTH.md).
+
+Las tres secciones deshabilitadas siguen la convención del «Próximamente» del
+rail: comunican a dónde va el portal sin prometer que ya funciona. **No son demo
+data**: no hay una sola fila inventada en la pantalla.
 
 ## Decisiones de interfaz
 

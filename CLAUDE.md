@@ -24,6 +24,11 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
 - Los apéndices ya tienen tabla y pantalla. Su estructura es distinta a la del
   Módulo 1 y 2 (buscador por empresa, paginación, sin filtros académicos), como
   en la plataforma anterior.
+- El **rol `alumno`** existe: las cuentas se crean desde `demographics` (usuario =
+  correo institucional, contraseña = matrícula) con
+  `create_student_accounts()`, y el alumno entra a `/alumno`, hoy solo una
+  pantalla de bienvenida. **No lee ninguna tabla todavía**; ver `docs/AUTH.md`.
+  Las migraciones `0013` y `0014` están **pendientes de ejecutar**.
 - Las **bitácoras semanales** (`form_busqueda`, `form_practicas`) no son una
   pantalla del rail: se leen dentro del **expediente del alumno**, que reemplaza
   al panel lateral por formulario. Es como funcionaba la tarjeta *ADN
@@ -129,6 +134,10 @@ Al agregar una tabla o una pantalla:
 
 Ver [docs/AUTH.md](docs/AUTH.md). Cualquier pantalla para un rol distinto de
 `admin` se diseña y se pide explícitamente; no se asume.
+
+La vista del alumno sigue la misma regla desde el otro lado: su guardia es
+`StudentRoute` y su condición de lectura, cuando tenga datos que leer, siempre
+será `student_id = public.current_student_id()`. Nunca `authenticated`.
 
 ### 9. Alcance de las pantallas
 

@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 
 import { AuthProvider } from './auth/AuthProvider'
 import { ProtectedRoute } from './auth/ProtectedRoute'
+import { StudentRoute } from './auth/StudentRoute'
 import { AppShell } from './layouts/AppShell'
 import { BehaviorPage } from './pages/modulo1/BehaviorPage'
 import { DemographicsPage } from './pages/modulo1/DemographicsPage'
@@ -11,6 +12,7 @@ import { SkillsPage } from './pages/modulo1/SkillsPage'
 import { ValuesPage } from './pages/modulo1/ValuesPage'
 import { CompaniesPage } from './pages/apendices/CompaniesPage'
 import { InternshipsPage } from './pages/apendices/InternshipsPage'
+import { StudentHome } from './pages/alumno/StudentHome'
 import { IndeedPage } from './pages/modulo2/IndeedPage'
 import { ReflectionPage } from './pages/modulo2/ReflectionPage'
 
@@ -21,6 +23,9 @@ import { ReflectionPage } from './pages/modulo2/ReflectionPage'
  * Todo el panel cuelga de ProtectedRoute: no hay una sola ruta accesible sin
  * sesión y sin rol admin (regla «Toda pantalla nace protegida y admin-only»).
  *
+ * `/alumno` es la otra mitad: la vista del alumno, con su propia guardia. No
+ * cuelga del AppShell porque el rail es la navegación del profesor.
+ *
  * Las rutas están en español porque el profesor puede compartirlas o guardarlas
  * como marcador.
  */
@@ -29,6 +34,15 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          <Route
+            path="/alumno"
+            element={
+              <StudentRoute>
+                <StudentHome />
+              </StudentRoute>
+            }
+          />
+
           <Route
             element={
               <ProtectedRoute>

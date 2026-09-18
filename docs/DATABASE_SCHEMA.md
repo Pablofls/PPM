@@ -10,6 +10,8 @@
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
 - **Última migración aplicada:** `0012_views_dossier.sql` (2026-09-17)
+- **Pendiente de ejecutar:** `0013_role_alumno.sql` y `0014_student_accounts.sql`
+  (cuentas de alumno)
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
   bitácoras semanales.
 
@@ -264,14 +266,22 @@ Detalle completo en [AUTH.md](AUTH.md). Resumen del modelo:
 | `full_name` | `text` | |
 | `role` | `app_role` NOT NULL DEFAULT `'pendiente'` | |
 | `is_active` | `boolean` NOT NULL DEFAULT `true` | |
+| `student_id` | `uuid` → `students(id)` ON DELETE SET NULL | el alumno de la cuenta; `NULL` en el profesor. Único entre los no nulos |
 | `created_at` / `updated_at` | `timestamptz` NOT NULL DEFAULT `now()` | |
 
 ### `app_role`
 
-`admin` · `pendiente`
+`admin` · `alumno` · `pendiente`
 
 `pendiente` es el rol con el que nace todo usuario. Puede iniciar sesión y no ve
-nada. Roles futuros se agregan con `ALTER TYPE app_role ADD VALUE`.
+nada. Roles futuros se agregan con `ALTER TYPE app_role ADD VALUE`, y en su
+**propio archivo**: PostgreSQL no deja usar un valor de enum en la misma
+transacción que lo agregó. Por eso `alumno` viene solo en `0013`.
+
+`alumno` hoy es un rol sin lectura: no hay una sola política que lo mencione, así
+que un alumno con sesión no ve ni una fila —ni la suya—. Solo existen su cuenta y
+su pantalla de bienvenida. Las políticas `student_id = current_student_id()`
+llegan cuando lleguen sus pantallas de datos.
 
 ### Funciones y triggers
 
@@ -280,6 +290,8 @@ nada. Roles futuros se agregan con `ALTER TYPE app_role ADD VALUE`.
 | `is_admin()` | `SECURITY DEFINER`. Base de todas las políticas |
 | `handle_new_user()` | Trigger sobre `auth.users`: crea el perfil en `pendiente` |
 | `guard_profile_role()` | Trigger sobre `profiles`: protege la columna `role` |
+| `current_student_id()` | `SECURITY DEFINER`. El alumno de la sesión, o `NULL`. Base de las políticas «lo mío» |
+| `create_student_accounts()` | Alta masiva de cuentas de alumno. Se corre a mano en el SQL Editor; sin permiso de ejecución para `authenticated` |
 
 **Por qué `is_admin()` es `SECURITY DEFINER`:** se invoca desde la política de
 `profiles`; si consultara `profiles` con los permisos de quien llama, dispararía
@@ -668,6 +680,7 @@ RLS habilitado en **las 16 tablas**.
 |---|---|
 | `anon` | ninguno |
 | `authenticated` con rol `pendiente` | solo su propio `profiles` |
+| `authenticated` con rol `alumno` | solo su propio `profiles`. Ninguna tabla de datos |
 | `authenticated` con rol `admin` | lectura de todo |
 | `service_role` | escritura (importación); se salta RLS por definición |
 
@@ -713,6 +726,8 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0010_views_appendices.sql` | `v_panel_internships`, `v_panel_companies` | ✅ 2026-09-17 |
 | `0011_weekly_logs.sql` | `week_start`/`week_end`, `job_search_logs`, `internship_logs`, RLS y catálogo | ✅ 2026-09-17 |
 | `0012_views_dossier.sql` | `v_student_dossier` y las dos vistas de bitácora | ✅ 2026-09-17 |
+| `0013_role_alumno.sql` | valor `alumno` de `app_role` | ⏳ pendiente |
+| `0014_student_accounts.sql` | `profiles.student_id`, `current_student_id()`, `create_student_accounts()` | ⏳ pendiente |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.
