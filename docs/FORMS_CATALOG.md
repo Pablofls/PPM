@@ -19,14 +19,17 @@ Google Sheets de origen. El `code` es el mismo que la hoja y el que se guarda en
 | `form2_4` | 2.4 Cover Letter | 2 | `form2_4` | 1 | `reflections` | ✅ |
 | `form2_5` | 2.5 Elevator Pitch | 2 | `form2_5` | 1 | `reflections` | ✅ |
 | `form2_7` | 2.7 Indeed | 2 | `form2_7` | 1 | `indeed_research` | ✅ |
-| `formA_1` | A.1 Carta Formal de Aceptación | A | `formA_1` | 1 | `internship_applications` | ✅ tabla, sin pantalla |
-| `formB_1` | B.1 Formulario de Inicio | B | `formB_1` | 1 | `company_profiles` | ✅ tabla, sin pantalla |
-| `form_busqueda` | Bitácora de búsqueda de empleo | W | `form_busqueda` | **N (semanal)** | `job_search_logs` | ⬜ fuera de alcance |
-| `form_practicas` | Bitácora de prácticas | W | `form_practicas` | **N (semanal)** | `internship_logs` | ⬜ fuera de alcance |
+| `formA_1` | A.1 Carta Formal de Aceptación | A | `formA_1` | 1 | `internship_applications` | ✅ |
+| `formB_1` | B.1 Formulario de Inicio | B | `formB_1` | 1 | `company_profiles` | ✅ |
+| `form_busqueda` | Reporte de Búsqueda | W | `form_busqueda` | **N (semanal)** | `job_search_logs` | ✅ tabla, sin pantalla propia |
+| `form_practicas` | Reporte de Prácticas | W | `form_practicas` | **N (semanal)** | `internship_logs` | ✅ tabla, sin pantalla propia |
 
-> **Alcance del esquema actual:** solo los 11 formularios marcados con ✅, es
-> decir `form1_0` a `form2_7`. Los apéndices, las bitácoras y las hojas
-> `alumnos` y `fechas_entrega` no tienen tabla todavía.
+> **Alcance del esquema actual:** los 15 formularios. Solo las hojas `alumnos` y
+> `fechas_entrega` quedan fuera.
+
+> Las dos bitácoras **no tienen pantalla en el rail**: se leen dentro del
+> expediente del alumno, como en la plataforma anterior. Sus nombres son los que
+> usaba esa plataforma en la tarjeta *ADN Profesional*.
 
 > No existen `form2_3` ni `form2_6` en el Sheets de origen. La numeración del
 > Módulo 2 salta de 2.2 a 2.4 y de 2.5 a 2.7, y el panel respeta esa numeración
@@ -40,11 +43,10 @@ Google Sheets de origen. El `code` es el mismo que la hoja y el que se guarda en
 | `2` | Actúa | Take Action | `form2_1`, `form2_2`, `form2_4`, `form2_5`, `form2_7` | ✅ |
 | `A` | Apéndice A: Cartas Requeridas | Appendix A | `formA_1` | ✅ |
 | `B` | Apéndice B: Reportes | Appendix B | `formB_1` | ✅ |
-| `W` | Bitácoras semanales | Weekly Logs | `form_busqueda`, `form_practicas` | ⬜ |
+| `W` | Bitácoras semanales | Weekly Logs | `form_busqueda`, `form_practicas` | ✅ |
 
-`forms.module_code` admite `'1'`, `'2'`, `'A'` y `'B'`. El `CHECK` se amplió en
-`0009_appendices.sql`; al incorporar las bitácoras habrá que ampliarlo otra vez
-con `'W'`.
+`forms.module_code` admite `'1'`, `'2'`, `'A'`, `'B'` y `'W'`. El `CHECK` se
+amplió en `0009_appendices.sql` y otra vez en `0011_weekly_logs.sql`.
 
 ## Cardinalidad observada en los datos de origen
 
@@ -65,11 +67,11 @@ agregados; ningún dato de alumno se versiona en este repositorio.
 | `form2_2` | 15 | 15 | 1 | 2 |
 | `form2_4` | 18 | 18 | 1 | 4 |
 | `form2_5` | 19 | 19 | 1 | 3 |
-| `form2_7` | 19 | 19 | 1 | 4 |
-| `formA_1` | 13 | 13 | 1 | 2 |
-| `formB_1` | 25 | 25 | 1 | 0 |
-| `form_busqueda` | 62 | 32 | **5** | 2 |
-| `form_practicas` | 95 | 33 | **10** | 3 |
+| `form2_7` | 20 | 20 | 1 | 4 |
+| `formA_1` | 17 | 17 | 1 | 2 |
+| `formB_1` | 34 | 34 | 1 | 0 |
+| `form_busqueda` | 67 | 35 | **6** | 0 |
+| `form_practicas` | 116 | 37 | **10** | 0 |
 
 **Dos observaciones que definieron el esquema:**
 

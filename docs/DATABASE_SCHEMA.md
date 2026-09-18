@@ -9,8 +9,9 @@
 
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
-- **Última migración aplicada:** `0010_views_appendices.sql` (2026-09-17)
-- **Datos del Sheets:** importados (46 alumnos, 397 entregas)
+- **Última migración aplicada:** `0012_views_dossier.sql` (2026-09-17)
+- **Datos del Sheets:** importados (46 alumnos, 397 entregas). Las bitácoras
+  semanales todavía no: su tabla existe a partir de `0011`.
 
 ## Índice
 
@@ -22,10 +23,11 @@
 6. [Tablas núcleo](#tablas-núcleo)
 7. [Módulo 1 — Conócete](#módulo-1--conócete)
 8. [Módulo 2 — Actúa](#módulo-2--actúa)
-9. [Vistas](#vistas)
-10. [Índices](#índices)
-11. [Seguridad](#seguridad)
-12. [Correspondencia migración → contenido](#correspondencia-migración--contenido)
+9. [Bitácoras semanales](#bitácoras-semanales)
+10. [Vistas](#vistas)
+11. [Índices](#índices)
+12. [Seguridad](#seguridad)
+13. [Correspondencia migración → contenido](#correspondencia-migración--contenido)
 
 ---
 
@@ -40,10 +42,12 @@ Esta versión cubre **autenticación**, los **11 formularios del Módulo 1 y 2**
 |---|---|
 | Hoja `alumnos` del Sheets | Los alumnos se derivan de los correos que responden formularios |
 | Hoja `fechas_entrega` | Sin ella no hay `form_deadlines` ni estado *a tiempo / tarde* |
-| `form_busqueda`, `form_practicas` | Bitácoras semanales: son los únicos formularios de respuesta múltiple |
 | Catálogos `periods`, `degree_programs`, `modules` | Por ahora esos valores son `text` |
 
-Los apéndices ya tienen **tabla y pantalla**.
+Los apéndices ya tienen **tabla y pantalla**. Las bitácoras semanales
+(`form_busqueda`, `form_practicas`) entran con `0011`: son los únicos
+formularios de respuesta múltiple y no se muestran como pantalla propia, sino
+dentro del expediente del alumno.
 
 ---
 
@@ -107,6 +111,8 @@ erDiagram
     SUBMISSIONS ||--o| INDEED_RESEARCH   : "2.7"
     SUBMISSIONS ||--o| INTERNSHIP_APPLICATIONS : "A.1"
     SUBMISSIONS ||--o| COMPANY_PROFILES        : "B.1"
+    SUBMISSIONS ||--o| JOB_SEARCH_LOGS : "bitácora semanal"
+    SUBMISSIONS ||--o| INTERNSHIP_LOGS : "bitácora semanal"
 
     AUTH_USERS {
         uuid id PK "lo administra Supabase"
@@ -124,8 +130,8 @@ erDiagram
         citext institutional_email UK "llave natural"
     }
     FORMS {
-        text code PK "form1_0 … form2_7"
-        text module_code "1 | 2"
+        text code PK "form1_0 … form_practicas"
+        text module_code "1 | 2 | A | B | W"
         text name_es
         text name_en
         numeric display_order
@@ -138,6 +144,23 @@ erDiagram
         timestamptz submitted_at
         language language
         text source_row_key UK "idempotencia"
+        date week_start "solo bitácoras"
+        date week_end "solo bitácoras"
+    }
+    JOB_SEARCH_LOGS {
+        uuid submission_id PK
+        text activities
+        text applications
+        text interviews
+        text learnings
+        text next_steps
+    }
+    INTERNSHIP_LOGS {
+        uuid submission_id PK
+        text activities
+        numeric hours_worked
+        text skills_practiced
+        text proposal
     }
     DEMOGRAPHICS {
         uuid submission_id PK
@@ -329,10 +352,22 @@ Catálogo de los 11 formularios. Ver [FORMS_CATALOG.md](FORMS_CATALOG.md).
 | `submitted_at` | `timestamptz` NOT NULL | `marcaTemporal` del Sheets |
 | `language` | `language` | idioma en que se respondió |
 | `source_row_key` | `text` UNIQUE | idempotencia de importación |
+| `week_start` | `date` | **solo bitácoras.** `inicioSemana`; `NULL` en los otros 11 formularios |
+| `week_end` | `date` | **solo bitácoras.** `finalSemana` |
 | `created_at` | `timestamptz` NOT NULL DEFAULT `now()` | |
 
 `UNIQUE (student_id, form_code, submitted_at)` — evita importar dos veces la
 misma respuesta, **sin** limitar a una respuesta por formulario.
+
+La semana vive aquí y no en las tablas de bitácora porque es el campo que las
+**ordena**: consultar el historial de un alumno no debería obligar a unir con la
+tabla de respuestas para saber en qué orden van.
+
+`CHECK submissions_semana_plausible` acota las dos fechas a 2000–2100. **No** hay
+check de `week_end >= week_start`: 6 de 183 entregas reales traen el rango
+invertido y otras 12 duran entre 12 y 365 días. Son errores de captura del alumno
+y el profesor necesita verlos tal como se enviaron. El check de años existe por
+otra razón: atrapa la corrupción de fechas de Excel, que produce fechas de 1900.
 
 ---
 
@@ -467,6 +502,58 @@ Definidos en `0009_appendices.sql`; sus vistas de panel en `0010_views_appendice
 
 ---
 
+## Bitácoras semanales
+
+> Migración `0011_weekly_logs.sql`. Los **únicos** formularios de respuesta
+> múltiple: un alumno acumula hasta 10 entregas. Por eso `submissions` nunca
+> llevó `UNIQUE (student_id, form_code)`.
+
+No tienen pantalla propia en el rail. Se leen dentro del **expediente del
+alumno**, igual que en la plataforma anterior, donde eran las secciones
+«Reporte de Búsqueda» y «Reporte de Prácticas» de la tarjeta *ADN Profesional*.
+
+La semana reportada no está en estas tablas, sino en `submissions.week_start` /
+`week_end`.
+
+### `job_search_logs` — Reporte de Búsqueda (`form_busqueda`)
+
+| Columna | Tipo | Origen |
+|---|---|---|
+| `submission_id` | `uuid` PK FK → `submissions.id` ON DELETE CASCADE | |
+| `activities` | `text` | `actividades` |
+| `applications` | `text` | `aplicaciones` |
+| `interviews` | `text` | `entrevistas` |
+| `learnings` | `text` | `aprendizajes` |
+| `next_steps` | `text` | `siguientesPasos` |
+
+Todo es texto libre semanal. No se parsea a listas: el formato lo pone el alumno
+y no es confiable.
+
+### `internship_logs` — Reporte de Prácticas (`form_practicas`)
+
+| Columna | Tipo | Origen |
+|---|---|---|
+| `submission_id` | `uuid` PK FK → `submissions.id` ON DELETE CASCADE | |
+| `activities` | `text` | `actividades` |
+| `hours_worked` | `numeric(5,1)` | `horas` |
+| `skills_practiced` | `text` | `habilidades` |
+| `proposal` | `text` | `propuesta` |
+
+`hours_worked` es **decimal y no entero** porque el origen trae `'31.20'`. Excel
+además convirtió 40 de las 116 celdas a fechas de 1900 —serial 20 → `1900-01-20`
+→ 20 horas—; la reconversión la hace `scripts/generar_import.py`. Ver
+[DATA_MAPPING.md](DATA_MAPPING.md#bitácoras-semanales).
+
+`CHECK internship_logs_horas_plausibles` acota a 0–500. No juzga cuántas horas es
+razonable trabajar (el máximo real capturado es 96): ataja lo absurdo.
+
+> **El acumulado de horas no se guarda.** Es la suma corrida de `hours_worked` y
+> se calcula al mostrarlo. Guardarlo obligaría a recalcular la columna entera
+> cada vez que llega una entrega atrasada, que es justo lo que pasa con una
+> bitácora.
+
+---
+
 ## Vistas
 
 ### `latest_submissions`
@@ -518,6 +605,45 @@ sus propios datos **son** los demográficos, y tomarlos de ahí sería circular.
 
 Todas llevan `security_invoker = on`.
 
+### Vistas de expediente — el alumno, no el formulario
+
+> Migración `0012_views_dossier.sql`.
+
+Las `v_panel_*` responden *«¿quiénes contestaron este formulario?»*. Estas tres
+responden la contraria: *«¿qué sé de este alumno?»*, que es lo que se abre al
+hacer clic en su nombre desde cualquier pantalla.
+
+| Vista | Filas | Qué junta |
+|---|---|---|
+| `v_student_dossier` | 1 por alumno | demográficos + Holland + MBTI + DISC + Valores + datos de la práctica (B.1) |
+| `v_student_job_search_logs` | N por alumno | la bitácora de búsqueda completa |
+| `v_student_internship_logs` | N por alumno | la bitácora de prácticas, con horas acumuladas |
+
+**`v_student_dossier` usa `LEFT JOIN` en todo.** Un alumno que solo contestó el
+1.0 tiene que aparecer igual, con el resto en `NULL`: un `INNER JOIN` escondería
+justo a los alumnos que el profesor necesita perseguir.
+
+**Las dos vistas de bitácora no pasan por `latest_submissions`.** El punto de una
+bitácora es verlas todas; filtrar a la última sería tirar el historial.
+
+`cumulative_hours` y `total_hours` se calculan con funciones de ventana y **no se
+guardan**. Dos decisiones dentro:
+
+- Se ordena por **`week_start`, no por `submitted_at`**: lo que el profesor lee
+  es la semana reportada. Un alumno que sube tres bitácoras el mismo día las
+  acumula en el orden en que trabajó, no en el que se acordó de reportar.
+- `coalesce(hours_worked, 0)` en la suma. Cuatro entregas reales no traen horas
+  rescatables; sin el `coalesce` esas filas volverían `NULL` el acumulado y todo
+  lo que viniera después.
+
+### Una nota sobre `submissions_unique_response`
+
+`UNIQUE (student_id, form_code, submitted_at)` implica que **dos bitácoras
+enviadas en el mismo segundo colisionan** y la segunda se descarta en la
+importación. Se revisaron las 580 filas del Sheets y no hay un solo par
+`(correo, marcaTemporal)` repetido, así que hoy no pierde nada. Si algún día
+aparece, la señal será que el conteo importado no cuadra con el del Sheets.
+
 ---
 
 ## Índices
@@ -528,6 +654,7 @@ Todas llevan `security_invoker = on`.
 | `idx_profiles_admins` | `profiles (id) WHERE role='admin'` | `is_admin()` |
 | `idx_submissions_student_form` | `submissions (student_id, form_code, submitted_at DESC)` | `latest_submissions` y el historial |
 | `idx_submissions_form` | `submissions (form_code, submitted_at DESC)` | pantallas por formulario |
+| `idx_submissions_week` | `submissions (student_id, form_code, week_start DESC) WHERE week_start IS NOT NULL` | ordena la bitácora; parcial porque solo 2 de 13 formularios la llenan |
 | `idx_demographics_degree` | `demographics (degree_code, semester)` | filtros |
 | `idx_disc_needs_review` | `disc_results (needs_review) WHERE needs_review` | revisión manual |
 
@@ -535,7 +662,7 @@ Todas llevan `security_invoker = on`.
 
 ## Seguridad
 
-RLS habilitado en **las 12 tablas**.
+RLS habilitado en **las 16 tablas**.
 
 | Rol | Permisos |
 |---|---|
@@ -584,19 +711,21 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0008_views_panel.sql` | las 8 vistas `v_panel_*` que alimentan las pantallas | ✅ 2026-09-11 |
 | `0009_appendices.sql` | `internship_applications`, `company_profiles`, RLS y catálogo | ✅ 2026-09-17 |
 | `0010_views_appendices.sql` | `v_panel_internships`, `v_panel_companies` | ✅ 2026-09-17 |
+| `0011_weekly_logs.sql` | `week_start`/`week_end`, `job_search_logs`, `internship_logs`, RLS y catálogo | ✅ 2026-09-17 |
+| `0012_views_dossier.sql` | `v_student_dossier` y las dos vistas de bitácora | ✅ 2026-09-17 |
 
-> **Estos archivos ya no se editan.** Cualquier cambio posterior es un archivo
-> nuevo, `0008_…` en adelante.
+> **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
+> archivo nuevo.
 
 ### Estado verificado en Supabase tras la ejecución
 
 | Objeto | Cantidad |
 |---|---|
-| Tablas | 14 |
-| Tablas con RLS activo | **14** |
-| Políticas | 16 |
-| Vistas | 12, todas con `security_invoker = on` |
-| Índices `idx_*` | 5 |
-| Formularios en el catálogo | 13 |
+| Tablas | 16 |
+| Tablas con RLS activo | **16** |
+| Políticas | 18 |
+| Vistas | 15, todas con `security_invoker = on` |
+| Índices `idx_*` | 6 |
+| Formularios en el catálogo | 15 |
 | Alumnos | 46 |
 | Entregas | 397 |

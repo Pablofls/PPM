@@ -9,11 +9,11 @@ formularios de Google. Reemplaza la implementación actual en Google Apps Script
 El profesor autorizó el proyecto el 10 de septiembre de 2026.
 
 - Supabase configurado (ref `sovinakodrmgxytgapry`) y Vercel desplegado.
-- Las migraciones `0001`–`0010` **ya se ejecutaron**. Un archivo ejecutado no se
-  vuelve a editar: el siguiente cambio es `0011_…`.
+- Las migraciones `0001`–`0012` **ya se ejecutaron**. Un archivo ejecutado no se
+  vuelve a editar: el siguiente cambio es `0013_…`.
 - Alcance del esquema: **autenticación + los 11 formularios de Módulo 1 y 2 +
-  los dos apéndices**. Las hojas `alumnos` y `fechas_entrega` y las bitácoras
-  semanales quedan para después.
+  los dos apéndices + las dos bitácoras semanales**. Las hojas `alumnos` y
+  `fechas_entrega` quedan para después.
 - Login con correo y contraseña **funcionando**; el panel completo está detrás
   de `ProtectedRoute` y exige rol `admin`.
 - Las 11 pantallas **ya consultan la base** a través de las vistas `v_panel_*`.
@@ -23,6 +23,10 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
 - Los apéndices ya tienen tabla y pantalla. Su estructura es distinta a la del
   Módulo 1 y 2 (buscador por empresa, paginación, sin filtros académicos), como
   en la plataforma anterior.
+- Las **bitácoras semanales** (`form_busqueda`, `form_practicas`) no son una
+  pantalla del rail: se leen dentro del **expediente del alumno**, que reemplaza
+  al panel lateral por formulario. Es como funcionaba la tarjeta *ADN
+  Profesional* de la plataforma anterior.
 
 Ver [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) para el estado detallado y los pasos.
 
@@ -127,9 +131,13 @@ Ver [docs/AUTH.md](docs/AUTH.md). Cualquier pantalla para un rol distinto de
 
 ### 9. Alcance de las pantallas
 
-Esta iteración construye **solo Módulo 1 y Módulo 2**. Los Apéndices A/B, las
-bitácoras semanales, Grupos y Administrador **no** tienen esquema ni pantalla
-todavía. No construir fuera de alcance sin pedirlo.
+Ya están construidos **Módulo 1, Módulo 2 y los Apéndices A/B**, y las bitácoras
+semanales viven dentro del expediente del alumno.
+
+**Fuera de alcance mientras no se pida:** Grupos, Estado de Entregas, Alumnos
+Registrados, Panel de Administrador y la hoja `fechas_entrega`. Aparecen
+deshabilitados en el rail a propósito: comunican el alcance completo sin
+prometer que funcionan. No construirlos sin pedirlo.
 
 ## Stack
 

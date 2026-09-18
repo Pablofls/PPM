@@ -3,13 +3,11 @@
 Cómo se traduce cada hoja del Sheets actual a las tablas de
 [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md), y qué limpieza hay que aplicar.
 
-Este documento es la especificación del script de importación. Todavía no existe
-código de importación.
+Este documento es la especificación de `scripts/generar_import.py`.
 
-> **Alcance actual:** los 11 formularios `form1_0` … `form2_7` y los dos
-> apéndices `formA_1` y `formB_1`. Quedan fuera las hojas `alumnos` y
-> `fechas_entrega` y las bitácoras semanales (`form_busqueda`, `form_practicas`),
-> que son los únicos formularios de respuesta múltiple.
+> **Alcance actual:** los 11 formularios `form1_0` … `form2_7`, los dos apéndices
+> `formA_1` y `formB_1`, y las dos bitácoras semanales `form_busqueda` y
+> `form_practicas`. Quedan fuera las hojas `alumnos` y `fechas_entrega`.
 
 > Los ejemplos usan valores ficticios. Ver la regla «Nunca datos sensibles» de [CLAUDE.md](../CLAUDE.md).
 
@@ -318,19 +316,63 @@ distingue por `submissions.form_code`.
 
 ---
 
-## Apéndices y bitácoras
+## Apéndices
 
 Mapeo directo columna a columna, sin transformaciones más allá de las reglas
 generales. Las columnas están listadas en
-[DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#apéndices-y-bitácoras).
+[DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#apéndices).
 
-Dos notas:
+**`telefonoJefe`, `rfcEmpresa`, `sueldo`** son datos sensibles de terceros. Van a
+`text`/`numeric` en la BD pero no se exportan ni se muestran fuera del panel.
 
-- **`inicioSemana` / `finalSemana`** (`form_busqueda`, `form_practicas`) van a
-  `submissions.week_start` / `week_end`, no a la tabla de respuestas, porque son los
-  campos que ordenan la bitácora.
-- **`telefonoJefe`, `rfcEmpresa`, `sueldo`** son datos sensibles de terceros. Van a
-  `text`/`numeric` en la BD pero no se exportan ni se muestran fuera del panel.
+---
+
+## Bitácoras semanales
+
+`form_busqueda` (67 filas) y `form_practicas` (116 filas). El texto libre se mapea
+directo. Lo que sí necesita limpieza son dos columnas.
+
+### `inicioSemana` / `finalSemana` → `submissions.week_start` / `week_end`
+
+No van a la tabla de respuestas: son los campos que **ordenan** la bitácora.
+
+Llegan como `datetime` a las 06:00 —artefacto de zona horaria, el Sheets guarda
+medianoche local como UTC−6— así que se toma solo la fecha.
+
+**Se importan tal como se capturaron, aunque estén mal.** De las 183 entregas:
+
+| Qué trae el origen | Cuántas | Qué se hace |
+|---|---|---|
+| Rango invertido (`finalSemana` antes que `inicioSemana`) | 6 | se importa igual y se anota |
+| Rango de 12 a 365 días | 12 | se importa igual y se anota |
+| Año fuera del ciclo escolar (2004, 2027) | 2 | se importa igual y se anota |
+
+El profesor necesita ver lo que el alumno envió, no una versión corregida por el
+importador. Por eso `submissions` **no** lleva check de `week_end >= week_start`.
+
+### `horas` → `internship_logs.hours_worked`
+
+La columna más sucia de todo el Sheets: llega en **cuatro tipos distintos**.
+
+| Tipo en el xlsx | Cuántas | Ejemplo | Conversión |
+|---|---|---|---|
+| `float` | 71 | `30.0` | directo |
+| `datetime` de 1900 | 40 | `1900-01-20` | **serial de Excel** → `20` horas |
+| `datetime` moderno | 3 | `2026-05-25` | `NULL`: el alumno capturó una fecha |
+| `str` | 1 | `'31.20'` | `31.2` |
+| `time` | 1 | `00:00` | `NULL`: no se puede distinguir de un cero real |
+
+La conversión del serial es `(fecha − 1899-12-31).days`, **no** `1899-12-30` como
+en el resto del script: para fechas anteriores al 1900-03-01 el 29 de febrero
+fantasma de Excel todavía no desplaza la cuenta. Solo se aplica a fechas de 1900,
+que es cuando el valor original era un número chico.
+
+> Es el mismo error de Excel que ya había corrompido una fecha de nacimiento
+> (`1905-06-24` era `2002`). Aquí afecta a 40 de 116 celdas: sin convertirlas, el
+> total de horas del alumno sale mal.
+
+`'31.20'` se lee como **31.2 horas decimales**. Podría ser «31 horas 20 minutos»;
+no hay forma de saberlo desde el dato y se anota como incidencia.
 
 ---
 
@@ -350,3 +392,6 @@ importación:
 | 7 | Respuestas de texto libre en campos de opción | `form1_3` | Requiere revisión manual |
 | 8 | 999 filas en una hoja de 43 respuestas | `form1_3` | Importación más lenta, sin más impacto |
 | 9 | Solo 4 de 15 formularios tienen fecha de entrega configurada | `fechas_entrega` | El resto aparece como `sin_fecha` |
+| 10 | `horas` capturada como fecha por Excel | `form_practicas` | 40 de 116 celdas; sin convertir, el total de horas sale mal |
+| 11 | Semana invertida o de más de un mes | `form_busqueda`, `form_practicas` | 18 de 183 entregas; el orden de la bitácora se ve raro |
+| 12 | Campo de horas con una fecha dentro | `form_practicas` | 3 entregas quedan sin horas |
