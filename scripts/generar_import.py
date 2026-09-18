@@ -364,6 +364,82 @@ def limpiar_disc(estilo_crudo, categoria_cruda) -> tuple[str | None, str | None,
 
 
 # ---------------------------------------------------------------------------
+# Apéndices A y B (formA_1, formB_1)
+# ---------------------------------------------------------------------------
+
+def horas(valor) -> int | None:
+    """
+    'horas' del formA_1 viene mezclado: unos capturan 240, otros
+    '240 horas' o '480 horas voy todos los días 9am'. Se extrae el número.
+    """
+    if valor is None:
+        return None
+    n = entero(valor)
+    if n is not None:
+        return n if 0 <= n <= 2000 else None
+
+    encontrados = re.findall(r'\d+', str(valor))
+    if not encontrados:
+        anotar('horas sin número reconocible', str(valor)[:40])
+        return None
+
+    n = int(encontrados[0])
+    anotar('horas extraídas de texto libre', f'{str(valor)[:40]} -> {n}')
+    return n if 0 <= n <= 2000 else None
+
+
+def anio(valor) -> int | None:
+    """'anioEmpresa' llega como número, como texto y a veces como fecha."""
+    if valor is None:
+        return None
+    if isinstance(valor, (datetime, date)):
+        solo = valor.date() if isinstance(valor, datetime) else valor
+        # Excel convierte un año suelto en una fecha: quien escribe "2002" acaba
+        # guardando 1905-06-24, porque 2002 es el número de días desde
+        # 1899-12-30. Si la fecha cae antes de 1910 y su serial parece un año,
+        # el año real es el serial. Ninguna empresa de este formulario se fundó
+        # en 1905.
+        serial = (solo - date(1899, 12, 30)).days
+        if solo.year < 1910 and 1800 <= serial <= 2100:
+            anotar('año mal convertido por Excel', f'{solo} -> {serial}')
+            return serial
+        anotar('año extraído de una fecha', str(solo)[:10])
+        return solo.year
+
+    n = entero(valor)
+    if n is None:
+        encontrados = re.findall(r'\b(1[89]\d{2}|20\d{2})\b', str(valor))
+        if not encontrados:
+            anotar('año sin reconocer', str(valor)[:40])
+            return None
+        n = int(encontrados[0])
+        anotar('año extraído de texto libre', f'{str(valor)[:40]} -> {n}')
+
+    return n if 1800 <= n <= 2100 else None
+
+
+def telefono(valor) -> str | None:
+    """
+    Los teléfonos llegan como número y como texto, con lada y separadores
+    ('+52-833-155-6372', '81 1468 3544'). Se guardan como texto tal cual:
+    normalizarlos perdería el formato y no aporta nada al panel.
+    """
+    if isinstance(valor, float) and valor.is_integer():
+        return str(int(valor))
+    return texto(valor)
+
+
+def decimal(valor) -> float | None:
+    if valor is None or valor == '':
+        return None
+    try:
+        return float(valor)
+    except (TypeError, ValueError):
+        anotar('número sin reconocer', str(valor)[:40])
+        return None
+
+
+# ---------------------------------------------------------------------------
 # Lectura del Excel
 # ---------------------------------------------------------------------------
 
@@ -454,8 +530,11 @@ def main() -> int:
     # --- Alumnos ----------------------------------------------------------
     # La lista se DERIVA de los correos que aparecen en los formularios: la hoja
     # `alumnos` no se importa en esta iteración.
+    # Las bitácoras semanales (form_busqueda, form_practicas) y la hoja
+    # fechas_entrega quedan fuera: todavía no tienen tabla.
     FORMULARIOS = ['form1_0', 'form1_1', 'form1_2', 'form1_3', 'form1_4',
-                   'form1_5', 'form2_1', 'form2_2', 'form2_4', 'form2_5', 'form2_7']
+                   'form1_5', 'form2_1', 'form2_2', 'form2_4', 'form2_5',
+                   'form2_7', 'formA_1', 'formB_1']
 
     hojas = {f: leer_hoja(libro, f) for f in FORMULARIOS}
 
@@ -687,6 +766,73 @@ on conflict (institutional_email) do nothing;
     sql += sql_entregas('form2_7', ent) + '\n'
     sql += sql_respuestas('indeed_research', cols, filas, {})
     archivos.append(('09_form2_7_indeed.sql', sql))
+
+    # --- A.1 Carta Formal de Aceptación -------------------------------------
+    ent = entregas_de('formA_1')
+    cols = ['required_hours', 'internship_option', 'restrictions', 'company_name',
+            'company_website', 'company_tax_id', 'company_founded_year',
+            'department', 'supervisor_name', 'supervisor_role', 'supervisor_email',
+            'supervisor_phone', 'schedule', 'is_paid', 'description',
+            'career_relation', 'professional_relation', 'company_validation']
+    filas = [[clave(e),
+              lit(horas(e['fila'].get('horas'))),
+              lit(texto(e['fila'].get('opcionesPracticas'))),
+              lit(texto(e['fila'].get('restricciones'))),
+              lit(texto(e['fila'].get('nombreEmpresa'))),
+              lit(texto(e['fila'].get('paginaEmpresa'))),
+              lit(texto(e['fila'].get('rfcEmpresa'))),
+              lit(anio(e['fila'].get('anioEmpresa'))),
+              lit(texto(e['fila'].get('departamento'))),
+              lit(texto(e['fila'].get('nombreJefe'))),
+              lit(texto(e['fila'].get('puestoJefe'))),
+              lit(correo(e['fila'].get('correoJefe'))),
+              lit(telefono(e['fila'].get('telefonoJefe'))),
+              lit(texto(e['fila'].get('horario'))),
+              lit(si_no(e['fila'].get('renumeracion'))),
+              lit(texto(e['fila'].get('descripcion'))),
+              lit(texto(e['fila'].get('relacionCarrera'))),
+              lit(texto(e['fila'].get('realacionProfesional'))),
+              lit(texto(e['fila'].get('empresaValida')))] for e in ent]
+    sql = CABECERA.format(titulo='A.1 Carta Formal de Aceptación (formA_1)')
+    sql += sql_entregas('formA_1', ent) + '\n'
+    sql += sql_respuestas('internship_applications', cols, filas, {
+        'required_hours': '::smallint', 'company_founded_year': '::smallint',
+        'supervisor_email': '::citext', 'is_paid': '::boolean'})
+    archivos.append(('10_formA_1_internships.sql', sql))
+
+    # --- B.1 Formulario de Inicio -------------------------------------------
+    ent = entregas_de('formB_1')
+    cols = ['company_name', 'company_website', 'industry', 'mission', 'vision',
+            'company_values', 'address', 'work_schedule', 'department',
+            'supervisor_info', 'supervisor_email', 'supervisor_phone',
+            'activities', 'has_contract', 'salary', 'has_linkedin_profile',
+            'linkedin_connections', 'linkedin_url']
+    filas = [[clave(e),
+              lit(texto(e['fila'].get('empresa'))),
+              lit(texto(e['fila'].get('paginaEmpresa'))),
+              lit(texto(e['fila'].get('giro'))),
+              lit(texto(e['fila'].get('mision'))),
+              lit(texto(e['fila'].get('vision'))),
+              lit(texto(e['fila'].get('valores'))),
+              lit(texto(e['fila'].get('direccionEmpresa'))),
+              lit(texto(e['fila'].get('horarioLaboral'))),
+              lit(texto(e['fila'].get('departamento'))),
+              lit(texto(e['fila'].get('datosJefe'))),
+              lit(correo(e['fila'].get('correoJefe'))),
+              lit(telefono(e['fila'].get('telefonoJefe'))),
+              lit(texto(e['fila'].get('actividades'))),
+              lit(si_no(e['fila'].get('contrato'))),
+              lit(decimal(e['fila'].get('sueldo'))),
+              lit(si_no(e['fila'].get('perfilLinkedin'))),
+              lit(entero(e['fila'].get('contactosLinkedin'))),
+              lit(texto(e['fila'].get('linkedinLink')))] for e in ent]
+    sql = CABECERA.format(titulo='B.1 Formulario de Inicio (formB_1)')
+    sql += sql_entregas('formB_1', ent) + '\n'
+    sql += sql_respuestas('company_profiles', cols, filas, {
+        'supervisor_email': '::citext', 'has_contract': '::boolean',
+        'salary': '::numeric', 'has_linkedin_profile': '::boolean',
+        'linkedin_connections': '::int'})
+    archivos.append(('11_formB_1_companies.sql', sql))
 
     # --- Escritura ---------------------------------------------------------
     for nombre, contenido in archivos:

@@ -6,10 +6,10 @@ Cómo se traduce cada hoja del Sheets actual a las tablas de
 Este documento es la especificación del script de importación. Todavía no existe
 código de importación.
 
-> **Alcance actual:** solo los 11 formularios `form1_0` … `form2_7`. Las hojas
-> `alumnos` y `fechas_entrega`, los apéndices A/B y las bitácoras semanales
-> quedan fuera por ahora; sus secciones se conservan más abajo como referencia
-> para cuando se incorporen.
+> **Alcance actual:** los 11 formularios `form1_0` … `form2_7` y los dos
+> apéndices `formA_1` y `formB_1`. Quedan fuera las hojas `alumnos` y
+> `fechas_entrega` y las bitácoras semanales (`form_busqueda`, `form_practicas`),
+> que son los únicos formularios de respuesta múltiple.
 
 > Los ejemplos usan valores ficticios. Ver la regla «Nunca datos sensibles» de [CLAUDE.md](../CLAUDE.md).
 
@@ -56,9 +56,8 @@ está probado.
 
 ## Fuera del alcance actual
 
-Las secciones de `alumnos`, `fechas_entrega`, `formA_1`, `formB_1`,
-`form_busqueda` y `form_practicas` se conservan abajo como referencia, pero **sus
-tablas no existen todavía** en la base de datos.
+Las secciones de `alumnos`, `fechas_entrega`, `form_busqueda` y `form_practicas`
+se conservan abajo como referencia, pero **sus tablas no existen todavía**.
 
 ---
 

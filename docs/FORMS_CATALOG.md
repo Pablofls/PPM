@@ -19,8 +19,8 @@ Google Sheets de origen. El `code` es el mismo que la hoja y el que se guarda en
 | `form2_4` | 2.4 Cover Letter | 2 | `form2_4` | 1 | `reflections` | ✅ |
 | `form2_5` | 2.5 Elevator Pitch | 2 | `form2_5` | 1 | `reflections` | ✅ |
 | `form2_7` | 2.7 Indeed | 2 | `form2_7` | 1 | `indeed_research` | ✅ |
-| `formA_1` | A.1 Carta Formal de Aceptación | A | `formA_1` | 1 | `internship_applications` | ⬜ fuera de alcance |
-| `formB_1` | B.1 Formulario de Inicio | B | `formB_1` | 1 | `company_profiles` | ⬜ fuera de alcance |
+| `formA_1` | A.1 Carta Formal de Aceptación | A | `formA_1` | 1 | `internship_applications` | ✅ tabla, sin pantalla |
+| `formB_1` | B.1 Formulario de Inicio | B | `formB_1` | 1 | `company_profiles` | ✅ tabla, sin pantalla |
 | `form_busqueda` | Bitácora de búsqueda de empleo | W | `form_busqueda` | **N (semanal)** | `job_search_logs` | ⬜ fuera de alcance |
 | `form_practicas` | Bitácora de prácticas | W | `form_practicas` | **N (semanal)** | `internship_logs` | ⬜ fuera de alcance |
 
@@ -38,13 +38,13 @@ Google Sheets de origen. El `code` es el mismo que la hoja y el que se guarda en
 |---|---|---|---|---|
 | `1` | Conócete | Know Yourself | `form1_0` … `form1_5` | ✅ |
 | `2` | Actúa | Take Action | `form2_1`, `form2_2`, `form2_4`, `form2_5`, `form2_7` | ✅ |
-| `A` | Apéndice A: Cartas Requeridas | Appendix A | `formA_1` | ⬜ |
-| `B` | Apéndice B: Reportes | Appendix B | `formB_1` | ⬜ |
+| `A` | Apéndice A: Cartas Requeridas | Appendix A | `formA_1` | ✅ |
+| `B` | Apéndice B: Reportes | Appendix B | `formB_1` | ✅ |
 | `W` | Bitácoras semanales | Weekly Logs | `form_busqueda`, `form_practicas` | ⬜ |
 
-Solo los módulos 1 y 2 tienen tabla `forms` poblada (`0007_seed_forms.sql`), y
-`forms.module_code` tiene un `CHECK` que hoy solo admite `'1'` y `'2'`. Al
-incorporar los apéndices habrá que ampliarlo.
+`forms.module_code` admite `'1'`, `'2'`, `'A'` y `'B'`. El `CHECK` se amplió en
+`0009_appendices.sql`; al incorporar las bitácoras habrá que ampliarlo otra vez
+con `'W'`.
 
 ## Cardinalidad observada en los datos de origen
 

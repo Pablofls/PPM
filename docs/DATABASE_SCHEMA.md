@@ -31,8 +31,8 @@
 
 ## Alcance
 
-Esta versión cubre **autenticación** y los **11 formularios del Módulo 1 y 2**
-(`form1_0` … `form2_7`).
+Esta versión cubre **autenticación**, los **11 formularios del Módulo 1 y 2**
+(`form1_0` … `form2_7`) y los **dos apéndices** (`formA_1`, `formB_1`).
 
 **Deliberadamente fuera**, para incorporarse después:
 
@@ -40,9 +40,11 @@ Esta versión cubre **autenticación** y los **11 formularios del Módulo 1 y 2*
 |---|---|
 | Hoja `alumnos` del Sheets | Los alumnos se derivan de los correos que responden formularios |
 | Hoja `fechas_entrega` | Sin ella no hay `form_deadlines` ni estado *a tiempo / tarde* |
-| `formA_1`, `formB_1` | Apéndices A y B |
-| `form_busqueda`, `form_practicas` | Bitácoras semanales |
+| `form_busqueda`, `form_practicas` | Bitácoras semanales: son los únicos formularios de respuesta múltiple |
 | Catálogos `periods`, `degree_programs`, `modules` | Por ahora esos valores son `text` |
+
+Los apéndices tienen **tabla pero no pantalla**: la regla «Alcance de las
+pantallas» exige pedirlas explícitamente.
 
 ---
 
@@ -104,6 +106,8 @@ erDiagram
     SUBMISSIONS ||--o| VALUES_RESULTS    : "1.5"
     SUBMISSIONS ||--o| REFLECTIONS       : "2.1 2.2 2.4 2.5"
     SUBMISSIONS ||--o| INDEED_RESEARCH   : "2.7"
+    SUBMISSIONS ||--o| INTERNSHIP_APPLICATIONS : "A.1"
+    SUBMISSIONS ||--o| COMPANY_PROFILES        : "B.1"
 
     AUTH_USERS {
         uuid id PK "lo administra Supabase"
@@ -196,6 +200,27 @@ erDiagram
         uuid submission_id PK
         text positions
         text companies
+    }
+    INTERNSHIP_APPLICATIONS {
+        uuid submission_id PK
+        smallint required_hours
+        text company_name
+        text company_tax_id
+        smallint company_founded_year
+        citext supervisor_email
+        text supervisor_phone
+        boolean is_paid
+    }
+    COMPANY_PROFILES {
+        uuid submission_id PK
+        text company_name
+        text industry
+        text work_schedule
+        citext supervisor_email
+        text supervisor_phone
+        boolean has_contract
+        numeric salary
+        int linkedin_connections
     }
 ```
 
@@ -393,6 +418,56 @@ escribe el alumno a mano y no es fiable parsearlo.
 
 ---
 
+## Apéndices
+
+Definidos en `0009_appendices.sql`. **Tienen tabla pero no pantalla.**
+
+> Estas dos tablas contienen datos sensibles de **terceros** —teléfonos y correos
+> de jefes, RFC de empresas y sueldos—, no solo de alumnos. No se exportan ni se
+> muestran fuera del panel del profesor.
+
+### `internship_applications` — A.1 Carta Formal de Aceptación (`formA_1`)
+
+| Columna | Tipo | Origen / nota |
+|---|---|---|
+| `required_hours` | `smallint` CHECK 0–2000 | `horas`. **El origen mezcla número y texto**: hay `240` y también `"480 horas voy todos los días 9am"`. Se guarda el número extraído |
+| `internship_option` | `text` | `opcionesPracticas` |
+| `restrictions` | `text` | |
+| `company_name` / `company_website` | `text` | |
+| `company_tax_id` | `text` | RFC. Sin formato validado: hay filas donde se capturó el nombre de la empresa |
+| `company_founded_year` | `smallint` CHECK 1800–2100 | `anioEmpresa`. El origen trae número, texto (`"Aprox 1976"`) y fechas |
+| `department` | `text` | |
+| `supervisor_name` / `supervisor_role` | `text` | |
+| `supervisor_email` | `citext` | |
+| `supervisor_phone` | `text` | Conserva lada y separadores: `+52-833-155-6372`, `81 1468 3544` |
+| `schedule` | `text` | |
+| `is_paid` | `boolean` | `renumeracion` (sic) |
+| `description`, `career_relation`, `professional_relation`, `company_validation` | `text` | |
+
+### `company_profiles` — B.1 Formulario de Inicio (`formB_1`)
+
+| Columna | Tipo | Origen / nota |
+|---|---|---|
+| `company_name` | `text` | `empresa` |
+| `company_website` | `text` | |
+| `industry` | `text` | `giro` |
+| `mission`, `vision` | `text` | |
+| `company_values` | `text` | **con prefijo**: `values` es palabra reservada en SQL |
+| `address` | `text` | `direccionEmpresa` |
+| `work_schedule` | `text` | `horarioLaboral`. **Texto descriptivo, no un número de horas**: `"Lunes a Viernes (9am a 4pm)"` |
+| `department` | `text` | |
+| `supervisor_info` | `text` | `datosJefe`: nombre y puesto en un solo campo |
+| `supervisor_email` | `citext` | |
+| `supervisor_phone` | `text` | |
+| `activities` | `text` | |
+| `has_contract` | `boolean` | `contrato`: `Si`/`Sí`/`Yes` |
+| `salary` | `numeric(12,2)` CHECK ≥ 0 | |
+| `has_linkedin_profile` | `boolean` | |
+| `linkedin_connections` | `int` CHECK ≥ 0 | |
+| `linkedin_url` | `text` | |
+
+---
+
 ## Vistas
 
 ### `latest_submissions`
@@ -505,7 +580,8 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0005_module2.sql` | `reflections`, `indeed_research` | ✅ 2026-09-11 |
 | `0006_views_rls.sql` | índices, vistas y políticas admin-only | ✅ 2026-09-11 |
 | `0007_seed_forms.sql` | catálogo de los 11 formularios | ✅ 2026-09-11 |
-| `0008_views_panel.sql` | las 8 vistas `v_panel_*` que alimentan las pantallas | ❌ **pendiente** |
+| `0008_views_panel.sql` | las 8 vistas `v_panel_*` que alimentan las pantallas | ✅ 2026-09-11 |
+| `0009_appendices.sql` | `internship_applications`, `company_profiles`, RLS y catálogo | ❌ **pendiente** |
 
 > **Estos archivos ya no se editan.** Cualquier cambio posterior es un archivo
 > nuevo, `0008_…` en adelante.
@@ -514,9 +590,9 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 
 | Objeto | Cantidad |
 |---|---|
-| Tablas | 12 |
-| Tablas con RLS activo | **12** |
-| Políticas | 14 |
+| Tablas | 12 (14 al aplicar `0009`) |
+| Tablas con RLS activo | **12** (14 al aplicar `0009`) |
+| Políticas | 14 (16 al aplicar `0009`) |
 | Vistas | 2, ambas con `security_invoker = on` |
 | Índices `idx_*` | 5 |
 | Formularios en el catálogo | 11 |
