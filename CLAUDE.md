@@ -9,15 +9,15 @@ formularios de Google. Reemplaza la implementación actual en Google Apps Script
 El profesor autorizó el proyecto el 10 de septiembre de 2026.
 
 - Supabase configurado (ref `sovinakodrmgxytgapry`) y Vercel desplegado.
-- Las migraciones `0001`–`0008` **ya se ejecutaron** (2026-09-11) y `0009` está
-  pendiente. Un archivo ejecutado no se vuelve a editar.
+- Las migraciones `0001`–`0009` **ya se ejecutaron**. Un archivo ejecutado no se
+  vuelve a editar: el siguiente cambio es `0010_…`.
 - Alcance del esquema: **autenticación + los 11 formularios de Módulo 1 y 2 +
   los dos apéndices**. Las hojas `alumnos` y `fechas_entrega` y las bitácoras
   semanales quedan para después.
 - Login con correo y contraseña **funcionando**; el panel completo está detrás
   de `ProtectedRoute` y exige rol `admin`.
 - Las 11 pantallas **ya consultan la base** a través de las vistas `v_panel_*`.
-- Los datos del Sheets **están importados** (46 alumnos). El SQL se genera con
+- Los datos del Sheets **están importados**: 46 alumnos y 397 entregas. El SQL se genera con
   `scripts/generar_import.py` y **nunca se commitea**: `import_sql/` está en
   `.gitignore` porque lleva datos personales.
 - Los apéndices tienen tabla pero **no pantalla**.

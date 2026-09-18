@@ -8,9 +8,9 @@
 > **Todo cambio se refleja aquí en el mismo commit que su archivo SQL.**
 
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
-- **Estado:** ✅ **ejecutado en Supabase el 11 de septiembre de 2026**
-- **Última migración aplicada:** `0007_seed_forms.sql`
-  (`0008_views_panel.sql` está escrito y **pendiente de ejecutar**)
+- **Estado:** ✅ **ejecutado en Supabase**
+- **Última migración aplicada:** `0009_appendices.sql` (2026-09-17)
+- **Datos del Sheets:** importados (46 alumnos, 397 entregas)
 
 ## Índice
 
@@ -581,7 +581,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0006_views_rls.sql` | índices, vistas y políticas admin-only | ✅ 2026-09-11 |
 | `0007_seed_forms.sql` | catálogo de los 11 formularios | ✅ 2026-09-11 |
 | `0008_views_panel.sql` | las 8 vistas `v_panel_*` que alimentan las pantallas | ✅ 2026-09-11 |
-| `0009_appendices.sql` | `internship_applications`, `company_profiles`, RLS y catálogo | ❌ **pendiente** |
+| `0009_appendices.sql` | `internship_applications`, `company_profiles`, RLS y catálogo | ✅ 2026-09-17 |
 
 > **Estos archivos ya no se editan.** Cualquier cambio posterior es un archivo
 > nuevo, `0008_…` en adelante.
@@ -590,9 +590,11 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 
 | Objeto | Cantidad |
 |---|---|
-| Tablas | 12 (14 al aplicar `0009`) |
-| Tablas con RLS activo | **12** (14 al aplicar `0009`) |
-| Políticas | 14 (16 al aplicar `0009`) |
+| Tablas | 14 |
+| Tablas con RLS activo | **14** |
+| Políticas | 16 |
 | Vistas | 2, ambas con `security_invoker = on` |
 | Índices `idx_*` | 5 |
-| Formularios en el catálogo | 11 |
+| Formularios en el catálogo | 13 |
+| Alumnos | 46 |
+| Entregas | 397 |

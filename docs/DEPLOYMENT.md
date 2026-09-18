@@ -3,6 +3,21 @@
 > Iteración 2, en curso. El profesor autorizó el proyecto el 10 de septiembre
 > de 2026.
 
+## Al pegar SQL en el editor: siempre «Run without RLS»
+
+El SQL Editor avisa *«Potential issue detected»* y ofrece dos botones. **Usar
+siempre `Run without RLS`.**
+
+`Run and enable RLS` no ejecuta el SQL tal cual: Supabase lo analiza, deduce qué
+tablas se crearon y les añade `alter table … enable row level security`. Con
+scripts que llevan texto libre de alumnos, ese analizador se confunde y llega a
+generar sentencias contra tablas inexistentes, con errores tan desconcertantes
+como `relation "modern" does not exist` — donde `modern` era una palabra dentro
+de la respuesta de un alumno.
+
+No hace falta que Supabase active RLS por su cuenta: todas las migraciones de
+este proyecto lo activan explícitamente, junto con su política.
+
 ## Cómo se aplican los cambios de base de datos
 
 **Todos los cambios de base de datos se hacen desde el SQL Editor de Supabase,
@@ -26,12 +41,12 @@ posterior es un archivo nuevo.
 | Componente | Estado |
 |---|---|
 | Pantallas React | ✅ Listas, corren en local con `npm run dev` |
-| SQL del esquema | ✅ **Ejecutado** en Supabase el 2026-09-11 |
+| SQL del esquema | ✅ **Ejecutado** — 9 migraciones, hasta `0009_appendices.sql` |
 | Proyecto de Supabase | ✅ Creado — ref `sovinakodrmgxytgapry` |
 | Variables de entorno (local) | ✅ `.env.local` con la llave pública |
 | Proyecto de Vercel | ✅ https://ppd-zeta.vercel.app |
-| Primer administrador | ⬜ Pendiente — ver [AUTH.md](AUTH.md) |
-| Importación desde el Sheets | ⬜ No escrita — la especificación es [DATA_MAPPING.md](DATA_MAPPING.md) |
+| Primer administrador | ✅ creado |
+| Importación desde el Sheets | ✅ 46 alumnos y 397 entregas — generador en `scripts/generar_import.py` |
 
 ## Paso 1 — Proyecto de Supabase ✅
 
