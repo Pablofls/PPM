@@ -17,7 +17,8 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
 - Login con correo y contraseña **funcionando**; el panel completo está detrás
   de `ProtectedRoute` y exige rol `admin`.
 - Las 11 pantallas **ya consultan la base** a través de las vistas `v_panel_*`.
-- Los datos del Sheets **están importados**: 46 alumnos y 397 entregas. El SQL se genera con
+- Los datos del Sheets **están importados**: 46 alumnos y 580 entregas, las 15
+  hojas de formulario. El SQL se genera con
   `scripts/generar_import.py` y **nunca se commitea**: `import_sql/` está en
   `.gitignore` porque lleva datos personales.
 - Los apéndices ya tienen tabla y pantalla. Su estructura es distinta a la del

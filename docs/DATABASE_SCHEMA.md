@@ -10,8 +10,8 @@
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
 - **Última migración aplicada:** `0012_views_dossier.sql` (2026-09-17)
-- **Datos del Sheets:** importados (46 alumnos, 397 entregas). Las bitácoras
-  semanales todavía no: su tabla existe a partir de `0011`.
+- **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
+  bitácoras semanales.
 
 ## Índice
 
@@ -728,4 +728,6 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | Índices `idx_*` | 6 |
 | Formularios en el catálogo | 15 |
 | Alumnos | 46 |
-| Entregas | 397 |
+| Entregas | 580 |
+| Entregas de bitácora | 183 (67 búsqueda + 116 prácticas) |
+| Horas de prácticas registradas | 3 032.2 en 112 de 116 entregas |

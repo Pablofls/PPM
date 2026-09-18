@@ -46,7 +46,7 @@ posterior es un archivo nuevo.
 | Variables de entorno (local) | ✅ `.env.local` con la llave pública |
 | Proyecto de Vercel | ✅ https://ppd-zeta.vercel.app |
 | Primer administrador | ✅ creado |
-| Importación desde el Sheets | ✅ 46 alumnos y 397 entregas — generador en `scripts/generar_import.py` |
+| Importación desde el Sheets | ✅ 46 alumnos y 580 entregas — generador en `scripts/generar_import.py` |
 
 ## Paso 1 — Proyecto de Supabase ✅
 
