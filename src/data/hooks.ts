@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 import type { FormCode } from '../lib/catalog'
 import { repository } from './repository'
-import type { FormSummary, PanelFilters } from './types'
+import type { FormSummary, PanelFilters, SyncStatus } from './types'
 
 interface QueryResult<T> {
   data: T
@@ -72,4 +72,14 @@ export function useFormSummary(formCode: FormCode, filters: PanelFilters) {
     null,
     [formCode, filters],
   )
+}
+
+/**
+ * La última sincronización con el Sheets.
+ *
+ * Se consulta una sola vez al montar: el dato cambia cada hora y no vale la
+ * pena sondear la base por él. Basta con que esté fresco al abrir la pantalla.
+ */
+export function useLastSync() {
+  return useRepositoryQuery<SyncStatus | null>(() => repository.getLastSync(), null, [])
 }

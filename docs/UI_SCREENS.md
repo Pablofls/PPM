@@ -44,9 +44,16 @@ al profesor el alcance completo del proyecto sin prometer que ya funcionan.
 
 Todas las pantallas de formulario comparten el mismo esqueleto:
 
-1. **Encabezado** — título, subtítulo y las acciones *Procesar datos* y
-   *Exportar datos*. En esta iteración los botones están deshabilitados con un
-   tooltip que lo explica.
+1. **Encabezado** — título, subtítulo, el estado de la sincronización y las
+   acciones *Procesar datos* y *Exportar datos*. En esta iteración los botones
+   están deshabilitados con un tooltip que lo explica.
+
+   El estado de la sincronización va a la izquierda de los botones y lee la
+   última corrida de `sheet_sync_runs` (ver [SHEETS_SYNC.md](SHEETS_SYNC.md)).
+   Dice *Sincronizado hace 12 minutos* en condiciones normales y se marca con
+   el color de acento cuando pasan más de 150 minutos sin una corrida, cuando
+   una corrida no cerró, o cuando nunca ha habido ninguna. No es decoración:
+   sin él, un disparador muerto se ve igual que una semana sin entregas.
 2. **Resumen** — contadores: respuestas recibidas, alumnos sin responder, entregas
    tarde. Sin base de datos muestran `—`.
 3. **Barra de filtros** — idéntica en todas las pantallas:

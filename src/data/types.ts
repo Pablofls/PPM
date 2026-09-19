@@ -267,3 +267,16 @@ export interface FormSummary {
    */
   late: number | null
 }
+
+/**
+ * La última corrida de la sincronización con el Google Sheets.
+ *
+ * Existe para que el profesor sepa qué tan frescos son los datos que está
+ * viendo. Sin esto, una sincronización muerta no se nota: el panel se queda
+ * quieto y parece que los alumnos dejaron de entregar.
+ */
+export interface SyncStatus {
+  startedAt: string
+  /** `null` mientras la corrida sigue, o si se cayó a la mitad. */
+  finishedAt: string | null
+}

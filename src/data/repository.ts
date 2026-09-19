@@ -31,6 +31,7 @@ import type {
   SkillsRow,
   StudentDossier,
   SubmissionHistoryEntry,
+  SyncStatus,
   ValuesRow,
 } from './types'
 
@@ -84,6 +85,12 @@ export interface PanelRepository {
    */
   getJobSearchLogs(studentId: string): Promise<JobSearchLogRow[]>
   getInternshipLogs(studentId: string): Promise<InternshipLogRow[]>
+
+  /**
+   * La última corrida de la sincronización con el Sheets. `null` si todavía no
+   * ha corrido ninguna.
+   */
+  getLastSync(): Promise<SyncStatus | null>
 }
 
 /** Respaldo sin base de datos, para cuando faltan las variables de entorno. */
@@ -134,6 +141,9 @@ export const emptyRepository: PanelRepository = {
   },
   async getInternshipLogs() {
     return []
+  },
+  async getLastSync() {
+    return null
   },
 }
 

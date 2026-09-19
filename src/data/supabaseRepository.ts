@@ -31,6 +31,7 @@ import type {
   SkillsRow,
   StudentDossier,
   SubmissionHistoryEntry,
+  SyncStatus,
   ValuesRow,
 } from './types'
 
@@ -447,6 +448,32 @@ export const supabaseRepository: PanelRepository = {
       cumulativeHours: num(record.cumulative_hours),
       totalHours: num(record.total_hours),
     }))
+  },
+
+  /**
+   * La última corrida del Apps Script que sincroniza el Sheets.
+   *
+   * Se lee `sheet_sync_runs` directamente y no una vista: son dos columnas y no
+   * hay nada que componer. La tabla tiene RLS con `is_admin()`, así que un
+   * alumno no la ve (regla «Toda pantalla nace protegida y admin-only»).
+   */
+  async getLastSync(): Promise<SyncStatus | null> {
+    const { data, error } = await supabase
+      .from('sheet_sync_runs')
+      .select('started_at, finished_at')
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (error) {
+      throw new Error(`No se pudo leer la última sincronización: ${error.message}`)
+    }
+    if (!data) return null
+
+    return {
+      startedAt: data.started_at as string,
+      finishedAt: (data.finished_at as string | null) ?? null,
+    }
   },
 }
 

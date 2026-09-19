@@ -24,6 +24,27 @@ export function formatDateTime(value: string | null): string {
   return DATE_TIME_FORMAT.format(new Date(value))
 }
 
+const RELATIVE_FORMAT = new Intl.RelativeTimeFormat('es-MX', { numeric: 'auto' })
+
+/**
+ * `2026-09-18T20:03:00Z` → `hace 12 minutos`.
+ *
+ * Se elige la unidad más grande que siga siendo legible: nadie lee «hace 184
+ * minutos», pero «hace 3 horas» se entiende de un vistazo.
+ */
+export function formatRelativeTime(value: string | null): string {
+  if (!value) return ''
+
+  const minutes = Math.round((Date.now() - new Date(value).getTime()) / 60_000)
+  if (minutes < 1) return 'hace un momento'
+  if (minutes < 60) return RELATIVE_FORMAT.format(-minutes, 'minute')
+
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return RELATIVE_FORMAT.format(-hours, 'hour')
+
+  return RELATIVE_FORMAT.format(-Math.round(hours / 24), 'day')
+}
+
 export function formatWeekRange(start: string | null, end: string | null): string {
   if (!start) return ''
   return end ? `${formatDate(start)} – ${formatDate(end)}` : formatDate(start)

@@ -1,4 +1,6 @@
-import type { FormSummary } from '../data/types'
+import { useLastSync } from '../data/hooks'
+import type { FormSummary, SyncStatus } from '../data/types'
+import { formatDateTime, formatRelativeTime } from '../lib/format'
 
 interface PageHeaderProps {
   label: string
@@ -16,6 +18,10 @@ interface PageHeaderProps {
  *
  * Las acciones existen en la plataforma actual en Apps Script; se conservan
  * deshabilitadas para no dar a entender que se eliminaron.
+ *
+ * Junto a ellas va el estado de la sincronización con el Sheets, que sí
+ * funciona: es lo que le dice al profesor qué tan frescos son los datos que
+ * está viendo.
  */
 export function PageHeader({
   label,
@@ -36,9 +42,12 @@ export function PageHeader({
           <p className="mt-1.5 text-sm text-ink-500">{subtitle}</p>
         </div>
 
-        <div className="flex gap-2">
-          {!hideProcessAction && <ActionButton>Procesar datos</ActionButton>}
-          <ActionButton>Exportar datos</ActionButton>
+        <div className="flex items-center gap-4">
+          <SyncIndicator />
+          <div className="flex gap-2">
+            {!hideProcessAction && <ActionButton>Procesar datos</ActionButton>}
+            <ActionButton>Exportar datos</ActionButton>
+          </div>
         </div>
       </div>
 
@@ -87,6 +96,104 @@ function Stat({
       </dd>
     </div>
   )
+}
+
+/**
+ * A partir de cuántos minutos la sincronización se considera atrasada.
+ *
+ * El disparador corre cada hora, pero Apps Script lo dispara en un minuto al
+ * azar dentro de la hora, así que dos corridas seguidas pueden separarse casi
+ * dos horas sin que nada esté mal. 150 minutos deja margen para eso y marca de
+ * verdad cuando el disparador murió.
+ */
+const STALE_AFTER_MINUTES = 150
+
+/** Cuánto puede tardar una corrida antes de darla por caída. */
+const RUN_TIMEOUT_MINUTES = 10
+
+/**
+ * Estado de la última sincronización con el Sheets.
+ *
+ * No se muestra nada mientras carga: un parpadeo de "Sin sincronizar" que
+ * después se corrige es peor que no decir nada durante medio segundo.
+ */
+function SyncIndicator() {
+  const { data: sync, loading, isConnected, error } = useLastSync()
+
+  if (!isConnected || loading) return null
+
+  const { text, stale, detail } = describeSync(sync, error)
+
+  return (
+    <span
+      title={detail}
+      className={`flex items-center gap-1.5 text-xs ${
+        stale ? 'font-medium text-accent-700' : 'text-ink-500'
+      }`}
+    >
+      <span
+        className={`size-1.5 shrink-0 rounded-full ${
+          stale ? 'bg-accent-500' : 'bg-ink-300'
+        }`}
+      />
+      {text}
+    </span>
+  )
+}
+
+function describeSync(
+  sync: SyncStatus | null,
+  error: string | null,
+): { text: string; stale: boolean; detail: string } {
+  if (error) {
+    return {
+      text: 'Sincronización desconocida',
+      stale: true,
+      detail: `No se pudo leer el estado: ${error}`,
+    }
+  }
+
+  if (!sync) {
+    return {
+      text: 'Sin sincronizar',
+      stale: true,
+      detail: 'El Apps Script del Sheets todavía no ha mandado nada.',
+    }
+  }
+
+  const minutesSinceStart = Math.round(
+    (Date.now() - new Date(sync.startedAt).getTime()) / 60_000,
+  )
+
+  // Sin `finished_at` la corrida sigue abierta: o va corriendo, o se cayó a la
+  // mitad y su transacción se revirtió.
+  if (!sync.finishedAt) {
+    return minutesSinceStart <= RUN_TIMEOUT_MINUTES
+      ? {
+          text: 'Sincronizando…',
+          stale: false,
+          detail: `Empezó ${formatRelativeTime(sync.startedAt)}.`,
+        }
+      : {
+          text: 'La última sincronización no terminó',
+          stale: true,
+          detail: `Empezó el ${formatDateTime(sync.startedAt)} y nunca cerró.`,
+        }
+  }
+
+  const minutesSinceEnd = Math.round(
+    (Date.now() - new Date(sync.finishedAt).getTime()) / 60_000,
+  )
+
+  return {
+    text: `Sincronizado ${formatRelativeTime(sync.finishedAt)}`,
+    stale: minutesSinceEnd > STALE_AFTER_MINUTES,
+    detail:
+      `Última sincronización con el Sheets: ${formatDateTime(sync.finishedAt)}.` +
+      (minutesSinceEnd > STALE_AFTER_MINUTES
+        ? ' Corre cada hora, así que este retraso no es normal.'
+        : ''),
+  }
 }
 
 function ActionButton({ children }: { children: string }) {
