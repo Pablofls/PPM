@@ -9,8 +9,8 @@ formularios de Google. Reemplaza la implementación actual en Google Apps Script
 El profesor autorizó el proyecto el 10 de septiembre de 2026.
 
 - Supabase configurado (ref `sovinakodrmgxytgapry`) y Vercel desplegado.
-- Las migraciones `0001`–`0014` **ya se ejecutaron**. Un archivo ejecutado no se
-  vuelve a editar: el siguiente cambio es `0015_…`.
+- Las migraciones `0001`–`0015` **ya se ejecutaron**. Un archivo ejecutado no se
+  vuelve a editar: el siguiente cambio es `0016_…`.
 - Alcance del esquema: **autenticación + los 11 formularios de Módulo 1 y 2 +
   los dos apéndices + las dos bitácoras semanales**. Las hojas `alumnos` y
   `fechas_entrega` quedan para después.
@@ -21,6 +21,13 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   hojas de formulario. El SQL se genera con
   `scripts/generar_import.py` y **nunca se commitea**: `import_sql/` está en
   `.gitignore` porque lleva datos personales.
+- De aquí en adelante los datos entran **solos**: un Apps Script con disparador
+  horario manda las 15 hojas crudas y la base las normaliza (`0015`, ejecutada;
+  ver [docs/SHEETS_SYNC.md](docs/SHEETS_SYNC.md)). **Falta instalar el Apps
+  Script en el Sheets**: la base ya está lista, nadie le está mandando filas. Las
+  transformaciones se portaron de `generar_import.py` a SQL, en `0015`, para que
+  vivan en un solo lugar; el generador de Python queda como referencia de la
+  carga inicial.
 - Los apéndices ya tienen tabla y pantalla. Su estructura es distinta a la del
   Módulo 1 y 2 (buscador por empresa, paginación, sin filtros académicos), como
   en la plataforma anterior.
@@ -171,6 +178,7 @@ prometer que funcionan. No construirlos sin pedirlo.
 ```
 docs/                     Documentación (esquema, mapeo, catálogos, despliegue)
 scripts/                  Generador del SQL de importación
+scripts/apps_script/      El script que sincroniza el Sheets cada hora
 supabase/migrations/      SQL numerado; ver DATABASE_SCHEMA.md para qué se ejecutó
 import_sql/               SQL de importación generado — NO se versiona
 src/
@@ -203,4 +211,6 @@ npm run lint
 | `scripts/generar_import.py` | Genera el SQL de importación desde el Sheets |
 | [docs/UI_SCREENS.md](docs/UI_SCREENS.md) | Inventario de pantallas y sus columnas |
 | [docs/AUTH.md](docs/AUTH.md) | Roles, permisos y cómo se crea el primer admin |
+| [docs/SHEETS_SYNC.md](docs/SHEETS_SYNC.md) | Sincronización horaria Sheets → Supabase |
+| `scripts/apps_script/Sincronizar.gs` | El script que corre dentro del Sheets |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Pasos para Supabase + Vercel |

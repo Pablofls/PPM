@@ -9,7 +9,7 @@
 
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
-- **Última migración aplicada:** `0014_student_accounts.sql` (2026-09-18)
+- **Última migración aplicada:** `0015_sheet_sync.sql` (2026-09-18)
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
   bitácoras semanales.
 
@@ -24,10 +24,11 @@
 7. [Módulo 1 — Conócete](#módulo-1--conócete)
 8. [Módulo 2 — Actúa](#módulo-2--actúa)
 9. [Bitácoras semanales](#bitácoras-semanales)
-10. [Vistas](#vistas)
-11. [Índices](#índices)
-12. [Seguridad](#seguridad)
-13. [Correspondencia migración → contenido](#correspondencia-migración--contenido)
+10. [Sincronización con el Sheets](#sincronización-con-el-sheets)
+11. [Vistas](#vistas)
+12. [Índices](#índices)
+13. [Seguridad](#seguridad)
+14. [Correspondencia migración → contenido](#correspondencia-migración--contenido)
 
 ---
 
@@ -113,6 +114,8 @@ erDiagram
     SUBMISSIONS ||--o| COMPANY_PROFILES        : "B.1"
     SUBMISSIONS ||--o| JOB_SEARCH_LOGS : "bitácora semanal"
     SUBMISSIONS ||--o| INTERNSHIP_LOGS : "bitácora semanal"
+
+    FORMS ||--o{ SHEET_ROWS : "staging del Sheets"
 
     AUTH_USERS {
         uuid id PK "lo administra Supabase"
@@ -232,6 +235,14 @@ erDiagram
         citext supervisor_email
         text supervisor_phone
         boolean is_paid
+    }
+    SHEET_ROWS {
+        bigint id PK
+        text form_code FK "la hoja del Sheets"
+        jsonb payload "la fila cruda, sin normalizar"
+        text row_hash UK "md5(payload), generada"
+        timestamptz ingested_at
+        timestamptz imported_at "NULL = pendiente"
     }
     COMPANY_PROFILES {
         uuid submission_id PK
@@ -564,6 +575,83 @@ razonable trabajar (el máximo real capturado es 96): ataja lo absurdo.
 
 ---
 
+## Sincronización con el Sheets
+
+Introducida por `0015_sheet_sync.sql`, ejecutada el 2026-09-18. Un Apps Script con disparador horario
+—[`scripts/apps_script/Sincronizar.gs`](../scripts/apps_script/Sincronizar.gs)—
+lee las 15 hojas y manda las filas **crudas**; la base las normaliza y las
+escribe. El detalle operativo está en [SHEETS_SYNC.md](SHEETS_SYNC.md).
+
+```
+Sheets ──(cada hora)──> ingest_sheet_rows() ──> sheet_rows ──> import_sheet_rows()
+                                                                      │
+                                                    students · submissions · respuestas
+```
+
+### `sheet_rows` — staging crudo
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | `bigint` | PK, identidad |
+| `form_code` | `text` | FK a `forms (code)`. El nombre de la hoja es el código del formulario |
+| `payload` | `jsonb` | La fila tal como salió del Sheets: encabezados en español como llaves |
+| `row_hash` | `text` | `md5(payload::text)`, **columna generada**. Se calcula en la base, no la manda el cliente |
+| `ingested_at` | `timestamptz` | Cuándo llegó |
+| `imported_at` | `timestamptz` | `NULL` mientras esté pendiente |
+
+`UNIQUE (form_code, row_hash)` es el corazón del diseño: el Apps Script manda
+las hojas **completas** cada hora y solo las filas que cambiaron entran como
+nuevas. Editar una celda en el Sheets cambia la huella, así que la corrección
+se importa como fila nueva y sobreescribe la respuesta anterior.
+
+Las filas importadas se borran a los 30 días. El staging es tránsito, no
+archivo: el dato bueno ya está en las tablas finales y el original sigue en el
+Sheets.
+
+### `sheet_sync_runs` — bitácora de corridas
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | `bigint` | PK |
+| `started_at` / `finished_at` | `timestamptz` | `finished_at` nulo = se cayó a la mitad |
+| `detail` | `jsonb` | Entregas escritas por formulario, más `filas_omitidas` |
+| `error` | `text` | Reservado |
+
+Sin esta tabla, una sincronización que deja de correr no se nota: el panel
+simplemente se queda quieto y nadie sabe desde cuándo.
+
+### Funciones
+
+| Función | Qué hace |
+|---|---|
+| `ingest_sheet_rows(form_code, rows)` | Deja un lote de filas crudas en el staging. La llama el Apps Script |
+| `import_sheet_rows()` | Normaliza y escribe todo lo pendiente, en una transacción. Devuelve el resumen |
+| `sheet_pending(form_code)` | Las filas pendientes de un formulario, ya con su llave de idempotencia |
+| `sheet_sync_submissions(form_code)` | Da de alta alumnos nuevos y escribe `submissions` |
+| `sheet_clear_responses(form_code)` | Borra las respuestas que se van a reescribir. La tabla destino sale de `forms.response_table` |
+| `sheet_*` (28 más) | Una por transformación: `sheet_gender`, `sheet_skill`, `sheet_disc`, `sheet_week_hours`… |
+
+Las funciones `sheet_*` son el **puerto a SQL de `scripts/generar_import.py`**.
+La especificación de cada transformación sigue siendo
+[DATA_MAPPING.md](DATA_MAPPING.md); el generador de Python se conserva como
+referencia de la carga inicial.
+
+### Dos decisiones que no son obvias
+
+**La llave de idempotencia se arma igual que en Python.**
+`source_row_key = form_code:correo:marca_temporal_sin_zona`. No es estético: las
+580 entregas que ya están en la base se importaron con esa llave, y si la
+sincronización generara otra, cada entrega existente se duplicaría.
+
+**Las marcas temporales se reconciliaron.** La importación inicial emitía la
+marca como literal suelto, así que la interpretó la zona de la sesión del SQL
+Editor (UTC). La sincronización la interpreta en `America/Monterrey`, como manda
+[DATA_MAPPING.md](DATA_MAPPING.md) — seis horas de diferencia. La migración
+`0015` incluye un `UPDATE` que reconstruye `submitted_at` desde la propia
+`source_row_key`, así que es idempotente y no depende de adivinar el desfase.
+
+---
+
 ## Vistas
 
 ### `latest_submissions`
@@ -667,12 +755,14 @@ aparece, la señal será que el conteo importado no cuadra con el del Sheets.
 | `idx_submissions_week` | `submissions (student_id, form_code, week_start DESC) WHERE week_start IS NOT NULL` | ordena la bitácora; parcial porque solo 2 de 13 formularios la llenan |
 | `idx_demographics_degree` | `demographics (degree_code, semester)` | filtros |
 | `idx_disc_needs_review` | `disc_results (needs_review) WHERE needs_review` | revisión manual |
+| `idx_sheet_rows_pendientes` | `sheet_rows (form_code, id) WHERE imported_at IS NULL` | lo que le falta importar a la sincronización; parcial porque casi todas las filas ya se importaron |
+| `sheet_rows_form_code_row_hash_key` | `sheet_rows (form_code, row_hash)` | UNIQUE. Es lo que hace que mandar las 15 hojas completas cada hora no duplique nada |
 
 ---
 
 ## Seguridad
 
-RLS habilitado en **las 16 tablas**.
+RLS habilitado en **las 18 tablas**.
 
 | Rol | Permisos |
 |---|---|
@@ -680,7 +770,12 @@ RLS habilitado en **las 16 tablas**.
 | `authenticated` con rol `pendiente` | solo su propio `profiles` |
 | `authenticated` con rol `alumno` | solo su propio `profiles`. Ninguna tabla de datos |
 | `authenticated` con rol `admin` | lectura de todo |
-| `service_role` | escritura (importación); se salta RLS por definición |
+| `service_role` | escritura (importación y sincronización); se salta RLS por definición |
+
+Las funciones de sincronización (`sheet_*`, `ingest_sheet_rows`,
+`import_sheet_rows`) tienen `EXECUTE` revocado a `public`, `anon` y
+`authenticated`: **ni siquiera un admin puede dispararlas desde el navegador**.
+Solo `service_role` —la llave que vive en el Apps Script— y el SQL Editor.
 
 No hay políticas de `INSERT`/`UPDATE`/`DELETE` en las tablas de datos: RLS deniega
 por omisión, así que desde el navegador no se puede escribir aunque se manipule la
@@ -726,6 +821,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0012_views_dossier.sql` | `v_student_dossier` y las dos vistas de bitácora | ✅ 2026-09-17 |
 | `0013_role_alumno.sql` | valor `alumno` de `app_role` | ✅ 2026-09-18 |
 | `0014_student_accounts.sql` | `profiles.student_id`, `current_student_id()`, `create_student_accounts()` | ✅ 2026-09-18 |
+| `0015_sheet_sync.sql` | `sheet_rows`, `sheet_sync_runs`, las funciones de normalización, `ingest_sheet_rows()`, `import_sheet_rows()` y la reconciliación de marcas temporales | ✅ 2026-09-18 |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.
@@ -734,9 +830,9 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 
 | Objeto | Cantidad |
 |---|---|
-| Tablas | 16 |
-| Tablas con RLS activo | **16** |
-| Políticas | 18 |
+| Tablas | 18 |
+| Tablas con RLS activo | **18** |
+| Políticas | 20 |
 | Vistas | 15, todas con `security_invoker = on` |
 | Índices `idx_*` | 6 |
 | Formularios en el catálogo | 15 |

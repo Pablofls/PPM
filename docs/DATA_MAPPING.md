@@ -3,7 +3,17 @@
 Cómo se traduce cada hoja del Sheets actual a las tablas de
 [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md), y qué limpieza hay que aplicar.
 
-Este documento es la especificación de `scripts/generar_import.py`.
+Este documento es la especificación de **dos** implementaciones de las mismas
+reglas:
+
+| Implementación | Para qué |
+|---|---|
+| `scripts/generar_import.py` | La carga inicial, una sola vez, desde el `.xlsx` exportado |
+| Las funciones `sheet_*` de `supabase/migrations/0015_sheet_sync.sql` | La sincronización horaria, en vivo. Ver [SHEETS_SYNC.md](SHEETS_SYNC.md) |
+
+Las dos producen el mismo resultado —incluida la llave `source_row_key`, que
+tiene que coincidir carácter por carácter para no duplicar las 580 entregas ya
+importadas—. Si una regla cambia, cambia en las dos, o el generador se retira.
 
 > **Alcance actual:** los 11 formularios `form1_0` … `form2_7`, los dos apéndices
 > `formA_1` y `formB_1`, y las dos bitácoras semanales `form_busqueda` y
@@ -373,6 +383,14 @@ que es cuando el valor original era un número chico.
 
 `'31.20'` se lee como **31.2 horas decimales**. Podría ser «31 horas 20 minutos»;
 no hay forma de saberlo desde el dato y se anota como incidencia.
+
+> **El día cero cambia según de dónde venga el dato.** La tabla de arriba
+> describe el `.xlsx` exportado, que es lo que leyó `generar_import.py`. La
+> sincronización horaria lee el Sheets **en vivo**, y ahí el día cero es
+> `1899-12-30` para todos los seriales: Google no tiene el 29 de febrero
+> fantasma de Excel. Por eso `sheet_week_hours()` resta `1899-12-30` donde el
+> script de Python restaba `1899-12-31`. Las dos entregan el mismo número de
+> horas para la misma celda del Sheets.
 
 ---
 
