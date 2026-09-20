@@ -72,6 +72,10 @@ verifican contra un PostgreSQL local.
 > ya importadas. Ver *[Las seis horas](#las-seis-horas)* más abajo. Correrlo dos
 > veces no hace daño: reconstruye la marca desde la `source_row_key`.
 
+> **Los pasos 2 a 6 están hechos.** El script quedó instalado en el Sheets el
+> 2026-09-20 y el disparador horario está corriendo; se comprueba en
+> `sheet_sync_runs` y en el encabezado del panel.
+
 ### 2. Crear el proyecto de Apps Script
 
 En el Sheets de datos procesados: **Extensiones → Apps Script**. Pegar el

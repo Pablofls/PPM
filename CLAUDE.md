@@ -21,20 +21,19 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   hojas de formulario. El SQL se genera con
   `scripts/generar_import.py` y **nunca se commitea**: `import_sql/` está en
   `.gitignore` porque lleva datos personales.
-- De aquí en adelante los datos entran **solos**: un Apps Script con disparador
-  horario manda las 15 hojas crudas y la base las normaliza (`0015`, ejecutada;
-  ver [docs/SHEETS_SYNC.md](docs/SHEETS_SYNC.md)). **Falta instalar el Apps
-  Script en el Sheets**: la base ya está lista, nadie le está mandando filas. Las
-  transformaciones se portaron de `generar_import.py` a SQL, en `0015`, para que
-  vivan en un solo lugar; el generador de Python queda como referencia de la
-  carga inicial.
+- Los datos entran **solos**: un Apps Script con disparador horario manda las 15
+  hojas crudas y la base las normaliza (`0015`, ejecutada; ver
+  [docs/SHEETS_SYNC.md](docs/SHEETS_SYNC.md)). **Instalado y corriendo desde el
+  2026-09-20.** Las transformaciones se portaron de `generar_import.py` a SQL,
+  en `0015`, para que vivan en un solo lugar; el generador de Python queda como
+  referencia de la carga inicial.
 - Los apéndices ya tienen tabla y pantalla. Su estructura es distinta a la del
   Módulo 1 y 2 (buscador por empresa, paginación, sin filtros académicos), como
   en la plataforma anterior.
 - El **rol `alumno`** existe: las cuentas se crean desde `demographics` (usuario =
   correo institucional, contraseña = matrícula) con
-  `create_student_accounts()`, y el alumno entra a `/alumno`. Falta correr
-  `create_student_accounts()` para dar de alta a los alumnos.
+  `create_student_accounts()`, y el alumno entra a `/alumno`. Las cuentas ya se
+  dieron de alta (2026-09-20).
 - El **portal del alumno son sus tareas**, al estilo de Canvas: instrucciones,
   formulario de entrega y las entregas anteriores. Hoy tiene las dos bitácoras
   semanales, y son los **únicos** formularios que se contestan dentro del panel;

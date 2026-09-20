@@ -48,6 +48,8 @@ posterior es un archivo nuevo.
 | Proyecto de Vercel | ✅ https://ppd-zeta.vercel.app |
 | Primer administrador | ✅ creado |
 | Importación desde el Sheets | ✅ 46 alumnos y 580 entregas — generador en `scripts/generar_import.py` |
+| Sincronización horaria | ✅ Apps Script instalado y corriendo desde el 2026-09-20 |
+| Cuentas de los alumnos | ✅ dadas de alta el 2026-09-20 |
 
 ## Paso 1 — Proyecto de Supabase ✅
 
@@ -162,7 +164,6 @@ Ver [AUTH.md](AUTH.md) para el modelo completo de roles y permisos.
 
 ## Pendientes antes de producción
 
-- [ ] Instalar el Apps Script en el Sheets (ver [SHEETS_SYNC.md](SHEETS_SYNC.md))
 - [ ] Decidir si se cierran los Google Forms de las dos bitácoras ahora que se
       entregan en el panel. Mientras sigan abiertos, un alumno puede entregar la
       misma semana por los dos lados y quedan dos entregas
