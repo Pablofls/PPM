@@ -42,7 +42,7 @@ posterior es un archivo nuevo.
 |---|---|
 | Pantallas React | ✅ Listas, corren en local con `npm run dev` |
 | SQL del esquema | ✅ **Ejecutado** — 15 migraciones, hasta `0015_sheet_sync.sql` |
-| Entregas del alumno (`0016`) | ⏳ **Pendiente de pegar** en el SQL Editor |
+| Entregas del alumno (`0016`) | ✅ **Ejecutada** el 2026-09-20 |
 | Proyecto de Supabase | ✅ Creado — ref `sovinakodrmgxytgapry` |
 | Variables de entorno (local) | ✅ `.env.local` con la llave pública |
 | Proyecto de Vercel | ✅ https://ppd-zeta.vercel.app |
@@ -162,9 +162,6 @@ Ver [AUTH.md](AUTH.md) para el modelo completo de roles y permisos.
 
 ## Pendientes antes de producción
 
-- [ ] Pegar `0016_student_weekly_logs.sql` en el SQL Editor. Sin ella, el portal
-      del alumno muestra las tareas pero **ninguna entrega se guarda**: no hay
-      políticas ni funciones que se lo permitan
 - [ ] Correr `select * from public.create_student_accounts();` para dar de alta
       a los alumnos. Sin cuentas, nadie puede entrar a entregar
 - [ ] Instalar el Apps Script en el Sheets (ver [SHEETS_SYNC.md](SHEETS_SYNC.md))

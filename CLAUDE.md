@@ -9,9 +9,8 @@ formularios de Google. Reemplaza la implementación actual en Google Apps Script
 El profesor autorizó el proyecto el 10 de septiembre de 2026.
 
 - Supabase configurado (ref `sovinakodrmgxytgapry`) y Vercel desplegado.
-- Las migraciones `0001`–`0015` **ya se ejecutaron**. `0016` está escrita y
-  **pendiente de pegar** en el SQL Editor. Un archivo ejecutado no se vuelve a
-  editar: el siguiente cambio es `0017_…`.
+- Las migraciones `0001`–`0016` **ya se ejecutaron**. Un archivo ejecutado no se
+  vuelve a editar: el siguiente cambio es `0017_…`.
 - Alcance del esquema: **autenticación + los 11 formularios de Módulo 1 y 2 +
   los dos apéndices + las dos bitácoras semanales**. Las hojas `alumnos` y
   `fechas_entrega` quedan para después.
@@ -39,7 +38,7 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
 - El **portal del alumno son sus tareas**, al estilo de Canvas: instrucciones,
   formulario de entrega y las entregas anteriores. Hoy tiene las dos bitácoras
   semanales, y son los **únicos** formularios que se contestan dentro del panel;
-  los otros trece siguen en Google Forms. Requiere `0016` ejecutada.
+  los otros trece siguen en Google Forms (`0016`, ejecutada).
 - Las **bitácoras semanales** (`form_busqueda`, `form_practicas`) no son una
   pantalla del rail: se leen dentro del **expediente del alumno**, que reemplaza
   al panel lateral por formulario. Es como funcionaba la tarjeta *ADN

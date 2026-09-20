@@ -875,7 +875,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0014_student_accounts.sql` | `profiles.student_id`, `current_student_id()`, `create_student_accounts()` | ✅ 2026-09-18 |
 | `0015_sheet_sync.sql` | `sheet_rows`, `sheet_sync_runs`, las funciones de normalización, `ingest_sheet_rows()`, `import_sheet_rows()` y la reconciliación de marcas temporales | ✅ 2026-09-18 |
 
-| `0016_student_weekly_logs.sql` | políticas de lectura y escritura del alumno sobre sus bitácoras, `new_weekly_submission()`, `submit_job_search_log()`, `submit_internship_log()` | ⏳ **pendiente** |
+| `0016_student_weekly_logs.sql` | políticas de lectura y escritura del alumno sobre sus bitácoras, `new_weekly_submission()`, `submit_job_search_log()`, `submit_internship_log()` | ✅ 2026-09-20 |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.
@@ -886,7 +886,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 |---|---|
 | Tablas | 18 |
 | Tablas con RLS activo | **18** |
-| Políticas | 20 |
+| Políticas | 26 — 20 admin-only más las 6 del alumno de `0016` |
 | Vistas | 15, todas con `security_invoker = on` |
 | Índices `idx_*` | 6 |
 | Formularios en el catálogo | 15 |
