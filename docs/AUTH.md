@@ -166,6 +166,19 @@ administrativos con acceso total a la base.
 | Un alumno inventa un `source_row_key` para estorbar a la sincronización | denegado: la política exige `source_row_key is null` |
 | Un alumno edita o borra una entrega | denegado: no existe política de `UPDATE` ni de `DELETE` |
 
+> **Verificado en Supabase el 2026-09-20.** Suplantando a un alumno real desde
+> el SQL Editor —`set local role authenticated` más sus claims en
+> `request.jwt.claims`, todo dentro de una transacción con `rollback`, para no
+> dejar una entrega de prueba en el expediente de nadie:
+>
+> - `submit_job_search_log()` creó la entrega y el alumno la leyó de vuelta en
+>   `v_student_job_search_logs`;
+> - `new_weekly_submission('form1_0', …)` falló con
+>   `42501: new row violates row-level security policy for table "submissions"`.
+>
+> La segunda es la que importa: el acotamiento por código de formulario lo
+> impone la política, no la interfaz.
+
 La tercera y la cuarta las impone el trigger `guard_profile_role()`, no RLS: **RLS
 controla qué filas se pueden modificar, no qué columnas**. Sin el trigger,
 cualquiera con permiso de editar su propio perfil podría ascenderse.

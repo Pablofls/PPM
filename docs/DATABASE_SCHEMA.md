@@ -848,6 +848,11 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | Usuario `admin` promueve a otro | funciona |
 | Usuario `anon` | permiso denegado |
 
+> **Verificado en Supabase (2026-09-20):** el alumno entrega sus bitácoras y
+> lee las suyas, y la política le rechaza cualquier otro formulario con
+> `42501`. Se probó suplantándolo desde el SQL Editor dentro de una transacción
+> revertida; el detalle está en [AUTH.md](AUTH.md#protecciones-implementadas).
+
 > **Verificado en Supabase (2026-09-11):** las dos vistas reportan
 > `security_invoker = on`, así que respetan RLS y no son una vía para saltársela.
 > Era lo único que no se había podido comprobar en local, porque esa opción
