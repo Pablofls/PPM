@@ -4,7 +4,8 @@ Pantallas del panel, sus columnas y su comportamiento. Es la especificación de 
 que se construyó en `src/pages/`.
 
 **Alcance actual: Módulo 1, Módulo 2 y los Apéndices A/B**, más el expediente del
-alumno y la bienvenida del portal del alumno. No hay demo data en ninguna pantalla: lo que se ve sale de la base
+alumno y el portal del alumno, donde este entrega sus dos bitácoras semanales.
+No hay demo data en ninguna pantalla: lo que se ve sale de la base
 (regla «Sin demo data en las pantallas» de [CLAUDE.md](../CLAUDE.md)).
 
 ## Navegación
@@ -297,28 +298,75 @@ de horas: así viene del formulario.
 
 ## Portal del alumno
 
-Lo que ve un usuario con rol `alumno`. Es **una sola pantalla**, fuera del
-`AppShell`: el rail es la navegación del profesor y un alumno no tiene once
-pantallas que recorrer.
+Lo que ve un usuario con rol `alumno`. Vive fuera del `AppShell` y bajo su
+propio marco, `src/layouts/StudentShell.tsx`: el rail es la navegación del
+profesor, y un alumno tiene dos tareas, no trece pantallas.
 
-### Bienvenida · `/alumno`
+El portal está modelado como **las tareas de un curso**, no como un panel de
+resultados: una lista de tareas, y dentro de cada una las instrucciones, el
+formulario de entrega y lo que ya entregó.
+
+### Mis tareas · `/alumno`
 
 `src/pages/alumno/StudentHome.tsx`, protegida por `StudentRoute`.
 
 | Bloque | Contenido |
 |---|---|
-| Encabezado | «Prácticas Profesionales · Portal del alumno», correo y *Cerrar sesión* |
 | Saludo | Su nombre, tal como lo registró en el 1.0 |
+| Tareas | Una tarjeta por bitácora: nombre, para qué es, cuántas entregas lleva y cuál fue la última |
 | Tu cuenta | Nombre, correo institucional y el recordatorio de que la contraseña es su matrícula |
-| Próximamente | Mis entregas · Mi expediente · Mis bitácoras, deshabilitadas |
+| Próximamente | Mis entregas · Mi expediente, deshabilitadas |
 
-No consulta ninguna tabla: todo sale de su propio `profiles`. El rol `alumno` no
-tiene política de lectura sobre los datos, así que hoy no podría leer ni sus
-propias entregas. Ver [AUTH.md](AUTH.md).
+«Mis bitácoras» salió de «Próximamente»: ya existe, y es la lista de tareas.
 
-Las tres secciones deshabilitadas siguen la convención del «Próximamente» del
-rail: comunican a dónde va el portal sin prometer que ya funciona. **No son demo
-data**: no hay una sola fila inventada en la pantalla.
+El resumen de cada tarjeta es lo que hace útil la lista. Sin él, el alumno
+tendría que entrar a cada tarea para saber si ya entregó la semana. Si la
+consulta falla, la tarjeta se queda sin resumen pero no sin tarea: todavía se
+puede entrar y entregar.
+
+### Una bitácora · `/alumno/reporte-de-busqueda`, `/alumno/reporte-de-practicas`
+
+`src/pages/alumno/WeeklyLogPage.tsx`. Una sola pantalla para las dos: lo único
+que cambia entre ellas son sus campos, y esos viven en `WEEKLY_FORMS`
+(`src/lib/catalog.ts`).
+
+| Bloque | Contenido |
+|---|---|
+| Instrucciones | Cada cuándo se entrega, qué semana se reporta y qué pasa si se equivoca |
+| Nueva entrega | Inicio y final de la semana, más los campos del formulario |
+| Tus entregas | Todas las que lleva, de la más reciente a la más antigua |
+
+Los campos son **los mismos** que tenía el Google Form, con la pregunta original
+como texto de ayuda. Las claves de `WeeklyField` son las propiedades de
+`JobSearchLogRow` e `InternshipLogRow`, así que el mismo catálogo dibuja el
+formulario en blanco y el historial: no hay una segunda lista de columnas que
+mantener en sincronía.
+
+| Formulario | Campos |
+|---|---|
+| Reporte de Búsqueda | Actividades\*, Aplicaciones, Entrevistas, Aprendizajes, Siguientes pasos |
+| Reporte de Prácticas | Actividades\*, Horas trabajadas\*, Habilidades, Propuesta |
+
+\* obligatorio.
+
+**La semana se propone, lunes a domingo de la semana en curso.** Es la respuesta
+correcta casi siempre, y las fechas mal capturadas fueron el error más común de
+la bitácora en el Sheets: 18 de 183 entregas traen el rango invertido o de más
+de un mes (ver [DATA_MAPPING.md](DATA_MAPPING.md#bitácoras-semanales)). El
+alumno la puede cambiar, porque reportar una semana atrasada es legítimo; lo que
+no puede es invertirla ni reportar el futuro, y eso lo rechaza la base.
+
+**Una entrega no se edita ni se borra.** Corregir una semana es volver a
+entregarla, y el profesor ve las dos en el expediente (regla «Historial
+completo» de [CLAUDE.md](../CLAUDE.md)). La pantalla lo dice junto al botón, en
+vez de dejar que el alumno lo descubra después.
+
+«Tus entregas» incluye lo que el alumno entregó por Google Forms antes de que
+existiera esta pantalla: las dos vías escriben en la misma tabla y aquí no se
+distinguen, que es justo lo que se quiere.
+
+> Lo que el alumno entrega aparece en el expediente del profesor sin ningún paso
+> extra: son las secciones VI y VII, que ya leían esas dos tablas.
 
 ## Decisiones de interfaz
 
@@ -332,3 +380,6 @@ data**: no hay una sola fila inventada en la pantalla.
 | El radar en SVG propio, sin Chart.js | Seis ejes y una serie no justifican 70 KB de librería |
 | Sin gráficas en las pantallas de tabla | Ahí lo que se valida son los datos y las columnas |
 | Secciones futuras visibles y deshabilitadas | Comunican el alcance completo sin prometer funcionalidad |
+| El portal del alumno se ve como las tareas de un curso | Es lo que el alumno viene a hacer: entregar. Un panel de resultados sería la vista del profesor en chiquito |
+| La semana se propone en vez de dejarla vacía | Las fechas mal capturadas fueron el error más común de la bitácora en el Sheets |
+| Una entrega no se puede editar | Es la regla «Historial completo»: corregir es volver a entregar, y el profesor ve las dos |

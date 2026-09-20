@@ -22,8 +22,10 @@ import type {
   FormSummary,
   HollandRow,
   IndeedRow,
+  InternshipLogInput,
   InternshipLogRow,
   InternshipRow,
+  JobSearchLogInput,
   JobSearchLogRow,
   MbtiRow,
   PanelFilters,
@@ -451,6 +453,46 @@ export const supabaseRepository: PanelRepository = {
   },
 
   /**
+   * Las entregas del alumno.
+   *
+   * Pasan por una función de la base y no por dos `insert` encadenados porque
+   * la entrega son dos filas —la de `submissions` y la de la bitácora— y el
+   * cliente no tiene transacciones: si la segunda fallara, el expediente del
+   * alumno quedaría con una semana reportada y vacía que nadie puede borrar.
+   *
+   * El alumno no se manda como parámetro. Lo resuelve `current_student_id()`
+   * en la base, a partir de la sesión, y las políticas de RLS verifican que
+   * coincida. Lo que se escriba aquí desde la consola del navegador no cambia
+   * de quién es la entrega.
+   */
+  async submitJobSearchLog(input: JobSearchLogInput): Promise<void> {
+    const { error } = await supabase.rpc('submit_job_search_log', {
+      p_week_start: input.weekStart,
+      p_week_end: input.weekEnd,
+      p_activities: input.activities,
+      p_applications: input.applications,
+      p_interviews: input.interviews,
+      p_learnings: input.learnings,
+      p_next_steps: input.nextSteps,
+    })
+
+    if (error) throw new Error(submissionError(error.message))
+  },
+
+  async submitInternshipLog(input: InternshipLogInput): Promise<void> {
+    const { error } = await supabase.rpc('submit_internship_log', {
+      p_week_start: input.weekStart,
+      p_week_end: input.weekEnd,
+      p_activities: input.activities,
+      p_hours_worked: input.hoursWorked,
+      p_skills_practiced: input.skillsPracticed,
+      p_proposal: input.proposal,
+    })
+
+    if (error) throw new Error(submissionError(error.message))
+  },
+
+  /**
    * La última corrida del Apps Script que sincroniza el Sheets.
    *
    * Se lee `sheet_sync_runs` directamente y no una vista: son dos columnas y no
@@ -494,6 +536,21 @@ async function fetchLogs(view: string, studentId: string): Promise<PanelRecord[]
 
   if (error) throw new Error(`No se pudo cargar la bitácora: ${error.message}`)
   return (data ?? []) as PanelRecord[]
+}
+
+/**
+ * Mensaje de una entrega que no se guardó.
+ *
+ * Los `raise exception` de las funciones de la base ya vienen en español y
+ * escritos para el alumno («Las horas de la semana tienen que estar entre 0 y
+ * 168»): esos se muestran tal cual. Lo que no hay que enseñarle es el error de
+ * una política de RLS o de un constraint, que habla de nombres de tablas.
+ */
+function submissionError(message: string): string {
+  if (/row-level security|violates|constraint|permission denied/i.test(message)) {
+    return 'No se pudo guardar tu entrega. Verifica que tu cuenta sea la de un alumno y vuelve a intentarlo.'
+  }
+  return message
 }
 
 function weeklyLogBase(record: PanelRecord) {

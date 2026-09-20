@@ -21,8 +21,8 @@ Google Sheets de origen. El `code` es el mismo que la hoja y el que se guarda en
 | `form2_7` | 2.7 Indeed | 2 | `form2_7` | 1 | `indeed_research` | ✅ |
 | `formA_1` | A.1 Carta Formal de Aceptación | A | `formA_1` | 1 | `internship_applications` | ✅ |
 | `formB_1` | B.1 Formulario de Inicio | B | `formB_1` | 1 | `company_profiles` | ✅ |
-| `form_busqueda` | Reporte de Búsqueda | W | `form_busqueda` | **N (semanal)** | `job_search_logs` | ✅ tabla, sin pantalla propia |
-| `form_practicas` | Reporte de Prácticas | W | `form_practicas` | **N (semanal)** | `internship_logs` | ✅ tabla, sin pantalla propia |
+| `form_busqueda` | Reporte de Búsqueda | W | `form_busqueda` | **N (semanal)** | `job_search_logs` | ✅ tabla + entrega del alumno |
+| `form_practicas` | Reporte de Prácticas | W | `form_practicas` | **N (semanal)** | `internship_logs` | ✅ tabla + entrega del alumno |
 
 > **Alcance del esquema actual:** los 15 formularios. Solo las hojas `alumnos` y
 > `fechas_entrega` quedan fuera.
@@ -30,6 +30,12 @@ Google Sheets de origen. El `code` es el mismo que la hoja y el que se guarda en
 > Las dos bitácoras **no tienen pantalla en el rail**: se leen dentro del
 > expediente del alumno, como en la plataforma anterior. Sus nombres son los que
 > usaba esa plataforma en la tarjeta *ADN Profesional*.
+
+> Son también los **dos únicos formularios que el alumno contesta dentro del
+> panel**, en su portal (`/alumno`). Los otros trece se siguen contestando en
+> Google Forms y entran por la sincronización horaria. Las dos vías escriben en
+> las mismas tablas; ver [UI_SCREENS.md](UI_SCREENS.md#portal-del-alumno) y
+> [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#el-alumno-entrega-desde-el-panel).
 
 > No existen `form2_3` ni `form2_6` en el Sheets de origen. La numeración del
 > Módulo 2 salta de 2.2 a 2.4 y de 2.5 a 2.7, y el panel respeta esa numeración

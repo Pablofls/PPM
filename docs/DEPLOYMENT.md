@@ -41,7 +41,8 @@ posterior es un archivo nuevo.
 | Componente | Estado |
 |---|---|
 | Pantallas React | ✅ Listas, corren en local con `npm run dev` |
-| SQL del esquema | ✅ **Ejecutado** — 9 migraciones, hasta `0009_appendices.sql` |
+| SQL del esquema | ✅ **Ejecutado** — 15 migraciones, hasta `0015_sheet_sync.sql` |
+| Entregas del alumno (`0016`) | ⏳ **Pendiente de pegar** en el SQL Editor |
 | Proyecto de Supabase | ✅ Creado — ref `sovinakodrmgxytgapry` |
 | Variables de entorno (local) | ✅ `.env.local` con la llave pública |
 | Proyecto de Vercel | ✅ https://ppd-zeta.vercel.app |
@@ -161,6 +162,15 @@ Ver [AUTH.md](AUTH.md) para el modelo completo de roles y permisos.
 
 ## Pendientes antes de producción
 
+- [ ] Pegar `0016_student_weekly_logs.sql` en el SQL Editor. Sin ella, el portal
+      del alumno muestra las tareas pero **ninguna entrega se guarda**: no hay
+      políticas ni funciones que se lo permitan
+- [ ] Correr `select * from public.create_student_accounts();` para dar de alta
+      a los alumnos. Sin cuentas, nadie puede entrar a entregar
+- [ ] Instalar el Apps Script en el Sheets (ver [SHEETS_SYNC.md](SHEETS_SYNC.md))
+- [ ] Decidir si se cierran los Google Forms de las dos bitácoras ahora que se
+      entregan en el panel. Mientras sigan abiertos, un alumno puede entregar la
+      misma semana por los dos lados y quedan dos entregas
 - [ ] Autenticación y protección de rutas
 - [ ] Confirmar con el profesor el supuesto `practico` → `ISTJ` en el mapeo MBTI
 - [ ] Configurar las fechas de entrega faltantes (hoy solo 4 de 15 formularios)

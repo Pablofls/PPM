@@ -22,17 +22,41 @@ usuario recién registrado puede iniciar sesión y no ve ni una fila.
 | Rol | Qué puede hacer |
 |---|---|
 | `pendiente` | Iniciar sesión y ver su propio perfil. **Nada más.** Es el rol con el que nace todo usuario |
-| `alumno` | Iniciar sesión y ver su pantalla de bienvenida. Hoy **no lee ninguna tabla de datos**: no hay política que lo mencione |
+| `alumno` | Iniciar sesión, entregar sus dos bitácoras semanales y leer **sus propias** entregas. Nada de ningún otro alumno, nada de los otros trece formularios |
 | `admin` | Leer todas las pantallas del panel y administrar los roles de los demás |
 
-Todas las pantallas **con datos** son admin-only. El alumno tiene una sola ruta,
-`/alumno`, con su propia guardia (`StudentRoute`), y por ahora solo muestra lo
-que ya trae su sesión: su nombre y su correo.
+Todas las pantallas **del panel** son admin-only. El alumno tiene su propio
+árbol de rutas bajo `/alumno`, con su propia guardia (`StudentRoute`).
 
-> Que `alumno` no lea nada no es un pendiente olvidado: es el orden correcto.
-> Primero existen las cuentas, luego se abre —una por una y con su política— la
-> información que cada alumno puede ver de sí mismo. La condición siempre será
-> `student_id = public.current_student_id()`, nunca `authenticated`.
+### Lo que el alumno puede hacer
+
+> Migración `0016_student_weekly_logs.sql`.
+
+| Tabla | Lectura | Escritura |
+|---|---|---|
+| `profiles` | el suyo | no |
+| `submissions` | las suyas | `INSERT`, solo `form_busqueda` y `form_practicas` |
+| `job_search_logs` | las suyas | `INSERT`, solo las de sus propias entregas |
+| `internship_logs` | las suyas | `INSERT`, solo las de sus propias entregas |
+| todo lo demás | **no** | **no** |
+
+La condición de «mío» es siempre la misma, `student_id =
+public.current_student_id()`, nunca `authenticated`. Para las tablas de
+respuestas, que cuelgan de `submission_id`, se resuelve con un `EXISTS` contra
+`submissions`, que vuelve a pasar por esa misma condición: una sola definición,
+en un solo lugar.
+
+Las políticas del alumno son **permisivas y se suman** a las de `is_admin()`: el
+profesor sigue viendo todo.
+
+No hay política de `UPDATE` ni de `DELETE` para nadie. Una entrega no se edita
+ni se borra: corregir una semana es volver a entregarla, y las dos quedan en el
+expediente. Es también lo que hacía Google Forms, donde el alumno nunca pudo
+volver sobre lo enviado.
+
+> Que el alumno todavía no lea su expediente —sus resultados de Holland, MBTI,
+> DISC— no es un pendiente olvidado: es el orden correcto. La información se
+> abre una pantalla a la vez, cada una con su política.
 
 ## Cómo se crean las cuentas de los alumnos
 
@@ -136,7 +160,11 @@ administrativos con acceso total a la base.
 | Un `admin` cambia **su propio** rol | error: *Un administrador no puede cambiar su propio rol* |
 | Un `admin` promueve a otro usuario | permitido |
 | Un usuario sin sesión (`anon`) | permiso denegado |
-| Escribir en las tablas de datos desde el navegador | denegado (no hay política de escritura) |
+| Escribir en las tablas de datos desde el navegador | denegado, salvo el `INSERT` del alumno en sus dos bitácoras |
+| Un alumno entrega una bitácora a nombre de otro | denegado: el `student_id` no se recibe, sale de `current_student_id()` |
+| Un alumno entrega un formulario que no es bitácora | denegado por el `WITH CHECK` de `submissions_insert_own` |
+| Un alumno inventa un `source_row_key` para estorbar a la sincronización | denegado: la política exige `source_row_key is null` |
+| Un alumno edita o borra una entrega | denegado: no existe política de `UPDATE` ni de `DELETE` |
 
 La tercera y la cuarta las impone el trigger `guard_profile_role()`, no RLS: **RLS
 controla qué filas se pueden modificar, no qué columnas**. Sin el trigger,
@@ -183,7 +211,9 @@ En **Authentication → Providers**:
 | `src/auth/PendingPage.tsx` | cuenta sin autorizar o desactivada |
 | `src/auth/ProtectedRoute.tsx` | sin sesión → login; rol alumno → `/alumno`; sin rol admin → pendiente |
 | `src/auth/StudentRoute.tsx` | la guardia gemela de la vista del alumno |
-| `src/pages/alumno/StudentHome.tsx` | pantalla de bienvenida del alumno |
+| `src/layouts/StudentShell.tsx` | el marco de la vista del alumno, gemelo del `AppShell` |
+| `src/pages/alumno/StudentHome.tsx` | índice de tareas del alumno |
+| `src/pages/alumno/WeeklyLogPage.tsx` | entrega de una bitácora y sus entregas anteriores |
 
 Todo el panel cuelga de `ProtectedRoute` en `App.tsx`: no hay una sola ruta
 accesible sin sesión y sin rol `admin`. Entrar directo a `/modulo1/habilidades`

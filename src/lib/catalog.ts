@@ -160,6 +160,133 @@ export const MODULE_TITLES: Record<ModuleCode, string> = {
 export const formByCode = (code: FormCode): FormMeta =>
   FORMS.find((form) => form.code === code)!
 
+// ---------------------------------------------------------------------------
+// Bitácoras semanales — las tareas del portal del alumno
+// ---------------------------------------------------------------------------
+
+/**
+ * Los dos reportes semanales.
+ *
+ * Van aparte de `FORMS` y con su propio tipo porque no son lo mismo: `FORMS`
+ * son las pantallas del rail del profesor —una tabla de quién contestó qué— y
+ * estas son tareas que el alumno entrega. No tienen pantalla en el rail; el
+ * profesor las lee dentro del expediente del alumno.
+ *
+ * Mezclarlas en `FormCode` obligaría a que `formByCode()` y las trece consultas
+ * del panel supieran de dos códigos que nunca les llegan.
+ */
+export type WeeklyFormCode = 'form_busqueda' | 'form_practicas'
+
+/** Un campo del formulario, como lo ve el alumno. */
+export interface WeeklyField {
+  /** La propiedad del objeto de entrada. */
+  key: string
+  label: string
+  /** La pregunta como venía en el Google Form. */
+  help: string
+  type: 'texto' | 'numero'
+  required?: boolean
+}
+
+export interface WeeklyFormMeta {
+  code: WeeklyFormCode
+  name: string
+  subtitle: string
+  path: string
+  /** Lo que el alumno lee antes de contestar, como en una tarea de Canvas. */
+  instructions: string[]
+  fields: WeeklyField[]
+}
+
+export const WEEKLY_FORMS: WeeklyFormMeta[] = [
+  {
+    code: 'form_busqueda',
+    name: 'Reporte de Búsqueda',
+    subtitle: 'Tu bitácora semanal de búsqueda de empleo',
+    path: '/alumno/reporte-de-busqueda',
+    instructions: [
+      'Se entrega una vez por semana, mientras sigas en búsqueda de prácticas.',
+      'Reporta la semana que ya trabajaste, no la que empieza.',
+      'Cada entrega se guarda aparte: si te equivocaste, vuelve a entregar la semana y tu profesor verá las dos.',
+    ],
+    fields: [
+      {
+        key: 'activities',
+        label: 'Actividades',
+        help: '¿Qué hiciste esta semana para buscar prácticas?',
+        type: 'texto',
+        required: true,
+      },
+      {
+        key: 'applications',
+        label: 'Aplicaciones',
+        help: '¿A qué vacantes aplicaste? Escribe empresa y puesto.',
+        type: 'texto',
+      },
+      {
+        key: 'interviews',
+        label: 'Entrevistas',
+        help: '¿Tuviste entrevistas? ¿Con quién y cómo te fue?',
+        type: 'texto',
+      },
+      {
+        key: 'learnings',
+        label: 'Aprendizajes',
+        help: '¿Qué aprendiste de la búsqueda de esta semana?',
+        type: 'texto',
+      },
+      {
+        key: 'nextSteps',
+        label: 'Siguientes pasos',
+        help: '¿Qué vas a hacer la semana que entra?',
+        type: 'texto',
+      },
+    ],
+  },
+  {
+    code: 'form_practicas',
+    name: 'Reporte de Prácticas',
+    subtitle: 'Tu bitácora semanal dentro de la empresa',
+    path: '/alumno/reporte-de-practicas',
+    instructions: [
+      'Se entrega una vez por semana, desde que empiezas tus prácticas.',
+      'Las horas son las de esa semana, no el acumulado: el total lo suma el sistema.',
+      'Cada entrega se guarda aparte: si te equivocaste, vuelve a entregar la semana y tu profesor verá las dos.',
+    ],
+    fields: [
+      {
+        key: 'activities',
+        label: 'Actividades',
+        help: '¿Qué actividades realizaste esta semana en la empresa?',
+        type: 'texto',
+        required: true,
+      },
+      {
+        key: 'hoursWorked',
+        label: 'Horas trabajadas',
+        help: 'Horas de esta semana. Acepta decimales (por ejemplo, 31.5).',
+        type: 'numero',
+        required: true,
+      },
+      {
+        key: 'skillsPracticed',
+        label: 'Habilidades',
+        help: '¿Qué habilidades pusiste en práctica?',
+        type: 'texto',
+      },
+      {
+        key: 'proposal',
+        label: 'Propuesta',
+        help: '¿Qué propondrías para mejorar el área donde trabajas?',
+        type: 'texto',
+      },
+    ],
+  },
+]
+
+export const weeklyFormByCode = (code: WeeklyFormCode): WeeklyFormMeta =>
+  WEEKLY_FORMS.find((form) => form.code === code)!
+
 /** Los cuatro formularios que comparten la tabla `reflections`. */
 export const REFLECTION_FORMS = ['form2_1', 'form2_2', 'form2_4', 'form2_5'] as const
 

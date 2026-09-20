@@ -21,6 +21,30 @@ Sheets ──(disparador horario)──> ingest_sheet_rows() ──> sheet_rows 
 | Qué transformación se le aplica a cada columna | [DATA_MAPPING.md](DATA_MAPPING.md) |
 | Las tablas y funciones | [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#sincronización-con-el-sheets) |
 
+## Las bitácoras tienen una segunda entrada
+
+Desde `0016_student_weekly_logs.sql`, los dos reportes semanales
+(`form_busqueda`, `form_practicas`) también se entregan **dentro del panel**, en
+el portal del alumno. Las dos vías escriben en las mismas tablas y no se
+estorban:
+
+| Vía | `submissions.source_row_key` |
+|---|---|
+| Google Forms → esta sincronización | `form_code:correo:marcaTemporal` |
+| Portal del alumno | `NULL` |
+
+Todas las consultas de `sheet_sync_*` emparejan por `source_row_key`, así que
+**una entrega hecha en el panel es invisible para la sincronización**: no se
+duplica, no se pisa y no se borra. Y la política de RLS del alumno exige
+`source_row_key is null`, de modo que tampoco puede inventar una llave y
+bloquear una fila que el Sheets iba a importar.
+
+Mientras los Google Forms sigan abiertos, un alumno podría entregar la misma
+semana por los dos lados. Quedarían dos entregas, que es exactamente lo que
+pasa hoy cuando alguien contesta dos veces el formulario: el profesor las ve
+las dos. Cerrar los Google Forms de las bitácoras es una decisión suya, no del
+panel.
+
 ---
 
 ## Por qué el Apps Script no normaliza nada

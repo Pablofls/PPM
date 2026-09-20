@@ -4,6 +4,7 @@ import { AuthProvider } from './auth/AuthProvider'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { StudentRoute } from './auth/StudentRoute'
 import { AppShell } from './layouts/AppShell'
+import { StudentShell } from './layouts/StudentShell'
 import { BehaviorPage } from './pages/modulo1/BehaviorPage'
 import { DemographicsPage } from './pages/modulo1/DemographicsPage'
 import { InterestsPage } from './pages/modulo1/InterestsPage'
@@ -13,8 +14,10 @@ import { ValuesPage } from './pages/modulo1/ValuesPage'
 import { CompaniesPage } from './pages/apendices/CompaniesPage'
 import { InternshipsPage } from './pages/apendices/InternshipsPage'
 import { StudentHome } from './pages/alumno/StudentHome'
+import { WeeklyLogPage } from './pages/alumno/WeeklyLogPage'
 import { IndeedPage } from './pages/modulo2/IndeedPage'
 import { ReflectionPage } from './pages/modulo2/ReflectionPage'
+import { weeklyFormByCode } from './lib/catalog'
 
 /**
  * Rutas del panel. Solo Módulo 1 y Módulo 2 en esta iteración
@@ -23,8 +26,9 @@ import { ReflectionPage } from './pages/modulo2/ReflectionPage'
  * Todo el panel cuelga de ProtectedRoute: no hay una sola ruta accesible sin
  * sesión y sin rol admin (regla «Toda pantalla nace protegida y admin-only»).
  *
- * `/alumno` es la otra mitad: la vista del alumno, con su propia guardia. No
- * cuelga del AppShell porque el rail es la navegación del profesor.
+ * `/alumno` es la otra mitad: la vista del alumno, con su propia guardia y su
+ * propio marco. No cuelga del AppShell porque el rail es la navegación del
+ * profesor.
  *
  * Las rutas están en español porque el profesor puede compartirlas o guardarlas
  * como marcador.
@@ -38,10 +42,24 @@ export default function App() {
             path="/alumno"
             element={
               <StudentRoute>
-                <StudentHome />
+                <StudentShell />
               </StudentRoute>
             }
-          />
+          >
+            <Route index element={<StudentHome />} />
+
+            {/* Las dos bitácoras comparten pantalla: solo cambian sus campos. */}
+            <Route
+              path="reporte-de-busqueda"
+              element={<WeeklyLogPage form={weeklyFormByCode('form_busqueda')} />}
+            />
+            <Route
+              path="reporte-de-practicas"
+              element={<WeeklyLogPage form={weeklyFormByCode('form_practicas')} />}
+            />
+
+            <Route path="*" element={<Navigate to="/alumno" replace />} />
+          </Route>
 
           <Route
             element={

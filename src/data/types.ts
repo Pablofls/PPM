@@ -226,6 +226,34 @@ export interface InternshipLogRow extends WeeklyLogBase {
   totalHours: number | null
 }
 
+// ---------------------------------------------------------------------------
+// Lo que el alumno entrega
+// ---------------------------------------------------------------------------
+// Las `*Row` son lo que se lee; estas son lo que se escribe. Van separadas
+// porque no son la misma forma: la entrega no trae `submissionId` (lo genera la
+// base), ni horas acumuladas (las calcula la vista).
+
+/** La semana que reporta cualquiera de las dos bitácoras. `YYYY-MM-DD`. */
+export interface WeeklyLogInput {
+  weekStart: string
+  weekEnd: string
+}
+
+export interface JobSearchLogInput extends WeeklyLogInput {
+  activities: string
+  applications: string
+  interviews: string
+  learnings: string
+  nextSteps: string
+}
+
+export interface InternshipLogInput extends WeeklyLogInput {
+  activities: string
+  hoursWorked: number | null
+  skillsPracticed: string
+  proposal: string
+}
+
 /** Una entrada del historial de respuestas de un alumno a un formulario. */
 export interface SubmissionHistoryEntry {
   submissionId: string

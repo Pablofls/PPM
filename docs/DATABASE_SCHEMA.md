@@ -573,6 +573,46 @@ razonable trabajar (el máximo real capturado es 96): ataja lo absurdo.
 > cada vez que llega una entrega atrasada, que es justo lo que pasa con una
 > bitácora.
 
+### El alumno entrega desde el panel
+
+> Migración `0016_student_weekly_logs.sql`.
+
+Estas dos tablas son las **únicas** que el alumno escribe. Los otros trece
+formularios se siguen contestando en Google Forms y entran por la
+sincronización horaria.
+
+Las dos vías conviven y escriben las mismas filas. Se distinguen por
+`submissions.source_row_key`:
+
+| Vía | `source_row_key` | Quién escribe |
+|---|---|---|
+| Google Forms → Apps Script | `form_code:correo:marcaTemporal` | `service_role` |
+| Panel del alumno | `NULL` | el propio alumno, vía RLS |
+
+Todas las consultas de `sheet_sync_*` emparejan por `source_row_key`, así que
+una entrega hecha en el panel **nunca se duplica ni se pisa** cuando corre la
+sincronización.
+
+#### `submit_job_search_log()` y `submit_internship_log()`
+
+`SECURITY INVOKER`: la función no es el guardia, corre con los permisos del
+alumno y choca contra las mismas políticas que un `insert` directo. Existen por
+atomicidad —la entrega son dos filas y el cliente no tiene transacciones— y
+porque el `student_id` no se recibe como parámetro: sale de
+`current_student_id()`.
+
+Validan lo que un `CHECK` no puede validar: que la semana no esté invertida y
+que no sea futura. No son constraints de tabla porque la tabla tiene que seguir
+aceptando los 18 rangos mal capturados que ya se importaron del Sheets. Lo que
+llega mal de la historia se conserva; lo que se captura hoy se captura bien.
+
+Las dos se apoyan en `new_weekly_submission(form_code, week_start, week_end)`,
+que crea la fila de `submissions`.
+
+> **No hay políticas de `UPDATE` ni de `DELETE`.** Una entrega no se edita ni se
+> borra: corregir una semana es volver a entregarla, y las dos quedan en el
+> expediente (regla «Historial completo» de CLAUDE.md).
+
 ---
 
 ## Sincronización con el Sheets
@@ -768,7 +808,7 @@ RLS habilitado en **las 18 tablas**.
 |---|---|
 | `anon` | ninguno |
 | `authenticated` con rol `pendiente` | solo su propio `profiles` |
-| `authenticated` con rol `alumno` | solo su propio `profiles`. Ninguna tabla de datos |
+| `authenticated` con rol `alumno` | su propio `profiles`; sus propias `submissions`, `job_search_logs` e `internship_logs`. Ninguna fila de otro alumno, ninguna otra tabla |
 | `authenticated` con rol `admin` | lectura de todo |
 | `service_role` | escritura (importación y sincronización); se salta RLS por definición |
 
@@ -777,9 +817,21 @@ Las funciones de sincronización (`sheet_*`, `ingest_sheet_rows`,
 `authenticated`: **ni siquiera un admin puede dispararlas desde el navegador**.
 Solo `service_role` —la llave que vive en el Apps Script— y el SQL Editor.
 
-No hay políticas de `INSERT`/`UPDATE`/`DELETE` en las tablas de datos: RLS deniega
-por omisión, así que desde el navegador no se puede escribir aunque se manipule la
-petición.
+No hay políticas de `UPDATE` ni de `DELETE` en ninguna tabla de datos: RLS
+deniega por omisión, así que desde el navegador no se puede modificar ni borrar
+nada aunque se manipule la petición.
+
+El único `INSERT` que existe desde el navegador es el del alumno en sus dos
+bitácoras (`0016_student_weekly_logs.sql`), y está acotado por tres condiciones
+en el `WITH CHECK`:
+
+- `student_id = current_student_id()` — solo lo suyo. La función devuelve `NULL`
+  para el profesor y para una cuenta `pendiente`, y `student_id = NULL` nunca es
+  verdadero: una cuenta sin alumno asociado no escribe nada.
+- `form_code in ('form_busqueda', 'form_practicas')` — solo las dos bitácoras.
+- `source_row_key is null` — impide que un alumno invente la llave de una fila
+  del Sheets y, con ella, bloquee o secuestre lo que la sincronización iba a
+  importar (la columna es `UNIQUE`).
 
 ### Verificado contra PostgreSQL
 
@@ -822,6 +874,8 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0013_role_alumno.sql` | valor `alumno` de `app_role` | ✅ 2026-09-18 |
 | `0014_student_accounts.sql` | `profiles.student_id`, `current_student_id()`, `create_student_accounts()` | ✅ 2026-09-18 |
 | `0015_sheet_sync.sql` | `sheet_rows`, `sheet_sync_runs`, las funciones de normalización, `ingest_sheet_rows()`, `import_sheet_rows()` y la reconciliación de marcas temporales | ✅ 2026-09-18 |
+
+| `0016_student_weekly_logs.sql` | políticas de lectura y escritura del alumno sobre sus bitácoras, `new_weekly_submission()`, `submit_job_search_log()`, `submit_internship_log()` | ⏳ **pendiente** |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.

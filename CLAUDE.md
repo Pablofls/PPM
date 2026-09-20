@@ -9,8 +9,9 @@ formularios de Google. Reemplaza la implementación actual en Google Apps Script
 El profesor autorizó el proyecto el 10 de septiembre de 2026.
 
 - Supabase configurado (ref `sovinakodrmgxytgapry`) y Vercel desplegado.
-- Las migraciones `0001`–`0015` **ya se ejecutaron**. Un archivo ejecutado no se
-  vuelve a editar: el siguiente cambio es `0016_…`.
+- Las migraciones `0001`–`0015` **ya se ejecutaron**. `0016` está escrita y
+  **pendiente de pegar** en el SQL Editor. Un archivo ejecutado no se vuelve a
+  editar: el siguiente cambio es `0017_…`.
 - Alcance del esquema: **autenticación + los 11 formularios de Módulo 1 y 2 +
   los dos apéndices + las dos bitácoras semanales**. Las hojas `alumnos` y
   `fechas_entrega` quedan para después.
@@ -33,13 +34,17 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   en la plataforma anterior.
 - El **rol `alumno`** existe: las cuentas se crean desde `demographics` (usuario =
   correo institucional, contraseña = matrícula) con
-  `create_student_accounts()`, y el alumno entra a `/alumno`, hoy solo una
-  pantalla de bienvenida. **No lee ninguna tabla todavía**; ver `docs/AUTH.md`.
-  Falta correr `create_student_accounts()` para dar de alta a los alumnos.
+  `create_student_accounts()`, y el alumno entra a `/alumno`. Falta correr
+  `create_student_accounts()` para dar de alta a los alumnos.
+- El **portal del alumno son sus tareas**, al estilo de Canvas: instrucciones,
+  formulario de entrega y las entregas anteriores. Hoy tiene las dos bitácoras
+  semanales, y son los **únicos** formularios que se contestan dentro del panel;
+  los otros trece siguen en Google Forms. Requiere `0016` ejecutada.
 - Las **bitácoras semanales** (`form_busqueda`, `form_practicas`) no son una
   pantalla del rail: se leen dentro del **expediente del alumno**, que reemplaza
   al panel lateral por formulario. Es como funcionaba la tarjeta *ADN
-  Profesional* de la plataforma anterior.
+  Profesional* de la plataforma anterior. Lo que el alumno entrega en su portal
+  aparece ahí sin ningún paso extra: es la misma tabla.
 
 Ver [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) para el estado detallado y los pasos.
 
@@ -143,8 +148,13 @@ Ver [docs/AUTH.md](docs/AUTH.md). Cualquier pantalla para un rol distinto de
 `admin` se diseña y se pide explícitamente; no se asume.
 
 La vista del alumno sigue la misma regla desde el otro lado: su guardia es
-`StudentRoute` y su condición de lectura, cuando tenga datos que leer, siempre
-será `student_id = public.current_student_id()`. Nunca `authenticated`.
+`StudentRoute` y su condición de lectura **y de escritura** es siempre
+`student_id = public.current_student_id()`. Nunca `authenticated`.
+
+El alumno solo escribe sus dos bitácoras, y la política lo acota por código de
+formulario (`0016`). Abrirle un formulario más es una decisión que se pide, no
+se asume. **Nunca hay política de `UPDATE` ni de `DELETE`:** corregir una
+entrega es volver a entregar (regla «Historial completo»).
 
 ### 9. Alcance de las pantallas
 
@@ -184,10 +194,11 @@ import_sql/               SQL de importación generado — NO se versiona
 src/
   data/                   Capa de datos: tipos + repositorio contra Supabase
   components/             Componentes compartidos (DataTable, FilterBar, …)
-  layouts/                AppShell con el sidebar
+  layouts/                AppShell con el sidebar, StudentShell para el alumno
   pages/modulo1/          Pantallas 1.0 – 1.5
   pages/modulo2/          Pantallas 2.1, 2.2, 2.4, 2.5, 2.7
   pages/apendices/        Pantallas A.1 y B.1
+  pages/alumno/           Portal del alumno: sus tareas y la entrega de bitácoras
   auth/                   Sesión, login y protección de rutas
   lib/                    Utilidades y catálogos de la UI
 ```

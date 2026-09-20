@@ -22,8 +22,10 @@ import type {
   FormSummary,
   HollandRow,
   IndeedRow,
+  InternshipLogInput,
   InternshipLogRow,
   InternshipRow,
+  JobSearchLogInput,
   JobSearchLogRow,
   MbtiRow,
   PanelFilters,
@@ -87,6 +89,19 @@ export interface PanelRepository {
   getInternshipLogs(studentId: string): Promise<InternshipLogRow[]>
 
   /**
+   * Entrega una bitácora del alumno de la sesión.
+   *
+   * No reciben `studentId`: el alumno sale de la sesión, en la base. Un
+   * parámetro aquí sería un parámetro que alguien puede cambiar en el
+   * navegador.
+   *
+   * Cada llamada crea una entrega nueva; nunca sobrescribe la anterior (regla
+   * «Historial completo» de CLAUDE.md).
+   */
+  submitJobSearchLog(input: JobSearchLogInput): Promise<void>
+  submitInternshipLog(input: InternshipLogInput): Promise<void>
+
+  /**
    * La última corrida de la sincronización con el Sheets. `null` si todavía no
    * ha corrido ninguna.
    */
@@ -141,6 +156,14 @@ export const emptyRepository: PanelRepository = {
   },
   async getInternshipLogs() {
     return []
+  },
+  async submitJobSearchLog() {
+    // Las lecturas devuelven vacío sin base de datos; una entrega no puede
+    // fingir que se guardó. El alumno tiene que enterarse.
+    throw new Error('No hay conexión con la base de datos. Tu entrega no se guardó.')
+  },
+  async submitInternshipLog() {
+    throw new Error('No hay conexión con la base de datos. Tu entrega no se guardó.')
   },
   async getLastSync() {
     return null
