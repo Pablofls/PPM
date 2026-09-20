@@ -89,12 +89,13 @@ guardar.
 
 ### 3. Configurar las propiedades
 
-**Configuración del proyecto → Propiedades del script**, y agregar dos:
+**Configuración del proyecto → Propiedades del script**, y agregar tres:
 
 | Propiedad | Valor |
 |---|---|
 | `SUPABASE_URL` | `https://sovinakodrmgxytgapry.supabase.co` |
 | `SUPABASE_SERVICE_KEY` | la llave `service_role` (Supabase → Project Settings → API Keys) |
+| `ZONA_SHEETS` | `America/Monterrey` |
 
 Se agregan como **propiedades**, no en el código. `getProperty('SUPABASE_URL')`
 recibe el *nombre* de la propiedad; si ahí aparece la URL o la llave, alguien
@@ -104,7 +105,29 @@ confundió el nombre con el valor y la llave quedó escrita en el archivo.
 > `.env` del panel: salta RLS por completo, y el panel corre en el navegador del
 > profesor, donde cualquiera puede leer lo que se le mande.
 
-### 4. Probar a mano
+`ZONA_SHEETS` es técnicamente opcional —el script cae a
+`getSpreadsheetTimeZone()`— pero **se pone de todos modos**, y el paso 4
+explica por qué.
+
+### 4. Confirmar la zona horaria ANTES de la primera corrida
+
+Con la función `diagnosticoZonaPPM` seleccionada, **Ejecutar**, y leer el
+**Registro de ejecución**. Imprime la zona que reportan las tres fuentes y,
+abajo, cómo se formatearía la marca temporal de la primera fila de `form1_0`
+con seis zonas candidatas.
+
+**La correcta es la que reproduce la hora que se ve en la celda del Sheets.**
+Si esa no es `America/Monterrey`, hay que poner esa otra en `ZONA_SHEETS`.
+
+Este paso parece burocrático y no lo es. La zona horaria es lo que forma la
+`source_row_key` (`form_code:correo:marcaTemporal`), que es como la base
+reconoce una entrega que ya tiene. Con la zona equivocada **ninguna llave
+coincide** y la sincronización deja de actualizar entregas para empezar a
+crearlas: ya pasó una vez, con 581 entregas duplicadas, y por eso existen esta
+función y esta propiedad. El error no avisa —la corrida termina «bien»— y se
+descubre viendo el panel al doble.
+
+### 5. Probar a mano
 
 Con la función `sincronizarPPM` seleccionada, **Ejecutar**. La primera vez Google
 pide autorización para leer la hoja y salir a internet. Al terminar, en
@@ -115,7 +138,7 @@ La primera corrida manda las 15 hojas completas. Como las 580 entregas ya están
 importadas, lo esperado es que casi todas las filas se archiven sin cambiar nada:
 lo que se escribe son las diferencias.
 
-### 5. Instalar el disparador
+### 6. Instalar el disparador
 
 Ejecutar **una vez** la función `instalarSincronizacionPPM()`. Queda corriendo
 cada hora. Borra primero el que hubiera, para no acabar con seis copias.

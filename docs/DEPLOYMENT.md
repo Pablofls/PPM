@@ -162,8 +162,6 @@ Ver [AUTH.md](AUTH.md) para el modelo completo de roles y permisos.
 
 ## Pendientes antes de producción
 
-- [ ] Correr `select * from public.create_student_accounts();` para dar de alta
-      a los alumnos. Sin cuentas, nadie puede entrar a entregar
 - [ ] Instalar el Apps Script en el Sheets (ver [SHEETS_SYNC.md](SHEETS_SYNC.md))
 - [ ] Decidir si se cierran los Google Forms de las dos bitácoras ahora que se
       entregan en el panel. Mientras sigan abiertos, un alumno puede entregar la
