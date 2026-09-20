@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../../auth/AuthProvider'
 import { repository } from '../../data/repository'
@@ -24,14 +24,20 @@ import { Badge } from '../../components/Badge'
 export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
   const { profile } = useAuth()
   const studentId = profile?.student_id ?? null
+  const navigate = useNavigate()
 
-  const { entries, loading, error, reload } = useMyLogs(form.code, studentId)
-  const [sent, setSent] = useState(false)
+  const { entries, loading, error } = useMyLogs(form.code, studentId)
 
+  // Al entregar se regresa a la lista de tareas, con el aviso de que salió
+  // bien. Quedarse aquí dejaría al alumno frente a un formulario vacío, que se
+  // parece demasiado a que no pasó nada; volver al índice es además donde ve
+  // su contador de entregas actualizado.
   const onSubmitted = useCallback(() => {
-    setSent(true)
-    reload()
-  }, [reload])
+    navigate('/alumno', {
+      replace: true,
+      state: { toast: `Entregaste tu ${form.name}. Tu profesor ya puede verlo.` },
+    })
+  }, [navigate, form.name])
 
   return (
     <>
@@ -65,15 +71,6 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
           ))}
         </ul>
       </section>
-
-      {sent && (
-        <p
-          role="status"
-          className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-900"
-        >
-          Tu entrega quedó registrada. Tu profesor ya puede verla.
-        </p>
-      )}
 
       <SubmissionForm form={form} onSubmitted={onSubmitted} />
 
@@ -125,8 +122,8 @@ function SubmissionForm({
 
     try {
       await submit(form.code, week, values)
-      setValues({})
-      setWeek(currentWeek())
+      // No se limpia el formulario: `onSubmitted` navega y esta pantalla se
+      // desmonta. Limpiarlo antes solo haría parpadear los campos vacíos.
       onSubmitted()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'No se pudo guardar tu entrega.')
@@ -354,9 +351,6 @@ function useMyLogs(code: WeeklyFormCode, studentId: string | null) {
   const [entries, setEntries] = useState<Entry[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [nonce, setNonce] = useState(0)
-
-  const reload = useCallback(() => setNonce((value) => value + 1), [])
 
   useEffect(() => {
     if (!studentId) {
@@ -393,9 +387,9 @@ function useMyLogs(code: WeeklyFormCode, studentId: string | null) {
     return () => {
       cancelled = true
     }
-  }, [code, studentId, nonce])
+  }, [code, studentId])
 
-  return { entries, loading, error, reload }
+  return { entries, loading, error }
 }
 
 function toEntry(row: JobSearchLogRow | InternshipLogRow): Entry {

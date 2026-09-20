@@ -312,6 +312,7 @@ formulario de entrega y lo que ya entregó.
 
 | Bloque | Contenido |
 |---|---|
+| Aviso | Al volver de entregar, la confirmación de que se guardó. Se va solo a los 6 segundos |
 | Saludo | Su nombre, tal como lo registró en el 1.0 |
 | Tareas | Una tarjeta por bitácora: nombre, para qué es, cuántas entregas lleva y cuál fue la última |
 | Tu cuenta | Nombre, correo institucional y el recordatorio de que la contraseña es su matrícula |
@@ -356,6 +357,16 @@ de un mes (ver [DATA_MAPPING.md](DATA_MAPPING.md#bitácoras-semanales)). El
 alumno la puede cambiar, porque reportar una semana atrasada es legítimo; lo que
 no puede es invertirla ni reportar el futuro, y eso lo rechaza la base.
 
+**Al entregar se regresa a la lista de tareas**, con un aviso flotante que
+confirma qué se entregó. Quedarse en el formulario dejaría al alumno frente a
+los campos vacíos, que se parece demasiado a que no pasó nada; y al volver al
+índice ve el contador de esa tarea ya actualizado.
+
+El aviso viaja en el `state` de la navegación, no en la URL —es un mensaje de
+una sola vez, y en la URL quedaría en el historial y en cualquier enlace que el
+alumno copiara— y se limpia del historial en cuanto se lee, para que recargar
+no vuelva a anunciar una entrega vieja.
+
 **Una entrega no se edita ni se borra.** Corregir una semana es volver a
 entregarla, y el profesor ve las dos en el expediente (regla «Historial
 completo» de [CLAUDE.md](../CLAUDE.md)). La pantalla lo dice junto al botón, en
@@ -383,3 +394,4 @@ distinguen, que es justo lo que se quiere.
 | El portal del alumno se ve como las tareas de un curso | Es lo que el alumno viene a hacer: entregar. Un panel de resultados sería la vista del profesor en chiquito |
 | La semana se propone en vez de dejarla vacía | Las fechas mal capturadas fueron el error más común de la bitácora en el Sheets |
 | Una entrega no se puede editar | Es la regla «Historial completo»: corregir es volver a entregar, y el profesor ve las dos |
+| Al entregar se vuelve al índice, con aviso | Un formulario que se vacía en su sitio se parece a que la entrega se perdió |

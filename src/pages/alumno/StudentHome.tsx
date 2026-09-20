@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../../auth/AuthProvider'
 import { Badge } from '../../components/Badge'
+import { Toast } from '../../components/Toast'
 import { repository } from '../../data/repository'
 import { WEEKLY_FORMS, type WeeklyFormMeta } from '../../lib/catalog'
 import { formatRelativeTime, formatWeekRange } from '../../lib/format'
@@ -22,9 +23,11 @@ export function StudentHome() {
   const { profile, session } = useAuth()
   const nombre = profile?.full_name?.trim()
   const correo = profile?.email ?? session?.user?.email
+  const [toast, dismissToast] = useHandoffToast()
 
   return (
     <>
+      {toast && <Toast message={toast} onDismiss={dismissToast} />}
       <h1 className="text-2xl font-semibold tracking-tight text-ink-950">
         {nombre ? `Hola, ${nombre}` : 'Hola'}
       </h1>
@@ -183,6 +186,34 @@ function useLastEntry(form: WeeklyFormMeta) {
   }, [form.code, studentId])
 
   return { entregas, ultima, loading }
+}
+
+/**
+ * El aviso que dejó la pantalla de la que venimos.
+ *
+ * Viaja en el `state` de la navegación y no en la URL: es un mensaje de una
+ * sola vez, y en la URL quedaría en el historial y en cualquier enlace que el
+ * alumno copiara.
+ *
+ * Se limpia del historial en cuanto se lee. Sin eso, recargar la página
+ * volvería a anunciar una entrega que se hizo hace rato.
+ */
+function useHandoffToast(): [string | null, () => void] {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const entrante = (location.state as { toast?: string } | null)?.toast ?? null
+
+  const [toast, setToast] = useState<string | null>(entrante)
+
+  useEffect(() => {
+    if (!entrante) return
+    setToast(entrante)
+    navigate(location.pathname, { replace: true, state: null })
+  }, [entrante, location.pathname, navigate])
+
+  const dismiss = useCallback(() => setToast(null), [])
+
+  return [toast, dismiss]
 }
 
 /** Lo que el alumno va a poder ver de sí mismo, y todavía no. */
