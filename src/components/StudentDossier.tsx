@@ -69,7 +69,7 @@ export function StudentDossier<T extends BaseRow>({
         aria-hidden="true"
       />
 
-      <div className="relative mx-auto my-6 w-full max-w-5xl px-4">
+      <div className="relative mx-auto my-6 w-full max-w-7xl px-4">
         <article
           role="dialog"
           aria-label="Expediente del alumno"
