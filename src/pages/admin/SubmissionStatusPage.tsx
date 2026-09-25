@@ -88,16 +88,31 @@ export function SubmissionStatusPage() {
   )
 }
 
+/**
+ * El cuadro de la matriz, con su propio tooltip.
+ *
+ * El atributo `title` nativo del navegador tarda casi un segundo en aparecer y
+ * no se ve igual en todos los navegadores; este es un tooltip propio, que
+ * aparece al instante y con el mismo estilo en cualquier lado.
+ */
 function StatusSquare({ cell }: { cell: SubmissionStatusCell | undefined }) {
   const state = cell?.state ?? 'sin_fecha'
-  const title = cell?.submittedAt
+  const label = cell?.submittedAt
     ? `Entregado: ${formatDateTime(cell.submittedAt)}`
     : state === 'pendiente'
       ? 'No entregado'
       : 'Sin fecha límite configurada'
 
   return (
-    <span title={title} className={`inline-block size-5 rounded-sm ${STATE_COLOR[state]}`} />
+    <span className="group/cell relative inline-block">
+      <span className={`inline-block size-5 rounded-sm ${STATE_COLOR[state]}`} />
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1.5 -translate-x-1/2 rounded-md bg-ink-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity group-hover/cell:opacity-100"
+      >
+        {label}
+      </span>
+    </span>
   )
 }
 
