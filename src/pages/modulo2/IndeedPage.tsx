@@ -1,6 +1,11 @@
 import { Dash } from '../../components/Badge'
 import type { Column } from '../../components/DataTable'
-import { academicColumns, FormPage, studentColumns } from '../../components/FormPage'
+import {
+  academicColumns,
+  FormPage,
+  studentColumns,
+  submittedAtColumn,
+} from '../../components/FormPage'
 import { useRepositoryQuery } from '../../data/hooks'
 import { repository } from '../../data/repository'
 import type { IndeedRow, PanelFilters } from '../../data/types'
@@ -73,6 +78,7 @@ const columns: Column<IndeedRow>[] = [
     render: (row) => <NumberedLinks urls={row.companyUrls} label="Perfil" />,
   },
   ...academicColumns<IndeedRow>(),
+  ...submittedAtColumn<IndeedRow>(),
 ]
 
 export function IndeedPage() {

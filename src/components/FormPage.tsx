@@ -4,7 +4,7 @@ import { useFormSummary } from '../data/hooks'
 import { repository } from '../data/repository'
 import type { BaseRow } from '../data/types'
 import type { FormMeta } from '../lib/catalog'
-import { formatSemester, formatSessionDay } from '../lib/format'
+import { formatDateTime, formatSemester, formatSessionDay } from '../lib/format'
 import { Dash, LanguageBadge } from './Badge'
 import { DataTable, type Column } from './DataTable'
 import { FilterBar, useFilters } from './FilterBar'
@@ -166,6 +166,18 @@ export function academicColumns<T extends BaseRow>(): Column<T>[] {
       key: 'periodCode',
       header: 'Período',
       render: (row) => row.periodCode ?? <Dash />,
+    },
+  ]
+}
+
+/** Marca temporal de la entrega. Va al fondo de todas las pantallas de formulario. */
+export function submittedAtColumn<T extends BaseRow>(): Column<T>[] {
+  return [
+    {
+      key: 'submittedAt',
+      header: 'Fecha de Entrega',
+      width: 'min-w-40',
+      render: (row) => formatDateTime(row.submittedAt) || <Dash />,
     },
   ]
 }

@@ -1,6 +1,11 @@
 import { Badge, Dash, SubmissionStateBadge } from '../../components/Badge'
 import type { Column } from '../../components/DataTable'
-import { academicColumns, FormPage, studentColumns } from '../../components/FormPage'
+import {
+  academicColumns,
+  FormPage,
+  studentColumns,
+  submittedAtColumn,
+} from '../../components/FormPage'
 import { useRepositoryQuery } from '../../data/hooks'
 import { repository } from '../../data/repository'
 import type { PanelFilters, ReflectionRow } from '../../data/types'
@@ -56,6 +61,7 @@ export function ReflectionPage({ formCode }: { formCode: FormCode }) {
       render: (row) => <SubmissionStateBadge value={row.submissionState} />,
     },
     ...academicColumns<ReflectionRow>(),
+    ...submittedAtColumn<ReflectionRow>(),
   ]
 
   return (

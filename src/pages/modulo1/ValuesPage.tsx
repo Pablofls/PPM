@@ -1,6 +1,11 @@
 import { Badge, Dash } from '../../components/Badge'
 import type { Column } from '../../components/DataTable'
-import { academicColumns, FormPage, studentColumns } from '../../components/FormPage'
+import {
+  academicColumns,
+  FormPage,
+  studentColumns,
+  submittedAtColumn,
+} from '../../components/FormPage'
 import { ReportLink } from './PersonalityPage'
 import { useRepositoryQuery } from '../../data/hooks'
 import { repository } from '../../data/repository'
@@ -42,6 +47,7 @@ const columns: Column<ValuesRow>[] = [
     render: (row) => <ReportLink url={row.reportUrl} />,
   },
   ...academicColumns<ValuesRow>(),
+  ...submittedAtColumn<ValuesRow>(),
 ]
 
 export function ValuesPage() {

@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Badge, Dash } from '../../components/Badge'
 import type { Column } from '../../components/DataTable'
 import { Select } from '../../components/FilterBar'
-import { FormPage, studentColumns } from '../../components/FormPage'
+import { FormPage, studentColumns, submittedAtColumn } from '../../components/FormPage'
 import { useRepositoryQuery } from '../../data/hooks'
 import { repository } from '../../data/repository'
 import type { PanelFilters, SkillsRow } from '../../data/types'
@@ -60,6 +60,7 @@ export function SkillsPage() {
       header: skill.label,
       render: (row) => <SkillLevelBadge value={row.skills[skill.key]} />,
     })),
+    ...submittedAtColumn<SkillsRow>(),
   ]
 
   return (

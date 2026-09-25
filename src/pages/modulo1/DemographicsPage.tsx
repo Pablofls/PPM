@@ -1,6 +1,6 @@
 import { Dash, LanguageBadge } from '../../components/Badge'
 import type { Column } from '../../components/DataTable'
-import { FormPage } from '../../components/FormPage'
+import { FormPage, submittedAtColumn } from '../../components/FormPage'
 import { useRepositoryQuery } from '../../data/hooks'
 import { repository } from '../../data/repository'
 import type { DemographicsRow, PanelFilters } from '../../data/types'
@@ -98,6 +98,7 @@ const columns: Column<DemographicsRow>[] = [
     header: 'Período',
     render: (row) => row.periodCode ?? <Dash />,
   },
+  ...submittedAtColumn<DemographicsRow>(),
 ]
 
 export function DemographicsPage() {

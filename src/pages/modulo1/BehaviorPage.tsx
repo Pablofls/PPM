@@ -1,6 +1,11 @@
 import { Badge, Dash } from '../../components/Badge'
 import type { Column } from '../../components/DataTable'
-import { academicColumns, FormPage, studentColumns } from '../../components/FormPage'
+import {
+  academicColumns,
+  FormPage,
+  studentColumns,
+  submittedAtColumn,
+} from '../../components/FormPage'
 import { useRepositoryQuery } from '../../data/hooks'
 import { repository } from '../../data/repository'
 import type { DiscRow, PanelFilters } from '../../data/types'
@@ -43,6 +48,7 @@ const columns: Column<DiscRow>[] = [
       row.needsReview ? <Badge tone="amber">Revisar</Badge> : <Dash />,
   },
   ...academicColumns<DiscRow>(),
+  ...submittedAtColumn<DiscRow>(),
 ]
 
 export function BehaviorPage() {

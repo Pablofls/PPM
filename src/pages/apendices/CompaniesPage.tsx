@@ -1,6 +1,6 @@
 import { Badge, Dash } from '../../components/Badge'
 import type { Column } from '../../components/DataTable'
-import { FormPage, studentColumns } from '../../components/FormPage'
+import { FormPage, studentColumns, submittedAtColumn } from '../../components/FormPage'
 import { useRepositoryQuery } from '../../data/hooks'
 import { repository } from '../../data/repository'
 import type { CompanyRow, PanelFilters } from '../../data/types'
@@ -139,6 +139,7 @@ const columns: Column<CompanyRow>[] = [
         <span className="tabular-nums">{row.linkedinConnections}</span>
       ),
   },
+  ...submittedAtColumn<CompanyRow>(),
 ]
 
 export function CompaniesPage() {
