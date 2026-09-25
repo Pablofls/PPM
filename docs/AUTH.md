@@ -22,7 +22,7 @@ usuario recién registrado puede iniciar sesión y no ve ni una fila.
 | Rol | Qué puede hacer |
 |---|---|
 | `pendiente` | Iniciar sesión y ver su propio perfil. **Nada más.** Es el rol con el que nace todo usuario |
-| `alumno` | Iniciar sesión, entregar sus dos bitácoras semanales y leer **sus propias** entregas. Nada de ningún otro alumno, nada de los otros trece formularios |
+| `alumno` | Iniciar sesión, entregar sus dos bitácoras semanales, leer **sus propias** entregas y su propio expediente (ADN Profesional). Nada de ningún otro alumno, nada de los otros trece formularios |
 | `admin` | Leer todas las pantallas del panel y administrar los roles de los demás |
 
 Todas las pantallas **del panel** son admin-only. El alumno tiene su propio
@@ -30,7 +30,7 @@ Todas las pantallas **del panel** son admin-only. El alumno tiene su propio
 
 ### Lo que el alumno puede hacer
 
-> Migración `0016_student_weekly_logs.sql`.
+> Migraciones `0016_student_weekly_logs.sql` y `0019_student_dossier_read.sql`.
 
 | Tabla | Lectura | Escritura |
 |---|---|---|
@@ -38,6 +38,8 @@ Todas las pantallas **del panel** son admin-only. El alumno tiene su propio
 | `submissions` | las suyas | `INSERT`, solo `form_busqueda` y `form_practicas` |
 | `job_search_logs` | las suyas | `INSERT`, solo las de sus propias entregas |
 | `internship_logs` | las suyas | `INSERT`, solo las de sus propias entregas |
+| `students` | la suya | no |
+| `demographics`, `holland_results`, `mbti_results`, `disc_results`, `values_results`, `company_profiles` | las suyas | no |
 | todo lo demás | **no** | **no** |
 
 La condición de «mío» es siempre la misma, `student_id =
@@ -54,9 +56,15 @@ ni se borra: corregir una semana es volver a entregarla, y las dos quedan en el
 expediente. Es también lo que hacía Google Forms, donde el alumno nunca pudo
 volver sobre lo enviado.
 
-> Que el alumno todavía no lea su expediente —sus resultados de Holland, MBTI,
-> DISC— no es un pendiente olvidado: es el orden correcto. La información se
-> abre una pantalla a la vez, cada una con su política.
+> Hasta aquí el alumno no leía su expediente —sus resultados de Holland,
+> MBTI, DISC— y no era un pendiente olvidado: la información se abre una
+> pantalla a la vez, cada una con su política. `0019` abre esa lectura porque
+> el profesor pidió mostrar la tarjeta ADN Profesional (secciones I a V, sin
+> las bitácoras ni el historial de respuestas) dentro del portal del alumno:
+> `students_select_own`, `demographics_select_own` y la misma condición para
+> `holland_results`, `mbti_results`, `disc_results`, `values_results` y
+> `company_profiles`, todas acotadas por `EXISTS` contra `submissions` igual
+> que `job_search_logs_select_own`.
 
 ## Cómo se crean las cuentas de los alumnos
 
@@ -165,6 +173,7 @@ administrativos con acceso total a la base.
 | Un alumno entrega un formulario que no es bitácora | denegado por el `WITH CHECK` de `submissions_insert_own` |
 | Un alumno inventa un `source_row_key` para estorbar a la sincronización | denegado: la política exige `source_row_key is null` |
 | Un alumno edita o borra una entrega | denegado: no existe política de `UPDATE` ni de `DELETE` |
+| Un alumno lee el expediente de otro alumno | denegado: `students_select_own` y las políticas gemelas de `demographics`, `holland_results`, `mbti_results`, `disc_results`, `values_results` y `company_profiles` filtran por `current_student_id()`, no por `authenticated` |
 
 > **Verificado en Supabase el 2026-09-20.** Suplantando a un alumno real desde
 > el SQL Editor —`set local role authenticated` más sus claims en
@@ -225,7 +234,7 @@ En **Authentication → Providers**:
 | `src/auth/ProtectedRoute.tsx` | sin sesión → login; rol alumno → `/alumno`; sin rol admin → pendiente |
 | `src/auth/StudentRoute.tsx` | la guardia gemela de la vista del alumno |
 | `src/layouts/StudentShell.tsx` | el marco de la vista del alumno, gemelo del `AppShell` |
-| `src/pages/alumno/StudentHome.tsx` | índice de tareas del alumno |
+| `src/pages/alumno/StudentHome.tsx` | índice de tareas del alumno, con su ADN Profesional (`DossierProfile`, secciones I a V) |
 | `src/pages/alumno/WeeklyLogPage.tsx` | entrega de una bitácora y sus entregas anteriores |
 
 Todo el panel cuelga de `ProtectedRoute` en `App.tsx`: no hay una sola ruta

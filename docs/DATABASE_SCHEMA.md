@@ -9,7 +9,7 @@
 
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
-- **Última migración aplicada:** `0017_form_deadlines.sql` (2026-09-25).
+- **Última migración aplicada:** `0019_student_dossier_read.sql` (2026-09-25).
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
   bitácoras semanales.
 
@@ -845,6 +845,14 @@ justo a los alumnos que el profesor necesita perseguir.
 **Las dos vistas de bitácora no pasan por `latest_submissions`.** El punto de una
 bitácora es verlas todas; filtrar a la última sería tirar el historial.
 
+**`v_student_dossier` la lee también el alumno, de sí mismo** (`0019`,
+`docs/AUTH.md#lo-que-el-alumno-puede-hacer`). La vista no cambió: lo que
+cambió son las políticas de las tablas de abajo, que antes eran
+`is_admin()`-only. El panel del profesor la usa completa (secciones I a VII);
+el portal del alumno reutiliza el mismo componente (`DossierProfile`) pero
+solo hasta la V — sin las bitácoras (que el alumno ya ve por otro camino, sus
+propias entregas) ni el historial de respuestas.
+
 `cumulative_hours` y `total_hours` se calculan con funciones de ventana y **no se
 guardan**. Dos decisiones dentro:
 
@@ -909,7 +917,7 @@ RLS habilitado en **las 18 tablas**.
 |---|---|
 | `anon` | ninguno |
 | `authenticated` con rol `pendiente` | solo su propio `profiles` |
-| `authenticated` con rol `alumno` | su propio `profiles`; sus propias `submissions`, `job_search_logs` e `internship_logs`. Ninguna fila de otro alumno, ninguna otra tabla |
+| `authenticated` con rol `alumno` | su propio `profiles`; sus propias `submissions`, `job_search_logs` e `internship_logs`; su propio `students` y su propio expediente (`demographics`, `holland_results`, `mbti_results`, `disc_results`, `values_results`, `company_profiles`). Ninguna fila de otro alumno, ninguna otra tabla |
 | `authenticated` con rol `admin` | lectura de todo |
 | `service_role` | escritura (importación y sincronización); se salta RLS por definición |
 
@@ -927,6 +935,14 @@ bitácoras. `0017` agrega el segundo: `form_deadlines` acepta `insert` y
 `delete` directos de cualquier `authenticated` que pase `is_admin()` — no hace
 falta una función porque no hay dos tablas que mantener juntas ni un
 `student_id` que proteger de que alguien lo falsifique.
+
+`0019` no agrega tablas ni escritura: abre, en tablas que ya existían desde
+`0004`/`0009`, una política de **lectura** más para el alumno —
+`students_select_own` y las gemelas de `demographics`, `holland_results`,
+`mbti_results`, `disc_results`, `values_results` y `company_profiles`, todas
+acotadas por `EXISTS` contra `submissions`, mismo patrón que
+`job_search_logs_select_own`— para que `v_student_dossier` deje de
+devolverle cero filas a su propio dueño.
 
 El `INSERT` del alumno está acotado por tres condiciones en el `WITH CHECK`:
 
@@ -987,6 +1003,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 
 | `0016_student_weekly_logs.sql` | políticas de lectura y escritura del alumno sobre sus bitácoras, `new_weekly_submission()`, `submit_job_search_log()`, `submit_internship_log()` | ✅ 2026-09-20 |
 | `0017_form_deadlines.sql` | `submission_state`, `form_deadlines`, `resolve_form_deadline()`, `submission_status()`, `v_submission_status` | ✅ 2026-09-25 |
+| `0019_student_dossier_read.sql` | políticas de lectura del alumno sobre su propio expediente: `students`, `demographics`, `holland_results`, `mbti_results`, `disc_results`, `values_results`, `company_profiles` | ✅ 2026-09-25 |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.
