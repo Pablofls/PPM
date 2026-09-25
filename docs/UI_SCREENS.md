@@ -305,7 +305,7 @@ de horas: así viene del formulario.
 
 ## Estado de Entregas y Panel de Administrador
 
-> `0017_form_deadlines.sql`. Ver
+> `0017_form_deadlines.sql` y `0018_semester_weeks.sql`. Ver
 > [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#fechas-de-entrega-y-estado-de-las-entregas).
 > Las únicas dos pantallas del rail que no cuelgan de un `form_code` fijo ni de
 > `FormPage`: no muestran un formulario, sino **todos** a la vez.
@@ -329,6 +329,28 @@ existía en la plataforma anterior: ahí la fecha se editaba a mano en la hoja
   y fecha. Las reglas viven abajo, en "Fechas asignadas": Formulario, Idioma,
   Frecuencia, Período, Fecha Límite, Creado, y un botón para borrarla.
 - **No hay edición.** Corregir una fecha es borrarla y crear otra.
+
+### Semanas del semestre
+
+> `0018_semester_weeks.sql`. Ver
+> [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#semanas-del-semestre). Segunda
+> herramienta de la misma pantalla, no una pantalla aparte.
+
+Define las semanas que después elige el alumno al entregar una bitácora, en
+vez de que las escriba a mano (la causa más común de captura mal hecha en el
+Sheets original).
+
+- **Periodo**: `<input>` de texto libre, no un select — el profesor tiene que
+  poder escribir un periodo que todavía no existe en ningún otro lado
+  (`PR-27`).
+- **Semana 1 empieza (lunes)**: `<input type="date">`. Un aviso en rojo avisa
+  si la fecha elegida no cae en lunes; la base lo vuelve a validar.
+- **Número de semanas**: numérico, 1–53. Las semanas 2 en adelante salen solas,
+  sumando 7 días cada vez.
+- **Generar semanas** crea las N filas. Abajo, un resumen por periodo ya
+  configurado (periodo · número de semanas · rango completo) con un botón para
+  borrarlas todas — es la forma de corregir la fecha de la semana 1: borrar y
+  volver a generar, no editar una semana a la mitad de la serie.
 
 ### Estado de Entregas
 
@@ -385,7 +407,7 @@ que cambia entre ellas son sus campos, y esos viven en `WEEKLY_FORMS`
 | Bloque | Contenido |
 |---|---|
 | Instrucciones | Cada cuándo se entrega, qué semana se reporta y qué pasa si se equivoca |
-| Nueva entrega | Inicio y final de la semana, más los campos del formulario |
+| Nueva entrega | Un `<select>` con la semana que reporta, más los campos del formulario |
 | Tus entregas | Todas las que lleva, de la más reciente a la más antigua |
 
 Los campos son **los mismos** que tenía el Google Form, con la pregunta original
@@ -401,12 +423,21 @@ mantener en sincronía.
 
 \* obligatorio.
 
-**La semana se propone, lunes a domingo de la semana en curso.** Es la respuesta
-correcta casi siempre, y las fechas mal capturadas fueron el error más común de
-la bitácora en el Sheets: 18 de 183 entregas traen el rango invertido o de más
-de un mes (ver [DATA_MAPPING.md](DATA_MAPPING.md#bitácoras-semanales)). El
-alumno la puede cambiar, porque reportar una semana atrasada es legítimo; lo que
-no puede es invertirla ni reportar el futuro, y eso lo rechaza la base.
+**El alumno ya no escribe fechas — elige un número de semana.** Desde
+`0018_semester_weeks.sql`, el `<select>` se llena con las semanas que el
+profesor definió para el periodo del alumno
+([Semanas del semestre](#semanas-del-semestre)), cada opción mostrando su
+rango («Semana 3 · 17/08 – 23/08»). Es justo la pieza que atajaba el error más
+común de la bitácora en el Sheets: 18 de 183 entregas traían el rango
+invertido o de más de un mes (ver
+[DATA_MAPPING.md](DATA_MAPPING.md#bitácoras-semanales)) porque el alumno lo
+tecleaba a mano; ahora es imposible, porque ya no hay nada que teclear.
+
+Se preselecciona la semana que contiene hoy, si el periodo tiene una
+configurada; el alumno la puede cambiar, porque reportar una semana atrasada
+es legítimo. Lo que no puede es reportar una semana futura, y eso lo rechaza
+la base. Si el profesor todavía no configuró las semanas del periodo, el
+`<select>` no aparece: un aviso lo reemplaza.
 
 **Al entregar se regresa a la lista de tareas**, con un aviso flotante que
 confirma qué se entregó. Quedarse en el formulario dejaría al alumno frente a

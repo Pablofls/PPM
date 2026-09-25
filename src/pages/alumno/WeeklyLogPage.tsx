@@ -2,8 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../../auth/AuthProvider'
+import { useRepositoryQuery } from '../../data/hooks'
 import { repository } from '../../data/repository'
-import type { InternshipLogRow, JobSearchLogRow } from '../../data/types'
+import type { InternshipLogRow, JobSearchLogRow, SemesterWeek } from '../../data/types'
 import type { WeeklyField, WeeklyFormCode, WeeklyFormMeta } from '../../lib/catalog'
 import { formatDateTime, formatWeekRange } from '../../lib/format'
 import { Badge } from '../../components/Badge'
@@ -27,6 +28,11 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
   const navigate = useNavigate()
 
   const { entries, loading, error } = useMyLogs(form.code, studentId)
+  const {
+    data: weeks,
+    loading: weeksLoading,
+    error: weeksError,
+  } = useRepositoryQuery(() => repository.getSemesterWeeks(), [] as SemesterWeek[], [])
 
   // Al entregar se regresa a la lista de tareas, con el aviso de que salió
   // bien. Quedarse aquí dejaría al alumno frente a un formulario vacío, que se
@@ -72,7 +78,13 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
         </ul>
       </section>
 
-      <SubmissionForm form={form} onSubmitted={onSubmitted} />
+      <SubmissionForm
+        form={form}
+        onSubmitted={onSubmitted}
+        weeks={weeks}
+        weeksLoading={weeksLoading}
+        weeksError={weeksError}
+      />
 
       <PreviousEntries
         fields={form.fields}
@@ -91,27 +103,40 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
 function SubmissionForm({
   form,
   onSubmitted,
+  weeks,
+  weeksLoading,
+  weeksError,
 }: {
   form: WeeklyFormMeta
   onSubmitted: () => void
+  weeks: SemesterWeek[]
+  weeksLoading: boolean
+  weeksError: string | null
 }) {
   // Se rearma al cambiar de tarea: los campos son otros y un valor a medio
   // escribir no debe cruzarse de una bitácora a la otra.
   const [values, setValues] = useState<Record<string, string>>({})
-  const [week, setWeek] = useState(currentWeek)
+  const [weekNumber, setWeekNumber] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     setValues({})
-    setWeek(currentWeek())
     setError(null)
   }, [form.code])
+
+  // Se preselecciona sola en cuanto llegan las semanas, no antes: hasta
+  // entonces no hay con qué elegir "la de hoy".
+  useEffect(() => {
+    if (weekNumber !== '' || weeks.length === 0) return
+    const actual = weekForToday(weeks)
+    if (actual) setWeekNumber(String(actual.weekNumber))
+  }, [weeks, weekNumber])
 
   const faltantes = form.fields.filter(
     (field) => field.required && !values[field.key]?.trim(),
   )
-  const puedeEnviar = !saving && week.start !== '' && week.end !== '' && !faltantes.length
+  const puedeEnviar = !saving && weekNumber !== '' && !faltantes.length
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -121,7 +146,7 @@ function SubmissionForm({
     setError(null)
 
     try {
-      await submit(form.code, week, values)
+      await submit(form.code, Number(weekNumber), values)
       // No se limpia el formulario: `onSubmitted` navega y esta pantalla se
       // desmonta. Limpiarlo antes solo haría parpadear los campos vacíos.
       onSubmitted()
@@ -132,6 +157,17 @@ function SubmissionForm({
     }
   }
 
+  // Sin semanas configuradas no hay nada que elegir: un select vacío
+  // confundiría más que una explicación directa de qué falta.
+  if (!weeksLoading && !weeksError && weeks.length === 0) {
+    return (
+      <div className="mt-6 rounded-xl border border-dashed border-ink-200 bg-ink-50/50 p-6 text-sm text-ink-600">
+        Tu profesor todavía no configuró las semanas de este periodo. Vuelve
+        más tarde para entregar tu bitácora.
+      </div>
+    )
+  }
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -139,28 +175,29 @@ function SubmissionForm({
     >
       <h2 className="text-sm font-semibold text-ink-900">Nueva entrega</h2>
 
-      <fieldset className="mt-5" disabled={saving}>
+      <fieldset className="mt-5" disabled={saving || weeksLoading}>
         <legend className="sr-only">Semana que reportas</legend>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Inicio de la semana" required>
-            <input
-              type="date"
-              required
-              value={week.start}
-              max={today()}
-              onChange={(event) => setWeek({ ...week, start: event.target.value })}
-              className={INPUT}
-            />
-          </Field>
-          <Field label="Final de la semana" required>
-            <input
-              type="date"
-              required
-              value={week.end}
-              min={week.start || undefined}
-              onChange={(event) => setWeek({ ...week, end: event.target.value })}
-              className={INPUT}
-            />
+        <div className="sm:max-w-xs">
+          <Field label="Semana que reportas" required>
+            {weeksError ? (
+              <p className="text-sm text-red-700">{weeksError}</p>
+            ) : (
+              <select
+                required
+                value={weekNumber}
+                onChange={(event) => setWeekNumber(event.target.value)}
+                className={INPUT}
+              >
+                <option value="" disabled>
+                  {weeksLoading ? 'Cargando semanas…' : 'Elige una semana'}
+                </option>
+                {weeks.map((week) => (
+                  <option key={week.weekNumber} value={week.weekNumber}>
+                    Semana {week.weekNumber} · {formatWeekRange(week.weekStart, week.weekEnd)}
+                  </option>
+                ))}
+              </select>
+            )}
           </Field>
         </div>
 
@@ -404,15 +441,14 @@ function toEntry(row: JobSearchLogRow | InternshipLogRow): Entry {
 
 function submit(
   code: WeeklyFormCode,
-  week: { start: string; end: string },
+  weekNumber: number,
   values: Record<string, string>,
 ): Promise<void> {
   const texto = (key: string) => values[key]?.trim() ?? ''
 
   if (code === 'form_busqueda') {
     return repository.submitJobSearchLog({
-      weekStart: week.start,
-      weekEnd: week.end,
+      weekNumber,
       activities: texto('activities'),
       applications: texto('applications'),
       interviews: texto('interviews'),
@@ -423,8 +459,7 @@ function submit(
 
   const horas = texto('hoursWorked')
   return repository.submitInternshipLog({
-    weekStart: week.start,
-    weekEnd: week.end,
+    weekNumber,
     activities: texto('activities'),
     // Vacío es NULL y no 0: una semana sin horas capturadas no es una semana de
     // cero horas, y el acumulado del profesor las trata distinto.
@@ -438,31 +473,20 @@ function submit(
 // La semana que se propone por omisión
 // ---------------------------------------------------------------------------
 
-function today(): string {
-  return isoDate(new Date())
-}
-
 /**
- * Lunes a domingo de la semana en curso.
+ * De las semanas configuradas, la que contiene hoy — o `undefined` si hoy cae
+ * fuera de todas (antes de la semana 1 o después de la última).
  *
- * Se propone en vez de dejar los campos vacíos porque es la respuesta correcta
- * casi siempre, y porque las fechas mal capturadas fueron el error más común de
- * la bitácora en el Sheets (ver docs/DATA_MAPPING.md). El alumno la puede
- * cambiar: reportar una semana atrasada es legítimo.
+ * Se preselecciona en vez de dejar el select vacío porque es la respuesta
+ * correcta casi siempre; el alumno la puede cambiar para reportar una semana
+ * atrasada.
  */
-function currentWeek(): { start: string; end: string } {
-  const hoy = new Date()
-  const lunes = new Date(hoy)
-  // getDay(): 0 es domingo. El domingo pertenece a la semana que termina.
-  lunes.setDate(hoy.getDate() - ((hoy.getDay() + 6) % 7))
-
-  const domingo = new Date(lunes)
-  domingo.setDate(lunes.getDate() + 6)
-
-  return { start: isoDate(lunes), end: isoDate(domingo) }
+function weekForToday(weeks: SemesterWeek[]): SemesterWeek | undefined {
+  const hoy = isoDate(new Date())
+  return weeks.find((week) => week.weekStart <= hoy && hoy <= week.weekEnd)
 }
 
-/** `YYYY-MM-DD` en la zona local, que es lo que espera `<input type="date">`. */
+/** `YYYY-MM-DD` en la zona local. */
 function isoDate(value: Date): string {
   const mes = String(value.getMonth() + 1).padStart(2, '0')
   const dia = String(value.getDate()).padStart(2, '0')

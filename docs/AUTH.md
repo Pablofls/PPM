@@ -30,7 +30,8 @@ Todas las pantallas **del panel** son admin-only. El alumno tiene su propio
 
 ### Lo que el alumno puede hacer
 
-> Migraciones `0016_student_weekly_logs.sql` y `0019_student_dossier_read.sql`.
+> Migraciones `0016_student_weekly_logs.sql`, `0018_semester_weeks.sql` y
+> `0019_student_dossier_read.sql`.
 
 | Tabla | Lectura | Escritura |
 |---|---|---|
@@ -38,15 +39,20 @@ Todas las pantallas **del panel** son admin-only. El alumno tiene su propio
 | `submissions` | las suyas | `INSERT`, solo `form_busqueda` y `form_practicas` |
 | `job_search_logs` | las suyas | `INSERT`, solo las de sus propias entregas |
 | `internship_logs` | las suyas | `INSERT`, solo las de sus propias entregas |
+| `semester_weeks` | las de su propio periodo | no |
 | `students` | la suya | no |
 | `demographics`, `holland_results`, `mbti_results`, `disc_results`, `values_results`, `company_profiles` | las suyas | no |
 | todo lo demás | **no** | **no** |
 
-La condición de «mío» es siempre la misma, `student_id =
-public.current_student_id()`, nunca `authenticated`. Para las tablas de
-respuestas, que cuelgan de `submission_id`, se resuelve con un `EXISTS` contra
+La condición de «mío» es siempre la misma para `submissions` y las tablas de
+respuestas: `student_id = public.current_student_id()`, nunca `authenticated`.
+Para las que cuelgan de `submission_id` se resuelve con un `EXISTS` contra
 `submissions`, que vuelve a pasar por esa misma condición: una sola definición,
-en un solo lugar.
+en un solo lugar. `semester_weeks` no tiene `student_id` —no es una entrega,
+es un calendario— así que su condición es la equivalente del lado del
+periodo: `period_code = public.current_student_period()`, la misma idea con
+una función hermana de `current_student_id()` (ver
+`docs/DATABASE_SCHEMA.md#semanas-del-semestre`).
 
 Las políticas del alumno son **permisivas y se suman** a las de `is_admin()`: el
 profesor sigue viendo todo.
@@ -56,7 +62,7 @@ ni se borra: corregir una semana es volver a entregarla, y las dos quedan en el
 expediente. Es también lo que hacía Google Forms, donde el alumno nunca pudo
 volver sobre lo enviado.
 
-> Hasta aquí el alumno no leía su expediente —sus resultados de Holland,
+> Hasta `0018` el alumno no leía su expediente —sus resultados de Holland,
 > MBTI, DISC— y no era un pendiente olvidado: la información se abre una
 > pantalla a la vez, cada una con su política. `0019` abre esa lectura porque
 > el profesor pidió mostrar la tarjeta ADN Profesional (secciones I a V, sin

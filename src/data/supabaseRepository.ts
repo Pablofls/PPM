@@ -32,6 +32,7 @@ import type {
   MbtiRow,
   PanelFilters,
   ReflectionRow,
+  SemesterWeek,
   SkillsRow,
   StudentDossier,
   SubmissionHistoryEntry,
@@ -471,8 +472,7 @@ export const supabaseRepository: PanelRepository = {
    */
   async submitJobSearchLog(input: JobSearchLogInput): Promise<void> {
     const { error } = await supabase.rpc('submit_job_search_log', {
-      p_week_start: input.weekStart,
-      p_week_end: input.weekEnd,
+      p_week_number: input.weekNumber,
       p_activities: input.activities,
       p_applications: input.applications,
       p_interviews: input.interviews,
@@ -485,8 +485,7 @@ export const supabaseRepository: PanelRepository = {
 
   async submitInternshipLog(input: InternshipLogInput): Promise<void> {
     const { error } = await supabase.rpc('submit_internship_log', {
-      p_week_start: input.weekStart,
-      p_week_end: input.weekEnd,
+      p_week_number: input.weekNumber,
       p_activities: input.activities,
       p_hours_worked: input.hoursWorked,
       p_skills_practiced: input.skillsPracticed,
@@ -595,6 +594,86 @@ export const supabaseRepository: PanelRepository = {
     }
     return [...rows.values()]
   },
+
+  /**
+   * Las semanas configuradas. RLS decide cuáles ve quien pregunta —todas para
+   * el admin, solo las de su periodo para el alumno—, así que la consulta es
+   * la misma para las dos pantallas.
+   */
+  async getSemesterWeeks(): Promise<SemesterWeek[]> {
+    const { data, error } = await supabase
+      .from('semester_weeks')
+      .select('*')
+      .order('period_code', { ascending: false })
+      .order('week_number', { ascending: true })
+
+    if (error) throw new Error(`No se pudieron cargar las semanas: ${error.message}`)
+
+    return ((data ?? []) as PanelRecord[]).map((record) => ({
+      periodCode: str(record.period_code) ?? '',
+      weekNumber: num(record.week_number) ?? 0,
+      weekStart: str(record.week_start) ?? '',
+      weekEnd: str(record.week_end) ?? '',
+    }))
+  },
+
+  async createSemesterWeeks(
+    periodCode: string,
+    firstWeekStart: string,
+    weekCount: number,
+  ): Promise<void> {
+    const weeks = buildSemesterWeeks(periodCode, firstWeekStart, weekCount)
+    const { error } = await supabase.from('semester_weeks').insert(weeks)
+
+    if (error) {
+      if (/duplicate key|unique/i.test(error.message)) {
+        throw new Error(
+          `Ese periodo ya tiene semanas configuradas. Bórralas primero si quieres cambiar la fecha de inicio.`,
+        )
+      }
+      throw new Error(`No se pudieron guardar las semanas: ${error.message}`)
+    }
+  },
+
+  async deleteSemesterWeeksForPeriod(periodCode: string): Promise<void> {
+    const { error } = await supabase
+      .from('semester_weeks')
+      .delete()
+      .eq('period_code', periodCode)
+
+    if (error) throw new Error(`No se pudieron borrar las semanas: ${error.message}`)
+  },
+}
+
+/**
+ * Arma las N filas de un periodo: la semana 1 empieza en `firstWeekStart` y
+ * cada una suma 7 días a la anterior. El `CHECK` de la base vuelve a validar
+ * esto mismo (semana de 7 días, empieza en lunes); aquí se construye igual
+ * para que el admin vea el resumen correcto antes de guardar.
+ */
+function buildSemesterWeeks(periodCode: string, firstWeekStart: string, weekCount: number) {
+  const first = new Date(`${firstWeekStart}T00:00:00`)
+
+  return Array.from({ length: weekCount }, (_, index) => {
+    const start = new Date(first)
+    start.setDate(first.getDate() + index * 7)
+    const end = new Date(start)
+    end.setDate(start.getDate() + 6)
+
+    return {
+      period_code: periodCode,
+      week_number: index + 1,
+      week_start: isoDate(start),
+      week_end: isoDate(end),
+    }
+  })
+}
+
+/** `YYYY-MM-DD` en la zona local. */
+function isoDate(value: Date): string {
+  const mes = String(value.getMonth() + 1).padStart(2, '0')
+  const dia = String(value.getDate()).padStart(2, '0')
+  return `${value.getFullYear()}-${mes}-${dia}`
 }
 
 /**

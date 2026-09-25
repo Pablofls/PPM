@@ -32,6 +32,7 @@ import type {
   MbtiRow,
   PanelFilters,
   ReflectionRow,
+  SemesterWeek,
   SkillsRow,
   StudentDossier,
   SubmissionHistoryEntry,
@@ -127,6 +128,27 @@ export interface PanelRepository {
    * cada formulario que puede llevar fecha límite.
    */
   getSubmissionStatus(filters: PanelFilters): Promise<SubmissionStatusRow[]>
+
+  /**
+   * Las semanas configuradas. RLS decide cuáles: el admin ve las de todos los
+   * periodos, el alumno solo las del suyo — el mismo método sirve a las dos
+   * pantallas.
+   */
+  getSemesterWeeks(): Promise<SemesterWeek[]>
+
+  /**
+   * Genera las semanas de un periodo: la 1 empieza en `firstWeekStart` y las
+   * siguientes suman 7 días, `weekCount` veces. Falla si el periodo ya tiene
+   * semanas — hay que borrarlas primero (`deleteSemesterWeeksForPeriod`).
+   */
+  createSemesterWeeks(
+    periodCode: string,
+    firstWeekStart: string,
+    weekCount: number,
+  ): Promise<void>
+
+  /** Borra todas las semanas de un periodo, para volver a generarlas. */
+  deleteSemesterWeeksForPeriod(periodCode: string): Promise<void>
 }
 
 /** Respaldo sin base de datos, para cuando faltan las variables de entorno. */
@@ -200,6 +222,15 @@ export const emptyRepository: PanelRepository = {
   },
   async getSubmissionStatus() {
     return []
+  },
+  async getSemesterWeeks() {
+    return []
+  },
+  async createSemesterWeeks() {
+    throw new Error('No hay conexión con la base de datos. Las semanas no se guardaron.')
+  },
+  async deleteSemesterWeeksForPeriod() {
+    throw new Error('No hay conexión con la base de datos. Las semanas no se borraron.')
   },
 }
 

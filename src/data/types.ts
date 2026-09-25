@@ -226,6 +226,19 @@ export interface InternshipLogRow extends WeeklyLogBase {
   totalHours: number | null
 }
 
+/**
+ * Una semana del semestre (`semester_weeks`), definida por el admin.
+ *
+ * El alumno elige `weekNumber` de una lista de estas; el profesor las genera
+ * desde el Panel de Administrador. Cada periodo tiene las suyas.
+ */
+export interface SemesterWeek {
+  periodCode: string
+  weekNumber: number
+  weekStart: string
+  weekEnd: string
+}
+
 // ---------------------------------------------------------------------------
 // Lo que el alumno entrega
 // ---------------------------------------------------------------------------
@@ -233,10 +246,9 @@ export interface InternshipLogRow extends WeeklyLogBase {
 // porque no son la misma forma: la entrega no trae `submissionId` (lo genera la
 // base), ni horas acumuladas (las calcula la vista).
 
-/** La semana que reporta cualquiera de las dos bitácoras. `YYYY-MM-DD`. */
+/** La semana que reporta cualquiera de las dos bitácoras: su número, no sus fechas. */
 export interface WeeklyLogInput {
-  weekStart: string
-  weekEnd: string
+  weekNumber: number
 }
 
 export interface JobSearchLogInput extends WeeklyLogInput {

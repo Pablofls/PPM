@@ -9,7 +9,9 @@
 
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
-- **Última migración aplicada:** `0019_student_dossier_read.sql` (2026-09-25).
+- **Última migración aplicada:** `0018_semester_weeks.sql` (2026-09-25).
+  `0019_student_dossier_read.sql` está escrita y documentada aquí pero
+  **todavía no se pega en Supabase**.
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
   bitácoras semanales.
 
@@ -24,12 +26,13 @@
 7. [Módulo 1 — Conócete](#módulo-1--conócete)
 8. [Módulo 2 — Actúa](#módulo-2--actúa)
 9. [Bitácoras semanales](#bitácoras-semanales)
-10. [Fechas de entrega y estado de las entregas](#fechas-de-entrega-y-estado-de-las-entregas)
-11. [Sincronización con el Sheets](#sincronización-con-el-sheets)
-12. [Vistas](#vistas)
-13. [Índices](#índices)
-14. [Seguridad](#seguridad)
-15. [Correspondencia migración → contenido](#correspondencia-migración--contenido)
+10. [Semanas del semestre](#semanas-del-semestre)
+11. [Fechas de entrega y estado de las entregas](#fechas-de-entrega-y-estado-de-las-entregas)
+12. [Sincronización con el Sheets](#sincronización-con-el-sheets)
+13. [Vistas](#vistas)
+14. [Índices](#índices)
+15. [Seguridad](#seguridad)
+16. [Correspondencia migración → contenido](#correspondencia-migración--contenido)
 
 ---
 
@@ -317,6 +320,7 @@ llegan cuando lleguen sus pantallas de datos.
 | `handle_new_user()` | Trigger sobre `auth.users`: crea el perfil en `pendiente` |
 | `guard_profile_role()` | Trigger sobre `profiles`: protege la columna `role` |
 | `current_student_id()` | `SECURITY DEFINER`. El alumno de la sesión, o `NULL`. Base de las políticas «lo mío» |
+| `current_student_period()` | `SECURITY DEFINER`, `0018`. El `period_code` del alumno de la sesión, o `NULL`. Base de `semester_weeks_select_own` |
 | `create_student_accounts()` | Alta masiva de cuentas de alumno. Se corre a mano en el SQL Editor; sin permiso de ejecución para `authenticated` |
 
 **Por qué `is_admin()` es `SECURITY DEFINER`:** se invoca desde la política de
@@ -619,17 +623,80 @@ atomicidad —la entrega son dos filas y el cliente no tiene transacciones— y
 porque el `student_id` no se recibe como parámetro: sale de
 `current_student_id()`.
 
-Validan lo que un `CHECK` no puede validar: que la semana no esté invertida y
-que no sea futura. No son constraints de tabla porque la tabla tiene que seguir
+Las dos se apoyan en `new_weekly_submission(form_code, week_number)`, que crea
+la fila de `submissions`. Desde `0018_semester_weeks.sql` reciben
+`week_number` en vez de `week_start`/`week_end`: la función resuelve el rango
+buscando `(current_student_period(), week_number)` en `semester_weeks` —el
+alumno ya no puede invertir una semana ni escribir una de más de un mes,
+porque ya no escribe fechas—. Sigue validando que la semana no sea futura; esa
+validación no era un `CHECK` de tabla porque la tabla tiene que seguir
 aceptando los 18 rangos mal capturados que ya se importaron del Sheets. Lo que
 llega mal de la historia se conserva; lo que se captura hoy se captura bien.
+Ver [Semanas del semestre](#semanas-del-semestre).
 
-Las dos se apoyan en `new_weekly_submission(form_code, week_start, week_end)`,
-que crea la fila de `submissions`.
+> `0016` definió estas tres funciones con `week_start`/`week_end` como
+> parámetros; ese archivo no se edita. `0018` las redefine con la firma
+> nueva, empezando con un `drop function` explícito de las firmas viejas —
+> `create or replace` con otro número de parámetros habría dejado un
+> *overload* viejo colgado en vez de reemplazarlo.
 
 > **No hay políticas de `UPDATE` ni de `DELETE`.** Una entrega no se edita ni se
 > borra: corregir una semana es volver a entregarla, y las dos quedan en el
 > expediente (regla «Historial completo» de CLAUDE.md).
+
+---
+
+## Semanas del semestre
+
+> Migración `0018_semester_weeks.sql` — ✅ ejecutada en Supabase (2026-09-25).
+> Alimenta la sección "Semanas del semestre" del Panel de Administrador y el
+> selector de semana de las dos bitácoras en el portal del alumno.
+
+Hasta aquí el alumno tecleaba a mano el inicio y el final de la semana que
+reportaba — la causa más común de captura mal hecha en el Sheets original
+(ver [DATA_MAPPING.md](DATA_MAPPING.md#bitácoras-semanales), 18 de 183
+entregas con la semana invertida o de más de un mes). El profesor define las
+semanas una vez por periodo y el alumno elige un número.
+
+### `semester_weeks`
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `period_code` | `text` NOT NULL | junto con `week_number`, la llave |
+| `week_number` | `smallint` NOT NULL CHECK 1–53 | |
+| `week_start` | `date` NOT NULL | siempre lunes (`CHECK extract(isodow …) = 1`) |
+| `week_end` | `date` NOT NULL | siempre domingo (`CHECK week_end = week_start + 6`) |
+| `created_at` | `timestamptz` NOT NULL DEFAULT `now()` | |
+
+`PRIMARY KEY (period_code, week_number)`. Sin más columnas: cuántas semanas
+tiene un periodo es `count(*)`, no algo que se guarde aparte.
+
+**Tercera tabla** (después de `form_deadlines` y antes de esta ninguna otra)
+donde el admin escribe con `insert`/`delete` directos desde el navegador, sin
+pasar por una función: una sola tabla, sin atomicidad que proteger, y quien
+escribe ya pasó por `is_admin()`. **Sin `UPDATE`**: corregir la fecha de la
+semana 1 es borrar las semanas de ese periodo (`delete … where period_code =
+…`) y generarlas de nuevo — no editar una a la mitad, porque el número de
+semana es un desplazamiento fijo de 7 días desde la semana 1.
+
+El cálculo de las N fechas (`week_start = inicio + 7·(n-1)`, `week_end =
+week_start + 6`) lo hace el repositorio en TypeScript antes del `insert`, no
+una función de la base: no hay atomicidad ni identidad que proteger, así que
+no hace falta una función solo para eso — ver
+[Fechas de entrega](#fechas-de-entrega-y-estado-de-las-entregas) por el mismo
+criterio aplicado a `form_deadlines`.
+
+### `current_student_period()`
+
+El periodo del alumno de la sesión, o `NULL` si quien pregunta no es un
+alumno activo. Mismo patrón que `current_student_id()` (`0014`): `SECURITY
+DEFINER` porque consulta `v_students_directory`, que es `is_admin()`-only, y
+sin eso la política de `semester_weeks` no podría leerla. Revocada a `anon`.
+
+La política de lectura del alumno sobre `semester_weeks` es `period_code =
+current_student_period()` — nunca `authenticated` a secas, aunque la tabla no
+tenga datos personales: es la misma condición «lo mío» de siempre (regla
+«Toda pantalla nace protegida»).
 
 ---
 
@@ -847,7 +914,7 @@ bitácora es verlas todas; filtrar a la última sería tirar el historial.
 
 **`v_student_dossier` la lee también el alumno, de sí mismo** (`0019`,
 `docs/AUTH.md#lo-que-el-alumno-puede-hacer`). La vista no cambió: lo que
-cambió son las políticas de las tablas de abajo, que antes eran
+cambió son las políticas de las tablas de abajo, que hasta `0018` eran
 `is_admin()`-only. El panel del profesor la usa completa (secciones I a VII);
 el portal del alumno reutiliza el mismo componente (`DossierProfile`) pero
 solo hasta la V — sin las bitácoras (que el alumno ya ve por otro camino, sus
@@ -911,14 +978,14 @@ aparece, la señal será que el conteo importado no cuadra con el del Sheets.
 
 ## Seguridad
 
-RLS habilitado en **las 18 tablas**.
+RLS habilitado en **las 20 tablas**.
 
 | Rol | Permisos |
 |---|---|
 | `anon` | ninguno |
 | `authenticated` con rol `pendiente` | solo su propio `profiles` |
-| `authenticated` con rol `alumno` | su propio `profiles`; sus propias `submissions`, `job_search_logs` e `internship_logs`; su propio `students` y su propio expediente (`demographics`, `holland_results`, `mbti_results`, `disc_results`, `values_results`, `company_profiles`). Ninguna fila de otro alumno, ninguna otra tabla |
-| `authenticated` con rol `admin` | lectura de todo |
+| `authenticated` con rol `alumno` | su propio `profiles`; sus propias `submissions`, `job_search_logs` e `internship_logs`; lectura de las `semester_weeks` de su propio periodo; su propio `students` y su propio expediente (`demographics`, `holland_results`, `mbti_results`, `disc_results`, `values_results`, `company_profiles`). Ninguna fila de otro alumno, ninguna otra tabla |
+| `authenticated` con rol `admin` | lectura de todo; escritura directa de `form_deadlines` y `semester_weeks` |
 | `service_role` | escritura (importación y sincronización); se salta RLS por definición |
 
 Las funciones de sincronización (`sheet_*`, `ingest_sheet_rows`,
@@ -926,23 +993,27 @@ Las funciones de sincronización (`sheet_*`, `ingest_sheet_rows`,
 `authenticated`: **ni siquiera un admin puede dispararlas desde el navegador**.
 Solo `service_role` —la llave que vive en el Apps Script— y el SQL Editor.
 
-No hay políticas de `UPDATE` ni de `DELETE` en ninguna tabla de datos: RLS
-deniega por omisión, así que desde el navegador no se puede modificar ni borrar
-nada aunque se manipule la petición.
+No hay política de `UPDATE` en **ninguna** tabla: RLS deniega por omisión, así
+que desde el navegador no se puede modificar una fila aunque se manipule la
+petición. `DELETE` sigue sin existir para las tablas de datos de alumnos
+—una entrega no se borra— pero sí para las dos tablas de configuración del
+admin, `form_deadlines` y `semester_weeks`: ahí corregir es borrar y volver a
+crear, no editar (ver sus secciones).
 
 Hasta `0016` el único `INSERT` desde el navegador era el del alumno en sus dos
 bitácoras. `0017` agrega el segundo: `form_deadlines` acepta `insert` y
 `delete` directos de cualquier `authenticated` que pase `is_admin()` — no hace
 falta una función porque no hay dos tablas que mantener juntas ni un
-`student_id` que proteger de que alguien lo falsifique.
-
-`0019` no agrega tablas ni escritura: abre, en tablas que ya existían desde
-`0004`/`0009`, una política de **lectura** más para el alumno —
-`students_select_own` y las gemelas de `demographics`, `holland_results`,
+`student_id` que proteger de que alguien lo falsifique. `0018` agrega
+`semester_weeks` con el mismo patrón, más una tercera lectura para el alumno
+—`semester_weeks_select_own`, acotada por `current_student_period()`— que se
+suma a las tres que ya tenía. `0019` no agrega tablas: abre, en las que ya
+existían desde `0004`/`0009`, una política de lectura más para el alumno
+—`students_select_own` y las gemelas de `demographics`, `holland_results`,
 `mbti_results`, `disc_results`, `values_results` y `company_profiles`, todas
 acotadas por `EXISTS` contra `submissions`, mismo patrón que
-`job_search_logs_select_own`— para que `v_student_dossier` deje de
-devolverle cero filas a su propio dueño.
+`job_search_logs_select_own`— para que `v_student_dossier` deje de devolverle
+cero filas a su propio dueño.
 
 El `INSERT` del alumno está acotado por tres condiciones en el `WITH CHECK`:
 
@@ -1003,7 +1074,8 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 
 | `0016_student_weekly_logs.sql` | políticas de lectura y escritura del alumno sobre sus bitácoras, `new_weekly_submission()`, `submit_job_search_log()`, `submit_internship_log()` | ✅ 2026-09-20 |
 | `0017_form_deadlines.sql` | `submission_state`, `form_deadlines`, `resolve_form_deadline()`, `submission_status()`, `v_submission_status` | ✅ 2026-09-25 |
-| `0019_student_dossier_read.sql` | políticas de lectura del alumno sobre su propio expediente: `students`, `demographics`, `holland_results`, `mbti_results`, `disc_results`, `values_results`, `company_profiles` | ✅ 2026-09-25 |
+| `0018_semester_weeks.sql` | `semester_weeks`, `current_student_period()`, `new_weekly_submission()`/`submit_job_search_log()`/`submit_internship_log()` redefinidas con `week_number` | ✅ 2026-09-25 |
+| `0019_student_dossier_read.sql` | políticas de lectura del alumno sobre su propio expediente: `students`, `demographics`, `holland_results`, `mbti_results`, `disc_results`, `values_results`, `company_profiles` | ⏳ **pendiente** |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.
@@ -1012,9 +1084,9 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 
 | Objeto | Cantidad |
 |---|---|
-| Tablas | 19 |
-| Tablas con RLS activo | **19** |
-| Políticas | 29 — 20 admin-only, las 6 del alumno de `0016` y las 3 de `form_deadlines` de `0017` |
+| Tablas | 20 |
+| Tablas con RLS activo | **20** |
+| Políticas | 33 — 20 admin-only, las 6 del alumno de `0016`, las 3 de `form_deadlines` de `0017` y las 4 de `semester_weeks` de `0018` (3 admin + `semester_weeks_select_own` del alumno) |
 | Vistas | 16, todas con `security_invoker = on` |
 | Índices `idx_*` | 7 |
 | Formularios en el catálogo | 15 |
