@@ -5,6 +5,7 @@ import type {
   BaseRow,
   InternshipLogRow,
   JobSearchLogRow,
+  SessionDay,
   StudentDossier as Dossier,
   SubmissionHistoryEntry,
 } from '../data/types'
@@ -76,14 +77,9 @@ export function StudentDossier<T extends BaseRow>({
           className="overflow-hidden rounded-xl border border-ink-200 bg-white shadow-2xl"
         >
           <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-ink-200 bg-white/95 px-6 py-4 backdrop-blur">
-            <div className="min-w-0">
-              <h2 className="truncate text-lg font-semibold tracking-tight text-ink-950">
-                {row.fullName ?? row.institutionalEmail}
-              </h2>
-              <p className="mt-0.5 truncate text-sm text-ink-500">
-                {row.institutionalEmail}
-              </p>
-            </div>
+            <h2 className="text-lg font-semibold tracking-tight text-ink-950">
+              ADN Profesional
+            </h2>
             <button
               type="button"
               onClick={onClose}
@@ -99,21 +95,7 @@ export function StudentDossier<T extends BaseRow>({
               <p className="text-sm text-red-800">{error}</p>
             ) : (
               <>
-                {/*
-                  Dos columnas en pantalla ancha, como la tarjeta anterior: el
-                  perfil a la izquierda y el radar a la derecha. En móvil se
-                  apilan, que es lo que la versión de Apps Script no hacía.
-                */}
-                <div className="grid gap-7 lg:grid-cols-[1fr_auto]">
-                  <div className="min-w-0 space-y-6">
-                    <Identity dossier={dossier} row={row} />
-                    <Personality dossier={dossier} />
-                    <Values dossier={dossier} />
-                  </div>
-                  <Interests dossier={dossier} />
-                </div>
-
-                <Internship dossier={dossier} />
+                <DossierProfile dossier={dossier} fallback={row} />
                 <JobSearchLogs rows={jobSearch} />
                 <InternshipLogs rows={internship} />
               </>
@@ -144,18 +126,76 @@ export function StudentDossier<T extends BaseRow>({
 // Secciones
 // ---------------------------------------------------------------------------
 
-function Identity<T extends BaseRow>({
+/** Datos que ya se conocen antes de que el expediente cargue, para pintarlos sin espera. */
+interface IdentityFallback {
+  fullName: string | null
+  institutionalEmail: string | null
+  degreeCode?: string | null
+  semester?: number | null
+  periodCode?: string | null
+  sessionDay?: SessionDay | null
+}
+
+/**
+ * Secciones I a V del expediente: identidad, intereses, personalidad,
+ * comportamiento, valores y los datos de la práctica en curso.
+ *
+ * Es la misma tarjeta ADN Profesional de la plataforma anterior. Se usa tanto
+ * en el expediente que abre el profesor como en el portal del alumno, sin las
+ * bitácoras (VI y VII) ni el historial de respuestas: eso es contexto del
+ * profesor, no algo que el alumno necesite ver de sí mismo.
+ */
+export function DossierProfile({
   dossier,
-  row,
+  fallback,
 }: {
   dossier: Dossier | null
-  row: T
+  fallback?: IdentityFallback
+}) {
+  return (
+    <>
+      {/*
+        Dos columnas en pantalla ancha, como la tarjeta anterior: el perfil a
+        la izquierda y el radar a la derecha. En móvil se apilan, que es lo
+        que la versión de Apps Script no hacía.
+      */}
+      <div className="grid gap-7 lg:grid-cols-[1fr_auto]">
+        <div className="min-w-0 space-y-6">
+          <Identity dossier={dossier} fallback={fallback} />
+          <Personality dossier={dossier} />
+          <Values dossier={dossier} />
+        </div>
+        <Interests dossier={dossier} />
+      </div>
+
+      <Internship dossier={dossier} />
+    </>
+  )
+}
+
+function Identity({
+  dossier,
+  fallback,
+}: {
+  dossier: Dossier | null
+  fallback?: IdentityFallback
 }) {
   const linkedin = toHref(dossier?.linkedinUrl ?? null)
+  const fullName = fallback?.fullName ?? dossier?.fullName ?? null
+  const institutionalEmail = fallback?.institutionalEmail ?? dossier?.institutionalEmail ?? null
+  const degreeCode = fallback?.degreeCode ?? dossier?.degreeCode ?? null
+  const semester = fallback?.semester ?? dossier?.semester ?? null
+  const periodCode = fallback?.periodCode ?? dossier?.periodCode ?? null
+  const sessionDay = fallback?.sessionDay ?? dossier?.sessionDay ?? null
 
   return (
     <section>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-600">
+      <h3 className="truncate text-2xl font-semibold tracking-tight text-ink-950">
+        {fullName ?? institutionalEmail}
+      </h3>
+
+      <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-600">
+        {institutionalEmail && <span>{institutionalEmail}</span>}
         {dossier?.personalEmail && <span>{dossier.personalEmail}</span>}
         {dossier?.studentNumber && <span>Matrícula {dossier.studentNumber}</span>}
         {linkedin && (
@@ -173,12 +213,12 @@ function Identity<T extends BaseRow>({
       <dl className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2">
         <InfoCard label="Fecha nac." value={formatDate(dossier?.birthDate ?? null)} />
         <InfoCard label="Edad" value={age(dossier?.birthDate ?? null)} />
-        <InfoCard label="Carrera" value={row.degreeCode} />
-        <InfoCard label="Semestre" value={formatSemester(row.semester)} />
-        <InfoCard label="Período" value={row.periodCode} />
+        <InfoCard label="Carrera" value={degreeCode} />
+        <InfoCard label="Semestre" value={formatSemester(semester)} />
+        <InfoCard label="Período" value={periodCode} />
         <InfoCard label="País" value={dossier?.birthCountry ?? null} />
         <InfoCard label="Sexo" value={formatGender(dossier?.gender ?? null)} />
-        <InfoCard label="Frecuencia" value={formatSessionDay(row.sessionDay)} />
+        <InfoCard label="Frecuencia" value={formatSessionDay(sessionDay)} />
       </dl>
     </section>
   )
@@ -552,6 +592,40 @@ function age(birthDate: string | null): string {
 // ---------------------------------------------------------------------------
 // Consultas
 // ---------------------------------------------------------------------------
+
+/** Solo el expediente (secciones I a V), sin las bitácoras ni el historial. */
+export function useStudentDossier(studentId: string | null) {
+  const [dossier, setDossier] = useState<Dossier | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!studentId) {
+      setDossier(null)
+      setError(null)
+      return
+    }
+
+    let cancelled = false
+    repository
+      .getStudentDossier(studentId)
+      .then((expediente) => {
+        if (cancelled) return
+        setDossier(expediente)
+        setError(null)
+      })
+      .catch((cause: unknown) => {
+        if (cancelled) return
+        setDossier(null)
+        setError(cause instanceof Error ? cause.message : 'Error desconocido')
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [studentId])
+
+  return { dossier, error }
+}
 
 function useDossier(studentId: string | null) {
   const [dossier, setDossier] = useState<Dossier | null>(null)

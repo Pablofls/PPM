@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../../auth/AuthProvider'
 import { Badge } from '../../components/Badge'
+import { DossierProfile, useStudentDossier } from '../../components/StudentDossier'
 import { Toast } from '../../components/Toast'
 import { repository } from '../../data/repository'
 import { WEEKLY_FORMS, type WeeklyFormMeta } from '../../lib/catalog'
@@ -24,18 +25,21 @@ export function StudentHome() {
   const nombre = profile?.full_name?.trim()
   const correo = profile?.email ?? session?.user?.email
   const [toast, dismissToast] = useHandoffToast()
+  const { dossier } = useStudentDossier(profile?.student_id ?? null)
 
   return (
     <>
       {toast && <Toast message={toast} onDismiss={dismissToast} />}
-      <h1 className="text-2xl font-semibold tracking-tight text-ink-950">
-        {nombre ? `Hola, ${nombre}` : 'Hola'}
-      </h1>
-      <p className="mt-2 text-sm leading-relaxed text-ink-600">
-        Estas son tus entregas de Prácticas Profesionales. Los reportes
-        semanales se contestan aquí; el resto de los formularios del curso se
-        siguen contestando en Google Forms.
-      </p>
+
+      <section className="rounded-xl border border-ink-200 bg-white p-6 shadow-sm">
+        <h2 className="text-sm font-semibold text-ink-900">ADN Profesional</h2>
+        <div className="mt-4 space-y-7">
+          <DossierProfile
+            dossier={dossier}
+            fallback={{ fullName: nombre ?? null, institutionalEmail: correo ?? null }}
+          />
+        </div>
+      </section>
 
       <section className="mt-8">
         <h2 className="px-1 text-[11px] font-semibold tracking-widest text-ink-500 uppercase">
@@ -222,10 +226,5 @@ const PROXIMAMENTE = [
     titulo: 'Mis entregas',
     descripcion:
       'Qué formularios ya entregaste y cuándo, de los Módulos 1 y 2 y los apéndices.',
-  },
-  {
-    titulo: 'Mi expediente',
-    descripcion:
-      'Tus resultados de intereses, personalidad, comportamiento, habilidades y valores.',
   },
 ]
