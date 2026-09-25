@@ -97,7 +97,7 @@ function StatusSquare({ cell }: { cell: SubmissionStatusCell | undefined }) {
       : 'Sin fecha límite configurada'
 
   return (
-    <span title={title} className={`inline-block size-3.5 rounded-sm ${STATE_COLOR[state]}`} />
+    <span title={title} className={`inline-block size-5 rounded-sm ${STATE_COLOR[state]}`} />
   )
 }
 
