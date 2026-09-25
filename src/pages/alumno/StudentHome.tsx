@@ -41,7 +41,7 @@ export function StudentHome() {
         <h2 className="px-1 text-[11px] font-semibold tracking-widest text-ink-500 uppercase">
           Tareas
         </h2>
-        <ul className="mt-2 space-y-3">
+        <ul className="mt-2 grid gap-3 sm:grid-cols-2">
           {WEEKLY_FORMS.map((form) => (
             <li key={form.code}>
               <AssignmentCard form={form} />

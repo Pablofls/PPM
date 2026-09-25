@@ -210,7 +210,7 @@ function Identity({
         )}
       </div>
 
-      <dl className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2">
+      <dl className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <InfoCard label="Fecha nac." value={formatDate(dossier?.birthDate ?? null)} />
         <InfoCard label="Edad" value={age(dossier?.birthDate ?? null)} />
         <InfoCard label="Carrera" value={degreeCode} />

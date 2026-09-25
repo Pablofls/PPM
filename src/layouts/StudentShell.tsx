@@ -38,7 +38,7 @@ export function StudentShell() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-3xl px-6 py-10 sm:px-8">
+      <main className="mx-auto w-full max-w-6xl px-6 py-10 sm:px-8">
         <Outlet />
       </main>
     </div>
