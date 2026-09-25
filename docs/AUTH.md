@@ -7,7 +7,9 @@ Cómo entra la gente al panel y qué puede ver cada quien.
 - **Implementación del rol `alumno`:** `supabase/migrations/0013_role_alumno.sql`
   y `0014_student_accounts.sql`
 - **Estado:** ✅ `0001` ejecutado el 2026-09-11; `0013` y `0014`, el 2026-09-18.
-  Falta correr `create_student_accounts()` para dar de alta a los alumnos
+  El alta masiva se corrió el 2026-09-20. `0021_sync_creates_student_accounts.sql`
+  se ejecutó el 2026-09-25: ya no hace falta volver a correrla a mano, la
+  sincronización horaria del Sheets la llama sola
 
 ## Principio
 
@@ -74,7 +76,7 @@ volver sobre lo enviado.
 
 ## Cómo se crean las cuentas de los alumnos
 
-El alumno **no se registra**: la cuenta se la crea el profesor.
+El alumno **no se registra**: la cuenta se la crea el sistema, sola.
 
 - **Usuario:** su correo institucional.
 - **Contraseña:** su matrícula.
@@ -82,8 +84,24 @@ El alumno **no se registra**: la cuenta se la crea el profesor.
   Demográficos**, porque es de ahí de donde sale la matrícula. Un alumno sin 1.0
   no tiene contraseña posible y la función lo reporta como omitido.
 
-En el **SQL Editor de Supabase**, después de pegar `0013` y `0014` (en ese orden
-y en dos ejecuciones distintas):
+### Se crean solas, en la sincronización horaria
+
+Desde `0021_sync_creates_student_accounts.sql`, `import_sheet_rows()` —la
+misma función que trae las 15 hojas cada hora (ver
+[docs/SHEETS_SYNC.md](SHEETS_SYNC.md))— llama a `create_student_accounts()`
+justo después de escribir `demographics` de `form1_0`. Un alumno que acaba de
+contestar el 1.0 tiene cuenta en la siguiente corrida del disparador horario,
+sin que nadie tenga que acordarse de nada.
+
+Se llama en **cada** corrida, haya o no alumnos nuevos ese día: la función ya
+era idempotente (ver abajo), así que una corrida sin novedades solo reporta
+`'ya existía'` u `'omitido'` para cada alumno y no cambia nada. El resumen de
+cada corrida (`sheet_sync_runs.detail`) incluye `cuentas_creadas` con el
+conteo de altas nuevas de esa hora.
+
+### Correrla a mano sigue funcionando
+
+En el **SQL Editor de Supabase**:
 
 ```sql
 select * from public.create_student_accounts();
@@ -91,7 +109,10 @@ select * from public.create_student_accounts();
 
 Devuelve una fila por alumno: `creado`, `ya existía: perfil enlazado` u
 `omitido: sin matrícula en el 1.0`. Es **idempotente**: volver a correrla da de
-alta a los alumnos nuevos y no le cambia la contraseña a nadie.
+alta a los alumnos nuevos y no le cambia la contraseña a nadie. Sigue siendo
+la única forma de dar de alta a alguien fuera del horario de la
+sincronización, o de confirmar de un vistazo qué pasó con un alumno en
+particular.
 
 `profiles.student_id` es lo que une la cuenta con el alumno. Se enlaza por
 correo una sola vez, al crear la cuenta; de ahí en adelante manda el id, para que
@@ -118,11 +139,19 @@ podrá *ponerse* una contraseña corta.
 ### Por qué el alta se hace en SQL y no con la API
 
 Crear usuarios por la API de Supabase necesita la llave `service_role`, que este
-proyecto no tiene y no debe tener: viajaría en el bundle del navegador. El SQL
-Editor ya es un contexto administrativo, así que `create_student_accounts()`
-escribe directo en `auth.users` y `auth.identities`, con el mismo hash bcrypt
-que usa Supabase Auth. La contraseña en claro no se guarda en ninguna columna, y
-la función no es ejecutable por nadie con sesión en el navegador.
+proyecto no tiene y no debe tener en el panel: viajaría en el bundle del
+navegador. El SQL Editor ya es un contexto administrativo, así que
+`create_student_accounts()` escribe directo en `auth.users` y
+`auth.identities`, con el mismo hash bcrypt que usa Supabase Auth. La
+contraseña en claro no se guarda en ninguna columna, y la función no es
+ejecutable por nadie con sesión en el navegador.
+
+El Apps Script **sí** tiene la llave `service_role` —la necesita para mandar
+las 15 hojas (ver [SHEETS_SYNC.md](SHEETS_SYNC.md))— pero eso no es lo que le
+da permiso a `import_sheet_rows()` de llamar a `create_student_accounts()`:
+`import_sheet_rows()` es `SECURITY DEFINER`, así que dentro de su cuerpo corre
+con los permisos de quien la creó, no con los de `service_role`. Es el mismo
+contexto administrativo del SQL Editor visto desde otra puerta.
 
 ## Las contraseñas
 

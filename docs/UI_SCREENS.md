@@ -53,8 +53,14 @@ funcionan.
 Todas las pantallas de formulario comparten el mismo esqueleto:
 
 1. **Encabezado** — título, subtítulo, el estado de la sincronización y las
-   acciones *Procesar datos* y *Exportar datos*. En esta iteración los botones
-   están deshabilitados con un tooltip que lo explica.
+   acciones *Procesar datos* y *Exportar datos*. *Exportar datos* sigue
+   deshabilitado con un tooltip que lo explica; *Procesar datos* funciona
+   desde `0022`: llama a `admin_run_sheet_sync()`, que reprocesa lo que ya
+   esté en el staging del Sheets y da de alta las cuentas de alumno que
+   falten (`0021`), sin esperar el disparador horario. Al terminar muestra un
+   aviso con cuántas entregas y cuántas cuentas se procesaron —o que ya
+   estaba al día, si no había nada nuevo— y refresca el estado de la
+   sincronización de al lado.
 
    El estado de la sincronización va a la izquierda de los botones y lee la
    última corrida de `sheet_sync_runs` (ver [SHEETS_SYNC.md](SHEETS_SYNC.md)).

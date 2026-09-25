@@ -40,6 +40,7 @@ import type {
   SubmissionHistoryEntry,
   SubmissionState,
   SubmissionStatusRow,
+  SyncRunResult,
   SyncStatus,
   ValuesRow,
 } from './types'
@@ -552,6 +553,28 @@ export const supabaseRepository: PanelRepository = {
       startedAt: data.started_at as string,
       finishedAt: (data.finished_at as string | null) ?? null,
     }
+  },
+
+  /**
+   * Dispara `admin_run_sheet_sync()` (`0022`), que a su vez es
+   * `import_sheet_rows()` (`0015`) con la alta de cuentas de `0021`. Devuelve
+   * el mismo resumen que ya escribe en `sheet_sync_runs.detail`, reducido a
+   * los dos números que le importan al botón: cuántas entregas se escribieron
+   * y cuántas cuentas se crearon. `filas_omitidas` no cuenta como entrega:
+   * son las filas en blanco que el Sheets arrastra al final de cada hoja.
+   */
+  async runSheetSync(): Promise<SyncRunResult> {
+    const { data, error } = await supabase.rpc('admin_run_sheet_sync')
+
+    if (error) throw new Error(`No se pudo procesar los datos: ${error.message}`)
+
+    const detail = (data ?? {}) as Record<string, number>
+    const accountsCreated = detail.cuentas_creadas ?? 0
+    const recordsSynced = Object.entries(detail)
+      .filter(([key]) => key !== 'cuentas_creadas' && key !== 'filas_omitidas')
+      .reduce((total, [, count]) => total + (count ?? 0), 0)
+
+    return { recordsSynced, accountsCreated }
   },
 
   async getFormDeadlines(): Promise<FormDeadline[]> {

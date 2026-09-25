@@ -391,3 +391,16 @@ export interface SyncStatus {
   /** `null` mientras la corrida sigue, o si se cayó a la mitad. */
   finishedAt: string | null
 }
+
+/**
+ * Lo que devuelve una corrida manual de la sincronización ("Procesar datos").
+ *
+ * Se deriva del `jsonb` que regresa `import_sheet_rows()`: `recordsSynced` es
+ * la suma de las entregas escritas en los 15 formularios, y `accountsCreated`
+ * es `cuentas_creadas` (0021) — las cuentas de alumno que se dieron de alta en
+ * esta corrida, no las que ya existían.
+ */
+export interface SyncRunResult {
+  recordsSynced: number
+  accountsCreated: number
+}

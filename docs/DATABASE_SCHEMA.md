@@ -321,7 +321,7 @@ llegan cuando lleguen sus pantallas de datos.
 | `guard_profile_role()` | Trigger sobre `profiles`: protege la columna `role` |
 | `current_student_id()` | `SECURITY DEFINER`. El alumno de la sesión, o `NULL`. Base de las políticas «lo mío» |
 | `current_student_period()` | `SECURITY DEFINER`, `0018`. El `period_code` del alumno de la sesión, o `NULL`. Base de `semester_weeks_select_own` |
-| `create_student_accounts()` | Alta masiva de cuentas de alumno. Se corre a mano en el SQL Editor; sin permiso de ejecución para `authenticated` |
+| `create_student_accounts()` | Alta masiva de cuentas de alumno. Sin permiso de ejecución para `authenticated`; la llama `import_sheet_rows()` en cada sincronización (`0021`), y sigue disponible para correrla a mano en el SQL Editor |
 
 **Por qué `is_admin()` es `SECURITY DEFINER`:** se invoca desde la política de
 `profiles`; si consultara `profiles` con los permisos de quien llama, dispararía
@@ -855,10 +855,11 @@ simplemente se queda quieto y nadie sabe desde cuándo.
 | Función | Qué hace |
 |---|---|
 | `ingest_sheet_rows(form_code, rows)` | Deja un lote de filas crudas en el staging. La llama el Apps Script |
-| `import_sheet_rows()` | Normaliza y escribe todo lo pendiente, en una transacción. Devuelve el resumen |
+| `import_sheet_rows()` | Normaliza y escribe todo lo pendiente, en una transacción. También da de alta las cuentas de alumno nuevas (`0021`, después de escribir `demographics` de `form1_0`). Devuelve el resumen |
 | `sheet_pending(form_code)` | Las filas pendientes de un formulario, ya con su llave de idempotencia |
 | `sheet_sync_submissions(form_code)` | Da de alta alumnos nuevos y escribe `submissions` |
 | `sheet_clear_responses(form_code)` | Borra las respuestas que se van a reescribir. La tabla destino sale de `forms.response_table` |
+| `admin_run_sheet_sync()` | `0022`. Puerta admin-only para el botón "Procesar datos" del panel: comprueba `is_admin()` y llama a `import_sheet_rows()`. Sin esto el panel no podría dispararla — su `EXECUTE` es solo para `service_role` |
 | `sheet_*` (28 más) | Una por transformación: `sheet_gender`, `sheet_skill`, `sheet_disc`, `sheet_week_hours`… |
 
 Las funciones `sheet_*` son el **puerto a SQL de `scripts/generar_import.py`**.
@@ -879,6 +880,19 @@ Editor (UTC). La sincronización la interpreta en `America/Monterrey`, como mand
 [DATA_MAPPING.md](DATA_MAPPING.md) — seis horas de diferencia. La migración
 `0015` incluye un `UPDATE` que reconstruye `submitted_at` desde la propia
 `source_row_key`, así que es idempotente y no depende de adivinar el desfase.
+
+**La sincronización también da de alta las cuentas.** Desde `0021`,
+`import_sheet_rows()` llama a `create_student_accounts()` (`0014`) justo
+después de escribir `demographics` de `form1_0` — de ahí sale la matrícula que
+la función necesita para la contraseña. Se corre en cada corrida, haya o no
+alumnos nuevos: `create_student_accounts()` ya era idempotente por diseño
+(0014), así que una corrida sin novedades solo reporta `'ya existía'` u
+`'omitido'` para cada alumno, sin tocar nada. `detalle.cuentas_creadas` cuenta
+las altas nuevas de esa corrida. Funciona sin relajar el `REVOKE` de `0014`
+porque `import_sheet_rows()` es `SECURITY DEFINER`: dentro de su cuerpo corre
+con los permisos de quien la creó, el mismo contexto administrativo del SQL
+Editor, no los de `service_role` que la invoca. Correrla a mano sigue
+funcionando igual.
 
 ---
 
@@ -1123,6 +1137,8 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0018_semester_weeks.sql` | `semester_weeks`, `current_student_period()`, `new_weekly_submission()`/`submit_job_search_log()`/`submit_internship_log()` redefinidas con `week_number` | ✅ 2026-09-25 |
 | `0019_student_dossier_read.sql` | políticas de lectura del alumno sobre su propio expediente: `students`, `demographics`, `holland_results`, `mbti_results`, `disc_results`, `values_results`, `company_profiles` | ⏳ **pendiente** |
 | `0020_weekly_log_current_week_only.sql` | `new_weekly_submission()` exige que la semana sea la de hoy; políticas de `UPDATE` de `job_search_logs`/`internship_logs` acotadas a la semana en curso; `update_job_search_log()`, `update_internship_log()` | ✅ 2026-09-25 |
+| `0021_sync_creates_student_accounts.sql` | `import_sheet_rows()` redefinida: llama a `create_student_accounts()` en cada corrida | ✅ 2026-09-25 |
+| `0022_admin_run_sheet_sync.sql` | `admin_run_sheet_sync()`: puerta admin-only para que el botón "Procesar datos" del panel dispare `import_sheet_rows()` a mano | ⏳ **pendiente** |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.

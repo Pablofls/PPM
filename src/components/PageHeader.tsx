@@ -1,6 +1,10 @@
-import { useLastSync } from '../data/hooks'
-import type { FormSummary, SyncStatus } from '../data/types'
+import { useState } from 'react'
+
+import { useSyncStatus } from '../data/hooks'
+import { repository } from '../data/repository'
+import type { FormSummary, SyncRunResult, SyncStatus } from '../data/types'
 import { formatDateTime, formatRelativeTime } from '../lib/format'
+import { Toast } from './Toast'
 
 interface PageHeaderProps {
   label: string
@@ -16,12 +20,15 @@ interface PageHeaderProps {
  * Encabezado de las pantallas de formulario: título, contadores y las acciones
  * "Procesar datos" y "Exportar datos".
  *
- * Las acciones existen en la plataforma actual en Apps Script; se conservan
- * deshabilitadas para no dar a entender que se eliminaron.
+ * "Exportar datos" existe en la plataforma actual en Apps Script; se conserva
+ * deshabilitada para no dar a entender que se eliminó. "Procesar datos" sí
+ * funciona: llama a `admin_run_sheet_sync()` (`0022`), que reprocesa lo que ya
+ * esté en el staging del Sheets y da de alta las cuentas de alumno que falten
+ * (`0021`), sin esperar el disparador horario del Apps Script.
  *
- * Junto a ellas va el estado de la sincronización con el Sheets, que sí
- * funciona: es lo que le dice al profesor qué tan frescos son los datos que
- * está viendo.
+ * Junto a ellas va el estado de la sincronización con el Sheets: es lo que le
+ * dice al profesor qué tan frescos son los datos que está viendo, y se
+ * refresca solo al terminar una corrida manual.
  */
 export function PageHeader({
   label,
@@ -31,6 +38,10 @@ export function PageHeader({
   isConnected,
   hideProcessAction = false,
 }: PageHeaderProps) {
+  const { data: sync, loading: syncLoading, isConnected: syncConnected, error: syncError, refetch } =
+    useSyncStatus()
+  const [toast, setToast] = useState<{ message: string; tone: 'success' | 'error' } | null>(null)
+
   return (
     <header className="mb-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -43,9 +54,20 @@ export function PageHeader({
         </div>
 
         <div className="flex items-center gap-4">
-          <SyncIndicator />
+          {syncConnected && !syncLoading && (
+            <SyncIndicator sync={sync} error={syncError} />
+          )}
           <div className="flex gap-2">
-            {!hideProcessAction && <ActionButton>Procesar datos</ActionButton>}
+            {!hideProcessAction && (
+              <ProcessDataButton
+                disabled={!isConnected}
+                onDone={(result) => {
+                  refetch()
+                  setToast({ message: describeSyncRun(result), tone: 'success' })
+                }}
+                onFailed={(message) => setToast({ message, tone: 'error' })}
+              />
+            )}
             <ActionButton>Exportar datos</ActionButton>
           </div>
         </div>
@@ -62,6 +84,10 @@ export function PageHeader({
           highlight
         />
       </dl>
+
+      {toast && (
+        <Toast message={toast.message} tone={toast.tone} onDismiss={() => setToast(null)} />
+      )}
     </header>
   )
 }
@@ -114,14 +140,17 @@ const RUN_TIMEOUT_MINUTES = 10
 /**
  * Estado de la última sincronización con el Sheets.
  *
- * No se muestra nada mientras carga: un parpadeo de "Sin sincronizar" que
- * después se corrige es peor que no decir nada durante medio segundo.
+ * Recibe el dato ya cargado — `PageHeader` es quien tiene el hook, porque
+ * también lo necesita `ProcessDataButton` para refrescarlo al terminar una
+ * corrida manual.
  */
-function SyncIndicator() {
-  const { data: sync, loading, isConnected, error } = useLastSync()
-
-  if (!isConnected || loading) return null
-
+function SyncIndicator({
+  sync,
+  error,
+}: {
+  sync: SyncStatus | null
+  error: string | null
+}) {
   const { text, stale, detail } = describeSync(sync, error)
 
   return (
@@ -207,4 +236,68 @@ function ActionButton({ children }: { children: string }) {
       {children}
     </button>
   )
+}
+
+/**
+ * "Procesar datos": dispara `admin_run_sheet_sync()` a mano. Deshabilitado
+ * mientras corre, para que no se pueda mandar una segunda corrida encima.
+ */
+function ProcessDataButton({
+  disabled,
+  onDone,
+  onFailed,
+}: {
+  disabled: boolean
+  onDone: (result: SyncRunResult) => void
+  onFailed: (message: string) => void
+}) {
+  const [running, setRunning] = useState(false)
+
+  async function handleClick() {
+    setRunning(true)
+    try {
+      const result = await repository.runSheetSync()
+      onDone(result)
+    } catch (cause) {
+      onFailed(cause instanceof Error ? cause.message : 'No se pudo procesar los datos.')
+    } finally {
+      setRunning(false)
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      disabled={disabled || running}
+      onClick={handleClick}
+      title={
+        disabled
+          ? 'Disponible cuando se conecte la base de datos'
+          : 'Reprocesa lo que ya llegó del Sheets y da de alta las cuentas que falten'
+      }
+      className="rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm font-medium text-ink-700 shadow-sm transition-colors hover:bg-ink-50 disabled:cursor-not-allowed disabled:text-ink-400 disabled:hover:bg-white"
+    >
+      {running ? 'Procesando…' : 'Procesar datos'}
+    </button>
+  )
+}
+
+/** El mensaje del aviso al terminar una corrida manual de `ProcessDataButton`. */
+function describeSyncRun(result: SyncRunResult): string {
+  const partes: string[] = []
+  if (result.recordsSynced > 0) {
+    partes.push(
+      result.recordsSynced === 1 ? '1 entrega nueva' : `${result.recordsSynced} entregas nuevas`,
+    )
+  }
+  if (result.accountsCreated > 0) {
+    partes.push(
+      result.accountsCreated === 1
+        ? '1 cuenta de alumno nueva'
+        : `${result.accountsCreated} cuentas de alumno nuevas`,
+    )
+  }
+
+  if (partes.length === 0) return 'Ya estás al día: no había nada nuevo que procesar.'
+  return `Se procesaron ${partes.join(' y ')}.`
 }

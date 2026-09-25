@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import type { FormCode } from '../lib/catalog'
 import { repository } from './repository'
@@ -79,7 +79,19 @@ export function useFormSummary(formCode: FormCode, filters: PanelFilters) {
  *
  * Se consulta una sola vez al montar: el dato cambia cada hora y no vale la
  * pena sondear la base por él. Basta con que esté fresco al abrir la pantalla.
+ *
+ * `refetch` es lo que usa el botón "Procesar datos": después de una corrida
+ * manual, el indicador de "Sincronizado hace…" tiene que reflejarla sin
+ * esperar a que alguien recargue la pantalla.
  */
-export function useLastSync() {
-  return useRepositoryQuery<SyncStatus | null>(() => repository.getLastSync(), null, [])
+export function useSyncStatus() {
+  const [refreshToken, setRefreshToken] = useState(0)
+  const result = useRepositoryQuery<SyncStatus | null>(
+    () => repository.getLastSync(),
+    null,
+    [refreshToken],
+  )
+  const refetch = useCallback(() => setRefreshToken((token) => token + 1), [])
+
+  return { ...result, refetch }
 }

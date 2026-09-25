@@ -4,20 +4,24 @@ Cómo el panel se mantiene al día con el Sheets sin que nadie copie nada a mano
 
 Un **Apps Script** dentro del propio Sheets corre cada hora, lee las 15 hojas y
 manda las filas a Supabase. La base las normaliza y las escribe en las tablas
-que alimentan las pantallas.
+que alimentan las pantallas. De paso, da de alta las cuentas de los alumnos
+nuevos: ver [docs/AUTH.md](AUTH.md#se-crean-solas-en-la-sincronización-horaria).
 
 ```
 Sheets ──(disparador horario)──> ingest_sheet_rows() ──> sheet_rows (staging)
                                                                 │
                                                        import_sheet_rows()
                                                                 │
-                                          students · submissions · tablas de respuestas
+                                  students · submissions · tablas de respuestas
+                                                                │
+                                                  create_student_accounts()
 ```
 
 | Pieza | Dónde vive |
 |---|---|
 | El que lee y manda | [`scripts/apps_script/Sincronizar.gs`](../scripts/apps_script/Sincronizar.gs) — se pega en el Apps Script del Sheets |
 | El que normaliza y escribe | `supabase/migrations/0015_sheet_sync.sql` |
+| El que da de alta las cuentas de alumno nuevas | `supabase/migrations/0021_sync_creates_student_accounts.sql`, llamado desde `import_sheet_rows()`; ver [AUTH.md](AUTH.md#cómo-se-crean-las-cuentas-de-los-alumnos) |
 | Qué transformación se le aplica a cada columna | [DATA_MAPPING.md](DATA_MAPPING.md) |
 | Las tablas y funciones | [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#sincronización-con-el-sheets) |
 
@@ -165,7 +169,7 @@ limit 10;
 
 | Qué se ve | Qué significa |
 |---|---|
-| `finished_at` con valor y `detail` con ceros | Todo bien: no hubo nada nuevo esa hora |
+| `finished_at` con valor y `detail` con ceros | Todo bien: no hubo nada nuevo esa hora. `detail.cuentas_creadas` en 0 es normal: significa que no había un alumno nuevo que dar de alta, no que algo falló |
 | `finished_at` nulo | La corrida se cayó a la mitad. La transacción se revirtió y las filas siguen pendientes |
 | La última corrida es de hace días | El disparador dejó de correr. Revisar el Apps Script |
 

@@ -39,6 +39,7 @@ import type {
   StudentDossier,
   SubmissionHistoryEntry,
   SubmissionStatusRow,
+  SyncRunResult,
   SyncStatus,
   ValuesRow,
 } from './types'
@@ -123,6 +124,15 @@ export interface PanelRepository {
    * ha corrido ninguna.
    */
   getLastSync(): Promise<SyncStatus | null>
+
+  /**
+   * Corre la sincronización a mano, desde el botón "Procesar datos" del
+   * panel: reprocesa lo que ya esté en el staging del Sheets y de paso da de
+   * alta las cuentas de alumno que falten (`0021`), sin esperar el
+   * disparador horario. Admin-only: la función del lado de la base
+   * (`admin_run_sheet_sync()`, `0022`) rechaza a cualquiera que no sea admin.
+   */
+  runSheetSync(): Promise<SyncRunResult>
 
   /**
    * Reglas de fecha límite vigentes, de la más reciente a la más antigua.
@@ -229,6 +239,9 @@ export const emptyRepository: PanelRepository = {
   },
   async getLastSync() {
     return null
+  },
+  async runSheetSync() {
+    throw new Error('No hay conexión con la base de datos. No se procesó nada.')
   },
   async getFormDeadlines() {
     return []
