@@ -79,7 +79,10 @@ es inmune a cómo el editor trocee el script.
 ## Fuera del alcance actual
 
 Las secciones de `alumnos`, `fechas_entrega`, `form_busqueda` y `form_practicas`
-se conservan abajo como referencia, pero **sus tablas no existen todavía**.
+se conservan abajo como referencia. `alumnos` porque su tabla no existe
+todavía; `fechas_entrega` porque su destino (`form_deadlines`) ya no se llena
+importando el Sheets, sino desde el Panel de Administrador (`0017`) — ver la
+nota al inicio de esa sección.
 
 ---
 
@@ -94,18 +97,28 @@ se conservan abajo como referencia, pero **sus tablas no existen todavía**.
 
 ## `fechas_entrega` → `form_deadlines`
 
-| Columna Sheets | Columna Postgres | Transformación |
-|---|---|---|
-| `id` | — | se descarta; era `formulario___periodo`, ahora la PK es `uuid` |
-| `formulario` | `form_code` | directo |
-| `idioma` | `language` | vacío → `NULL` (= todos los idiomas) |
-| `frecuencia` | `session_day` | vacío → `NULL` (= todos los grupos) |
-| `periodo` | `period_code` | directo |
-| `fechaEntrega` | `due_at` | fecha del Sheets → `timestamptz`, zona `America/Monterrey` |
-| `creadoEn` | `created_at` | directo |
+> **Ya no es una importación.** `0017_form_deadlines.sql` construye
+> `form_deadlines`, pero el profesor la llena desde el Panel de Administrador
+> del panel, no editando la hoja `fechas_entrega` del Sheets. La tabla de abajo
+> queda como referencia de qué significaba cada columna de la hoja original, y
+> cómo se traduce al modelo nuevo.
 
-> Las fechas del Sheets vienen sin zona horaria (`2026-02-02 05:59:59`). Se
-> interpretan en `America/Monterrey` al convertir a `timestamptz`.
+| Columna Sheets (referencia histórica) | Columna Postgres | Nota |
+|---|---|---|
+| `id` | — | era `formulario___periodo`; ahora la PK es `uuid`, generada por la base |
+| `formulario` | `form_code` | el checklist del Panel de Administrador, no texto libre |
+| `idioma` | `language` | select vacío → `NULL` (= todos los idiomas) |
+| `frecuencia` | `session_day` | select vacío → `NULL` (= todos los grupos) |
+| `periodo` | `period_code` | select vacío → `NULL` (= todos los periodos); la hoja original siempre lo traía |
+| `fechaEntrega` | `due_at` | el profesor captura solo la fecha; el panel fija `23:59:59` hora de `America/Monterrey` |
+| `creadoEn` | `created_at` | ya no es "cuándo se importó la fila del Sheets": es `now()` al guardar la regla |
+
+La hoja original solo permitía **una** dimensión específica a la vez (idioma
+*o* frecuencia, casi siempre ninguna). El Panel de Administrador permite las
+tres al mismo tiempo en una sola regla; la resolución de cuál aplica
+—generalizada a esas tres dimensiones— está en
+[DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#fechas-de-entrega-y-estado-de-las-entregas)
+y en [FORMS_CATALOG.md](FORMS_CATALOG.md#fechas-de-entrega).
 
 ---
 

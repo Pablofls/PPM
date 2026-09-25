@@ -9,7 +9,7 @@
 
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
-- **Última migración aplicada:** `0015_sheet_sync.sql` (2026-09-18)
+- **Última migración aplicada:** `0017_form_deadlines.sql` (2026-09-25).
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
   bitácoras semanales.
 
@@ -24,11 +24,12 @@
 7. [Módulo 1 — Conócete](#módulo-1--conócete)
 8. [Módulo 2 — Actúa](#módulo-2--actúa)
 9. [Bitácoras semanales](#bitácoras-semanales)
-10. [Sincronización con el Sheets](#sincronización-con-el-sheets)
-11. [Vistas](#vistas)
-12. [Índices](#índices)
-13. [Seguridad](#seguridad)
-14. [Correspondencia migración → contenido](#correspondencia-migración--contenido)
+10. [Fechas de entrega y estado de las entregas](#fechas-de-entrega-y-estado-de-las-entregas)
+11. [Sincronización con el Sheets](#sincronización-con-el-sheets)
+12. [Vistas](#vistas)
+13. [Índices](#índices)
+14. [Seguridad](#seguridad)
+15. [Correspondencia migración → contenido](#correspondencia-migración--contenido)
 
 ---
 
@@ -42,8 +43,14 @@ Esta versión cubre **autenticación**, los **11 formularios del Módulo 1 y 2**
 | Qué | Por qué no está |
 |---|---|
 | Hoja `alumnos` del Sheets | Los alumnos se derivan de los correos que responden formularios |
-| Hoja `fechas_entrega` | Sin ella no hay `form_deadlines` ni estado *a tiempo / tarde* |
 | Catálogos `periods`, `degree_programs`, `modules` | Por ahora esos valores son `text` |
+
+`form_deadlines` ya no está en esta lista: `0017_form_deadlines.sql` la agrega,
+junto con el estado *a tiempo / tarde / pendiente / sin fecha*. Ver
+[Fechas de entrega y estado de las entregas](#fechas-de-entrega-y-estado-de-las-entregas).
+A diferencia de la hoja `fechas_entrega` del Sheets, que nunca se importó, las
+reglas de `form_deadlines` las escribe el profesor desde el Panel de
+Administrador — no vienen del Sheets.
 
 Los apéndices ya tienen **tabla y pantalla**. Las bitácoras semanales
 (`form_busqueda`, `form_practicas`) entran con `0011`: son los únicos
@@ -116,6 +123,7 @@ erDiagram
     SUBMISSIONS ||--o| INTERNSHIP_LOGS : "bitácora semanal"
 
     FORMS ||--o{ SHEET_ROWS : "staging del Sheets"
+    FORMS ||--o{ FORM_DEADLINES : "fecha límite"
 
     AUTH_USERS {
         uuid id PK "lo administra Supabase"
@@ -255,6 +263,15 @@ erDiagram
         numeric salary
         int linkedin_connections
     }
+    FORM_DEADLINES {
+        uuid id PK
+        text form_code FK
+        language language "NULL = todos"
+        session_day session_day "NULL = todas"
+        text period_code "NULL = todos"
+        timestamptz due_at
+        timestamptz created_at
+    }
 ```
 
 > `AUTH_USERS` es `auth.users`, del esquema que administra Supabase. No se
@@ -331,6 +348,7 @@ editar su propio perfil podría ascenderse a `admin`.
 | `mbti_nature` | `pensamiento`, `emocional` | idénticos |
 | `mbti_tactics` | `juzgador`, `prospeccion` | `Juzgador`, `Prospección` |
 | `mbti_identity` | `asertivo`, `cauteloso` | idénticos |
+| `submission_state` | `a_tiempo`, `tarde`, `pendiente`, `sin_fecha` | — (lo calcula `submission_status()`, `0017`) |
 
 > **El orden de `skill_level` importa**: define `<`, `>`, `ORDER BY` y `max()`.
 > Va de menor a mayor dominio.
@@ -615,6 +633,69 @@ que crea la fila de `submissions`.
 
 ---
 
+## Fechas de entrega y estado de las entregas
+
+> Migración `0017_form_deadlines.sql` — ✅ ejecutada en Supabase (2026-09-25).
+> Alimenta las pantallas "Panel de Administrador" y "Estado de Entregas". Ver
+> también [FORMS_CATALOG.md](FORMS_CATALOG.md#fechas-de-entrega) y
+> [DATA_MAPPING.md](DATA_MAPPING.md#fechas_entrega--form_deadlines).
+
+`form1_0` (es un perfil, no una entrega con plazo) y las dos bitácoras
+semanales (nunca estuvieron en `forms`) no llevan fecha límite.
+
+### `form_deadlines`
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | `uuid` PK DEFAULT `gen_random_uuid()` | |
+| `form_code` | `text` NOT NULL FK → `forms.code` | |
+| `language` | `language` | `NULL` = todos los idiomas |
+| `session_day` | `session_day` | `NULL` = todas las frecuencias |
+| `period_code` | `text` | `NULL` = todos los periodos |
+| `due_at` | `timestamptz` NOT NULL | |
+| `created_at` | `timestamptz` NOT NULL DEFAULT `now()` | |
+
+Índice único `UNIQUE (form_code, language, session_day, period_code) NULLS NOT
+DISTINCT` (Postgres 15+): un `UNIQUE` normal no basta porque Postgres trata dos
+`NULL` como distintos. La alternativa de castear los enums a `text` dentro de
+la expresión del índice **no sirve**: ese cast es `STABLE`, no `IMMUTABLE`, y
+Postgres exige `IMMUTABLE` en un índice funcional.
+
+**Primera tabla donde el admin escribe desde el navegador con `insert`/`delete`
+directos, no a través de una función.** Las funciones de `0016` existen por dos
+razones que aquí no aplican: atomicidad entre dos tablas y evitar que el
+alumno falsifique su `student_id`. Aquí es una sola tabla y quien escribe ya
+pasó por `is_admin()`, así que extender esa misma condición a políticas de
+`insert`/`delete` es más simple. **No hay política de `UPDATE`**: corregir una
+fecha es borrar la regla y crear otra, igual que las entregas del alumno
+(regla «Historial completo»).
+
+### `resolve_form_deadline(form_code, language, session_day, period_code)`
+
+Devuelve el `due_at` que aplica. Entre las reglas del formulario cuyo
+`language`/`session_day`/`period_code` sea `NULL` o coincida con lo dado, gana
+la que coincide en **más** de esas tres columnas — más específica gana.
+Empate → la regla con `created_at` más reciente.
+
+### `submission_status(due_at, submitted_at)`
+
+Compara la marca temporal contra la fecha límite ya resuelta:
+
+| `due_at` | `submitted_at` | Resultado |
+|---|---|---|
+| `NULL` | cualquiera | `sin_fecha` — nadie configuró fecha, no se penaliza a nadie |
+| no `NULL` | `NULL` | `pendiente` — no ha entregado |
+| no `NULL` | `<= due_at` | `a_tiempo` |
+| no `NULL` | `> due_at` | `tarde` |
+
+### `v_submission_status`
+
+La matriz alumno × formulario de "Estado de Entregas". A diferencia de las
+`v_panel_*`, es un `LEFT JOIN` contra `latest_submissions`: el alumno que no ha
+entregado también tiene que aparecer. Detalle en [Vistas](#vistas).
+
+---
+
 ## Sincronización con el Sheets
 
 Introducida por `0015_sheet_sync.sql`, ejecutada el 2026-09-18. Un Apps Script con disparador horario
@@ -774,6 +855,25 @@ guardan**. Dos decisiones dentro:
   rescatables; sin el `coalesce` esas filas volverían `NULL` el acumulado y todo
   lo que viniera después.
 
+### `v_submission_status`
+
+> `0017_form_deadlines.sql`. Detalle de las columnas en
+> [Fechas de entrega y estado de las entregas](#fechas-de-entrega-y-estado-de-las-entregas).
+
+Una fila por alumno **y formulario** (a diferencia de las `v_panel_*`, que son
+una fila por alumno): `v_students_directory` cruzada con los formularios que
+llevan fecha límite, con `LEFT JOIN` contra `latest_submissions` para que el
+alumno sin entregar también aparezca. El repositorio la pivotea client-side a
+"una fila por alumno" para la tabla de la pantalla.
+
+`language` no es el idioma de esta fila en particular, sino el de la entrega
+más reciente del alumno en **cualquier** formulario: así el filtro de Idioma
+de la pantalla selecciona alumnos, no entregas sueltas. Tomar el idioma de
+cada fila haría desaparecer del filtro a un alumno que aún no entrega un
+formulario, aunque siga sin entregarlo.
+
+También lleva `security_invoker = on`.
+
 ### Una nota sobre `submissions_unique_response`
 
 `UNIQUE (student_id, form_code, submitted_at)` implica que **dos bitácoras
@@ -797,6 +897,7 @@ aparece, la señal será que el conteo importado no cuadra con el del Sheets.
 | `idx_disc_needs_review` | `disc_results (needs_review) WHERE needs_review` | revisión manual |
 | `idx_sheet_rows_pendientes` | `sheet_rows (form_code, id) WHERE imported_at IS NULL` | lo que le falta importar a la sincronización; parcial porque casi todas las filas ya se importaron |
 | `sheet_rows_form_code_row_hash_key` | `sheet_rows (form_code, row_hash)` | UNIQUE. Es lo que hace que mandar las 15 hojas completas cada hora no duplique nada |
+| `idx_form_deadlines_unique` | `form_deadlines (form_code, language, session_day, period_code) NULLS NOT DISTINCT` | UNIQUE. Evita reglas duplicadas; `NULLS NOT DISTINCT` (Postgres 15+) es la forma nativa de tratar `NULL` como igual a `NULL` sin envolver los enums en un cast a `text`, que es `STABLE` y no sirve en un índice funcional |
 
 ---
 
@@ -821,9 +922,13 @@ No hay políticas de `UPDATE` ni de `DELETE` en ninguna tabla de datos: RLS
 deniega por omisión, así que desde el navegador no se puede modificar ni borrar
 nada aunque se manipule la petición.
 
-El único `INSERT` que existe desde el navegador es el del alumno en sus dos
-bitácoras (`0016_student_weekly_logs.sql`), y está acotado por tres condiciones
-en el `WITH CHECK`:
+Hasta `0016` el único `INSERT` desde el navegador era el del alumno en sus dos
+bitácoras. `0017` agrega el segundo: `form_deadlines` acepta `insert` y
+`delete` directos de cualquier `authenticated` que pase `is_admin()` — no hace
+falta una función porque no hay dos tablas que mantener juntas ni un
+`student_id` que proteger de que alguien lo falsifique.
+
+El `INSERT` del alumno está acotado por tres condiciones en el `WITH CHECK`:
 
 - `student_id = current_student_id()` — solo lo suyo. La función devuelve `NULL`
   para el profesor y para una cuenta `pendiente`, y `student_id = NULL` nunca es
@@ -881,6 +986,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0015_sheet_sync.sql` | `sheet_rows`, `sheet_sync_runs`, las funciones de normalización, `ingest_sheet_rows()`, `import_sheet_rows()` y la reconciliación de marcas temporales | ✅ 2026-09-18 |
 
 | `0016_student_weekly_logs.sql` | políticas de lectura y escritura del alumno sobre sus bitácoras, `new_weekly_submission()`, `submit_job_search_log()`, `submit_internship_log()` | ✅ 2026-09-20 |
+| `0017_form_deadlines.sql` | `submission_state`, `form_deadlines`, `resolve_form_deadline()`, `submission_status()`, `v_submission_status` | ✅ 2026-09-25 |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.
@@ -889,11 +995,11 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 
 | Objeto | Cantidad |
 |---|---|
-| Tablas | 18 |
-| Tablas con RLS activo | **18** |
-| Políticas | 26 — 20 admin-only más las 6 del alumno de `0016` |
-| Vistas | 15, todas con `security_invoker = on` |
-| Índices `idx_*` | 6 |
+| Tablas | 19 |
+| Tablas con RLS activo | **19** |
+| Políticas | 29 — 20 admin-only, las 6 del alumno de `0016` y las 3 de `form_deadlines` de `0017` |
+| Vistas | 16, todas con `security_invoker = on` |
+| Índices `idx_*` | 7 |
 | Formularios en el catálogo | 15 |
 | Alumnos | 46 |
 | Entregas | 580 |

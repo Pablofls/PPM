@@ -91,18 +91,24 @@ agregados; ningún dato de alumno se versiona en este repositorio.
 
 ## Fechas de entrega
 
-La hoja `fechas_entrega` solo tiene 4 filas configuradas (`form2_1`, `form2_2`,
-`form2_4`, `form2_5`, todas del periodo `PR-26`), con `idioma` y `frecuencia`
-vacíos. En el esquema esas columnas vacías se traducen a `NULL`, que significa
-**"aplica a todos"**.
+> **Implementado en `0017_form_deadlines.sql`.** Ver
+> [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#fechas-de-entrega-y-estado-de-las-entregas).
 
-La resolución de la fecha aplicable a un alumno va de lo más específico a lo más
-general:
+La hoja `fechas_entrega` original solo tenía 4 filas configuradas (`form2_1`,
+`form2_2`, `form2_4`, `form2_5`, todas del periodo `PR-26`), con `idioma` y
+`frecuencia` vacíos — nunca combinaba más de una dimensión específica a la
+vez. El Panel de Administrador que reemplaza esa hoja sí permite combinar
+idioma, frecuencia y periodo en una misma regla, así que la resolución se
+generalizó a las tres dimensiones a la vez, no a una escalera fija de tres
+pasos:
 
-1. fecha con el `session_day` del alumno,
-2. fecha con el `language` del alumno,
-3. fecha general del formulario y periodo,
-4. si no hay ninguna → estado `sin_fecha`.
+1. Entre las reglas del formulario cuyo `language`/`session_day`/`period_code`
+   sea `NULL` (= todos) o coincida con el alumno/la entrega, gana la que
+   coincide en **más** de esas tres columnas — más específica gana.
+2. Empate entre reglas igual de específicas → gana la de `created_at` más
+   reciente (la última que asignó el profesor).
+3. Ninguna regla aplica → estado `sin_fecha`.
 
 Los formularios sin fecha configurada no se marcan como pendientes ni tarde: se
-muestran como `sin_fecha` para que el profesor sepa que falta configurarla.
+muestran como `sin_fecha` para que el profesor sepa que falta configurarla, no
+que el alumno esté atrasado.

@@ -290,12 +290,19 @@ export const weeklyFormByCode = (code: WeeklyFormCode): WeeklyFormMeta =>
 /** Los cuatro formularios que comparten la tabla `reflections`. */
 export const REFLECTION_FORMS = ['form2_1', 'form2_2', 'form2_4', 'form2_5'] as const
 
+/**
+ * Los formularios que pueden llevar fecha límite: todos salvo `form1_0` (es un
+ * perfil, no una entrega con plazo). Las dos bitácoras semanales nunca
+ * estuvieron en `forms`, así que ya quedan fuera solo con filtrar `FORMS`.
+ */
+export const DEADLINE_FORMS: FormMeta[] = FORMS.filter((form) => form.code !== 'form1_0')
+
 /** Secciones del proyecto que todavía no tienen pantalla. Ver regla «Alcance de las pantallas» de CLAUDE.md. */
 export const UPCOMING_SECTIONS = [
   // Las bitácoras semanales salieron de esta lista: ya existen, pero dentro del
-  // expediente del alumno, no como pantalla propia del rail.
+  // expediente del alumno, no como pantalla propia del rail. Estado de
+  // Entregas salió con el Panel de Administrador: ver AppShell.tsx.
   'Grupos',
-  'Estado de Entregas',
   'Alumnos Registrados',
 ]
 

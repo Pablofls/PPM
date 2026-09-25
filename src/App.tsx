@@ -17,6 +17,8 @@ import { StudentHome } from './pages/alumno/StudentHome'
 import { WeeklyLogPage } from './pages/alumno/WeeklyLogPage'
 import { IndeedPage } from './pages/modulo2/IndeedPage'
 import { ReflectionPage } from './pages/modulo2/ReflectionPage'
+import { DeadlinesPage } from './pages/admin/DeadlinesPage'
+import { SubmissionStatusPage } from './pages/admin/SubmissionStatusPage'
 import { weeklyFormByCode } from './lib/catalog'
 
 /**
@@ -94,6 +96,14 @@ export default function App() {
 
             <Route path="apendice-b">
               <Route path="formulario-de-inicio" element={<CompaniesPage />} />
+            </Route>
+
+            <Route path="entregas">
+              <Route path="estado-de-entregas" element={<SubmissionStatusPage />} />
+            </Route>
+
+            <Route path="administrador">
+              <Route path="panel" element={<DeadlinesPage />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/modulo1/datos-demograficos" replace />} />

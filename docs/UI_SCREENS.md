@@ -32,14 +32,21 @@ PPM
 │   └── A.1 Carta Formal de Aceptación
 ├── APÉNDICE B · REPORTES
 │   └── B.1 Formulario de Inicio
+├── ENTREGAS
+│   └── Estado de Entregas
+├── ADMINISTRADOR
+│   └── Panel de Administrador
 └── PRÓXIMAMENTE  (visible pero deshabilitado)
     ├── Grupos
-    ├── Estado de Entregas
     └── Alumnos Registrados
 ```
 
 Las secciones de «Próximamente» se muestran deshabilitadas a propósito: le comunican
 al profesor el alcance completo del proyecto sin prometer que ya funcionan.
+«Estado de Entregas» salió de esa lista junto con «Panel de Administrador»
+(`0017`, ver [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#fechas-de-entrega-y-estado-de-las-entregas)):
+son las dos pantallas nuevas, y a diferencia del resto de «Próximamente» sí
+funcionan.
 
 ## Estructura común de una pantalla
 
@@ -295,6 +302,50 @@ de horas: así viene del formulario.
 > Los datos de contacto del jefe (nombre, correo, teléfono) **solo aparecen en el
 > expediente**, no en la tabla. Son datos de terceros y no tienen por qué estar
 > a la vista en una pantalla que alguien puede proyectar.
+
+## Estado de Entregas y Panel de Administrador
+
+> `0017_form_deadlines.sql`. Ver
+> [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#fechas-de-entrega-y-estado-de-las-entregas).
+> Las únicas dos pantallas del rail que no cuelgan de un `form_code` fijo ni de
+> `FormPage`: no muestran un formulario, sino **todos** a la vez.
+
+### Panel de Administrador
+
+Asigna la fecha límite que "Estado de Entregas" necesita para comparar. No
+existía en la plataforma anterior: ahí la fecha se editaba a mano en la hoja
+`fechas_entrega` del Sheets.
+
+- **Grupo**: selects de Idioma, Frecuencia y Período — igual que los filtros
+  compartidos, vacío = "todos". No hay selector de Carrera ni Semestre: la
+  fecha se piensa por cohorte (idioma/frecuencia/periodo), no por carrera.
+- **Fecha límite**: un solo `<input type="date">`. El panel completa la hora a
+  `23:59:59` hora de Monterrey — el profesor piensa en un día, no en un
+  instante.
+- **Formularios**: checklist de los 12 formularios que pueden llevar fecha
+  (todos salvo 1.0 Datos Demográficos y las dos bitácoras). "Seleccionar
+  todos"/"Limpiar".
+- **Guardar fechas** crea una regla por formulario marcado, con el mismo grupo
+  y fecha. Las reglas viven abajo, en "Fechas asignadas": Formulario, Idioma,
+  Frecuencia, Período, Fecha Límite, Creado, y un botón para borrarla.
+- **No hay edición.** Corregir una fecha es borrarla y crear otra.
+
+### Estado de Entregas
+
+La matriz alumno × formulario. Filtros completos (Idioma, Frecuencia, Carrera,
+Semestre, Período), igual que las pantallas de Módulo 1.
+
+| Columna | Contenido |
+|---|---|
+| Nombre · Carrera · Sem. | comunes, columna Nombre fija |
+| una por cada uno de los 12 formularios | un cuadro de color: verde *a tiempo*, ámbar *tarde*, rojo *no entregado*, gris *sin fecha límite configurada* |
+| Resumen | conteo de verdes/ámbares/rojos de esa fila |
+
+El color de cada cuadro trae un tooltip con la marca temporal exacta de la
+entrega (o "No entregado" / "Sin fecha límite configurada"). Un formulario
+gris no es un formulario atrasado: es un formulario al que todavía no se le
+asignó fecha desde el Panel de Administrador — no se penaliza al alumno por
+una fecha que nadie configuró.
 
 ## Portal del alumno
 

@@ -19,6 +19,8 @@ import type {
   CompanyRow,
   DemographicsRow,
   DiscRow,
+  FormDeadline,
+  FormDeadlineInput,
   FormSummary,
   HollandRow,
   IndeedRow,
@@ -33,6 +35,8 @@ import type {
   SkillsRow,
   StudentDossier,
   SubmissionHistoryEntry,
+  SubmissionState,
+  SubmissionStatusRow,
   SyncStatus,
   ValuesRow,
 } from './types'
@@ -516,6 +520,80 @@ export const supabaseRepository: PanelRepository = {
       startedAt: data.started_at as string,
       finishedAt: (data.finished_at as string | null) ?? null,
     }
+  },
+
+  async getFormDeadlines(): Promise<FormDeadline[]> {
+    const { data, error } = await supabase
+      .from('form_deadlines')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) throw new Error(`No se pudieron cargar las fechas límite: ${error.message}`)
+
+    return ((data ?? []) as PanelRecord[]).map((record) => ({
+      id: str(record.id) ?? '',
+      formCode: record.form_code as FormCode,
+      language: (str(record.language) as 'es' | 'en' | null) ?? null,
+      sessionDay: (str(record.session_day) as 'lunes' | 'miercoles' | null) ?? null,
+      periodCode: str(record.period_code),
+      dueAt: str(record.due_at) ?? '',
+      createdAt: str(record.created_at) ?? '',
+    }))
+  },
+
+  async createFormDeadline(input: FormDeadlineInput): Promise<void> {
+    const { error } = await supabase.from('form_deadlines').insert({
+      form_code: input.formCode,
+      language: input.language,
+      session_day: input.sessionDay,
+      period_code: input.periodCode,
+      due_at: input.dueAt,
+    })
+
+    if (error) throw new Error(`No se pudo guardar la fecha límite: ${error.message}`)
+  },
+
+  async deleteFormDeadline(id: string): Promise<void> {
+    const { error } = await supabase.from('form_deadlines').delete().eq('id', id)
+    if (error) throw new Error(`No se pudo borrar la fecha límite: ${error.message}`)
+  },
+
+  /**
+   * `v_submission_status` es "un alumno, un formulario" por fila (como
+   * `submissions` misma); aquí se pivotea a "un alumno" con un estado por
+   * formulario, que es como la matriz de la pantalla la consume.
+   */
+  async getSubmissionStatus(filters: PanelFilters): Promise<SubmissionStatusRow[]> {
+    const { data, error } = await applyFilters(
+      supabase.from('v_submission_status').select('*'),
+      filters,
+    ).order('full_name', { ascending: true, nullsFirst: false })
+
+    if (error) throw new Error(`No se pudieron cargar las entregas: ${error.message}`)
+
+    const rows = new Map<string, SubmissionStatusRow>()
+    for (const record of (data ?? []) as PanelRecord[]) {
+      const studentId = str(record.student_id) ?? ''
+      let row = rows.get(studentId)
+      if (!row) {
+        row = {
+          studentId,
+          institutionalEmail: str(record.institutional_email) ?? '',
+          fullName: str(record.full_name),
+          degreeCode: str(record.degree_code),
+          semester: num(record.semester),
+          periodCode: str(record.period_code),
+          sessionDay: (str(record.session_day) as 'lunes' | 'miercoles' | null) ?? null,
+          statuses: {},
+        }
+        rows.set(studentId, row)
+      }
+      row.statuses[record.form_code as FormCode] = {
+        state: (str(record.state) as SubmissionState) ?? 'sin_fecha',
+        submittedAt: str(record.submitted_at),
+      }
+    }
+    return [...rows.values()]
   },
 }
 

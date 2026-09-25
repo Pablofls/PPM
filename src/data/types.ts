@@ -284,6 +284,54 @@ export const EMPTY_FILTERS: PanelFilters = {
   period: '',
 }
 
+/**
+ * Una regla de fecha límite (`form_deadlines`).
+ *
+ * `language`/`sessionDay`/`periodCode` en `null` significan "todos": el mismo
+ * significado que un select vacío en los filtros compartidos.
+ */
+export interface FormDeadline {
+  id: string
+  formCode: FormCode
+  language: Language | null
+  sessionDay: SessionDay | null
+  periodCode: string | null
+  dueAt: string
+  createdAt: string
+}
+
+/** Lo que el admin manda al crear una regla. `id`/`createdAt` los pone la base. */
+export interface FormDeadlineInput {
+  formCode: FormCode
+  language: Language | null
+  sessionDay: SessionDay | null
+  periodCode: string | null
+  dueAt: string
+}
+
+/** Una celda de la matriz de "Estado de Entregas": un alumno, un formulario. */
+export interface SubmissionStatusCell {
+  state: SubmissionState
+  submittedAt: string | null
+}
+
+/**
+ * Una fila de la matriz: un alumno con su estado en cada uno de los
+ * formularios que pueden llevar fecha límite. Un formulario ausente del mapa
+ * es un formulario sin fila en `v_submission_status` para este alumno — no
+ * debería pasar, pero la pantalla lo trata como `sin_fecha`.
+ */
+export interface SubmissionStatusRow {
+  studentId: string
+  institutionalEmail: string
+  fullName: string | null
+  degreeCode: string | null
+  semester: number | null
+  periodCode: string | null
+  sessionDay: SessionDay | null
+  statuses: Partial<Record<FormCode, SubmissionStatusCell>>
+}
+
 /** Contadores del encabezado de cada pantalla. */
 export interface FormSummary {
   responses: number

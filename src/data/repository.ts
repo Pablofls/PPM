@@ -19,6 +19,8 @@ import type {
   CompanyRow,
   DemographicsRow,
   DiscRow,
+  FormDeadline,
+  FormDeadlineInput,
   FormSummary,
   HollandRow,
   IndeedRow,
@@ -33,6 +35,7 @@ import type {
   SkillsRow,
   StudentDossier,
   SubmissionHistoryEntry,
+  SubmissionStatusRow,
   SyncStatus,
   ValuesRow,
 } from './types'
@@ -106,6 +109,24 @@ export interface PanelRepository {
    * ha corrido ninguna.
    */
   getLastSync(): Promise<SyncStatus | null>
+
+  /**
+   * Reglas de fecha límite vigentes, de la más reciente a la más antigua.
+   * Alimenta la tabla "Fechas asignadas" del Panel de Administrador.
+   */
+  getFormDeadlines(): Promise<FormDeadline[]>
+
+  /** Crea una regla de fecha límite. Nunca sobrescribe una existente. */
+  createFormDeadline(input: FormDeadlineInput): Promise<void>
+
+  /** Borra una regla. Corregir una fecha es borrarla y crear otra. */
+  deleteFormDeadline(id: string): Promise<void>
+
+  /**
+   * La matriz de "Estado de Entregas": un alumno por fila, con su estado en
+   * cada formulario que puede llevar fecha límite.
+   */
+  getSubmissionStatus(filters: PanelFilters): Promise<SubmissionStatusRow[]>
 }
 
 /** Respaldo sin base de datos, para cuando faltan las variables de entorno. */
@@ -167,6 +188,18 @@ export const emptyRepository: PanelRepository = {
   },
   async getLastSync() {
     return null
+  },
+  async getFormDeadlines() {
+    return []
+  },
+  async createFormDeadline() {
+    throw new Error('No hay conexión con la base de datos. La fecha no se guardó.')
+  },
+  async deleteFormDeadline() {
+    throw new Error('No hay conexión con la base de datos. La fecha no se borró.')
+  },
+  async getSubmissionStatus() {
+    return []
   },
 }
 
