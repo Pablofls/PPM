@@ -19,8 +19,11 @@ import { Badge } from '../../components/Badge'
  * de `JobSearchLogRow` e `InternshipLogRow`, así que el mismo catálogo dibuja
  * el formulario en blanco y las entregas ya hechas.
  *
- * Una entrega nueva nunca reemplaza a la anterior: se acumulan, y el profesor
- * las ve todas en el expediente (regla «Historial completo» de CLAUDE.md).
+ * La única semana que se puede entregar es la de hoy, y mientras siga siendo
+ * la de hoy se puede corregir en vez de acumular una entrega más: es la
+ * excepción acotada a «Historial completo» de CLAUDE.md que abre
+ * `0020_weekly_log_current_week_only.sql`. En cuanto la semana termina, la
+ * entrega vuelve a ser inmutable para siempre.
  */
 export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
   const { profile } = useAuth()
@@ -34,16 +37,23 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
     error: weeksError,
   } = useRepositoryQuery(() => repository.getSemesterWeeks(), [] as SemesterWeek[], [])
 
-  // Al entregar se regresa a la lista de tareas, con el aviso de que salió
-  // bien. Quedarse aquí dejaría al alumno frente a un formulario vacío, que se
-  // parece demasiado a que no pasó nada; volver al índice es además donde ve
-  // su contador de entregas actualizado.
-  const onSubmitted = useCallback(() => {
-    navigate('/alumno', {
-      replace: true,
-      state: { toast: `Entregaste tu ${form.name}. Tu profesor ya puede verlo.` },
-    })
-  }, [navigate, form.name])
+  // Al entregar o corregir se regresa a la lista de tareas, con el aviso de
+  // que salió bien. Quedarse aquí dejaría al alumno frente al mismo
+  // formulario, que se parece demasiado a que no pasó nada; volver al índice
+  // es además donde ve su contador de entregas actualizado.
+  const onSubmitted = useCallback(
+    (updated: boolean) => {
+      navigate('/alumno', {
+        replace: true,
+        state: {
+          toast: updated
+            ? `Actualizaste tu ${form.name}. Tu profesor ya puede verlo.`
+            : `Entregaste tu ${form.name}. Tu profesor ya puede verlo.`,
+        },
+      })
+    },
+    [navigate, form.name],
+  )
 
   return (
     <>
@@ -84,6 +94,8 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
         weeks={weeks}
         weeksLoading={weeksLoading}
         weeksError={weeksError}
+        entries={entries}
+        entriesLoading={loading}
       />
 
       <PreviousEntries
@@ -106,17 +118,20 @@ function SubmissionForm({
   weeks,
   weeksLoading,
   weeksError,
+  entries,
+  entriesLoading,
 }: {
   form: WeeklyFormMeta
-  onSubmitted: () => void
+  onSubmitted: (updated: boolean) => void
   weeks: SemesterWeek[]
   weeksLoading: boolean
   weeksError: string | null
+  entries: Entry[]
+  entriesLoading: boolean
 }) {
   // Se rearma al cambiar de tarea: los campos son otros y un valor a medio
   // escribir no debe cruzarse de una bitácora a la otra.
   const [values, setValues] = useState<Record<string, string>>({})
-  const [weekNumber, setWeekNumber] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -125,47 +140,81 @@ function SubmissionForm({
     setError(null)
   }, [form.code])
 
-  // Se preselecciona sola en cuanto llegan las semanas, no antes: hasta
-  // entonces no hay con qué elegir "la de hoy".
+  // La única semana posible es la de hoy: ya no hay selector. Si el alumno ya
+  // tiene una entrega de esa semana, es la que se corrige.
+  const currentWeek = weekForToday(weeks)
+  const existingEntry = currentWeek
+    ? entries.find((entry) => entry.weekStart === currentWeek.weekStart)
+    : undefined
+
+  // Precarga el formulario con lo ya entregado en cuanto se sabe cuál es esa
+  // entrega -no antes, porque hasta que cargan `entries` no hay con qué-. Se
+  // dispara por `submissionId` y no por el objeto para no rearmar los campos
+  // en cada render mientras el alumno sigue escribiendo.
   useEffect(() => {
-    if (weekNumber !== '' || weeks.length === 0) return
-    const actual = weekForToday(weeks)
-    if (actual) setWeekNumber(String(actual.weekNumber))
-  }, [weeks, weekNumber])
+    if (!existingEntry) return
+    setValues(
+      Object.fromEntries(
+        form.fields.map((field) => [field.key, valueToString(existingEntry.values[field.key])]),
+      ),
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingEntry?.submissionId])
 
   const faltantes = form.fields.filter(
     (field) => field.required && !values[field.key]?.trim(),
   )
-  const puedeEnviar = !saving && weekNumber !== '' && !faltantes.length
+  const puedeEnviar = !saving && currentWeek !== undefined && !faltantes.length
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
-    if (!puedeEnviar) return
+    if (!puedeEnviar || !currentWeek) return
 
     setSaving(true)
     setError(null)
 
     try {
-      await submit(form.code, Number(weekNumber), values)
+      if (existingEntry) {
+        await update(form.code, existingEntry.submissionId, values)
+      } else {
+        await submit(form.code, currentWeek.weekNumber, values)
+      }
       // No se limpia el formulario: `onSubmitted` navega y esta pantalla se
       // desmonta. Limpiarlo antes solo haría parpadear los campos vacíos.
-      onSubmitted()
+      onSubmitted(Boolean(existingEntry))
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'No se pudo guardar tu entrega.')
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : existingEntry
+            ? 'No se pudo guardar tu corrección.'
+            : 'No se pudo guardar tu entrega.',
+      )
     } finally {
       setSaving(false)
     }
   }
 
-  // Sin semanas configuradas no hay nada que elegir: un select vacío
-  // confundiría más que una explicación directa de qué falta.
-  if (!weeksLoading && !weeksError && weeks.length === 0) {
-    return (
-      <div className="mt-6 rounded-xl border border-dashed border-ink-200 bg-ink-50/50 p-6 text-sm text-ink-600">
-        Tu profesor todavía no configuró las semanas de este periodo. Vuelve
-        más tarde para entregar tu bitácora.
-      </div>
-    )
+  // Sin semanas configuradas, o con hoy fuera de todas las configuradas, no
+  // hay qué formulario mostrar: una explicación directa dice más que un
+  // formulario deshabilitado sin más contexto.
+  if (!weeksLoading && !weeksError) {
+    if (weeks.length === 0) {
+      return (
+        <div className="mt-6 rounded-xl border border-dashed border-ink-200 bg-ink-50/50 p-6 text-sm text-ink-600">
+          Tu profesor todavía no configuró las semanas de este periodo. Vuelve
+          más tarde para entregar tu bitácora.
+        </div>
+      )
+    }
+    if (!currentWeek) {
+      return (
+        <div className="mt-6 rounded-xl border border-dashed border-ink-200 bg-ink-50/50 p-6 text-sm text-ink-600">
+          Hoy no cae dentro de ninguna semana configurada de tu periodo.
+          Contacta a tu profesor.
+        </div>
+      )
+    }
   }
 
   return (
@@ -173,30 +222,23 @@ function SubmissionForm({
       onSubmit={handleSubmit}
       className="mt-6 rounded-xl border border-ink-200 bg-white p-6 shadow-sm"
     >
-      <h2 className="text-sm font-semibold text-ink-900">Nueva entrega</h2>
+      <h2 className="text-sm font-semibold text-ink-900">
+        {existingEntry ? 'Tu entrega de esta semana' : 'Nueva entrega'}
+      </h2>
 
-      <fieldset className="mt-5" disabled={saving || weeksLoading}>
+      <fieldset className="mt-5" disabled={saving || weeksLoading || entriesLoading}>
         <legend className="sr-only">Semana que reportas</legend>
         <div className="sm:max-w-xs">
-          <Field label="Semana que reportas" required>
+          <Field label="Semana que reportas">
             {weeksError ? (
               <p className="text-sm text-red-700">{weeksError}</p>
+            ) : currentWeek ? (
+              <p className="text-sm font-medium text-ink-900">
+                Semana {currentWeek.weekNumber} ·{' '}
+                {formatWeekRange(currentWeek.weekStart, currentWeek.weekEnd)}
+              </p>
             ) : (
-              <select
-                required
-                value={weekNumber}
-                onChange={(event) => setWeekNumber(event.target.value)}
-                className={INPUT}
-              >
-                <option value="" disabled>
-                  {weeksLoading ? 'Cargando semanas…' : 'Elige una semana'}
-                </option>
-                {weeks.map((week) => (
-                  <option key={week.weekNumber} value={week.weekNumber}>
-                    Semana {week.weekNumber} · {formatWeekRange(week.weekStart, week.weekEnd)}
-                  </option>
-                ))}
-              </select>
+              <p className="text-sm text-ink-500">Cargando…</p>
             )}
           </Field>
         </div>
@@ -246,11 +288,18 @@ function SubmissionForm({
           disabled={!puedeEnviar}
           className="rounded-lg bg-ink-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ink-800 disabled:cursor-not-allowed disabled:bg-ink-300"
         >
-          {saving ? 'Entregando…' : 'Entregar'}
+          {existingEntry
+            ? saving
+              ? 'Actualizando…'
+              : 'Actualizar'
+            : saving
+              ? 'Entregando…'
+              : 'Entregar'}
         </button>
         <p className="text-xs text-ink-500">
-          Una vez entregada no se puede editar. Si te equivocaste, vuelve a
-          entregar la semana.
+          {existingEntry
+            ? 'Puedes seguir corrigiéndola mientras siga siendo esta semana.'
+            : 'Podrás corregirla mientras siga siendo esta semana.'}
         </p>
       </div>
     </form>
@@ -469,17 +518,52 @@ function submit(
   })
 }
 
+/** Corrige el contenido de una entrega que ya existe. Misma semana, otro contenido. */
+function update(
+  code: WeeklyFormCode,
+  submissionId: string,
+  values: Record<string, string>,
+): Promise<void> {
+  const texto = (key: string) => values[key]?.trim() ?? ''
+
+  if (code === 'form_busqueda') {
+    return repository.updateJobSearchLog({
+      submissionId,
+      activities: texto('activities'),
+      applications: texto('applications'),
+      interviews: texto('interviews'),
+      learnings: texto('learnings'),
+      nextSteps: texto('nextSteps'),
+    })
+  }
+
+  const horas = texto('hoursWorked')
+  return repository.updateInternshipLog({
+    submissionId,
+    activities: texto('activities'),
+    hoursWorked: horas === '' ? null : Number(horas),
+    skillsPracticed: texto('skillsPracticed'),
+    proposal: texto('proposal'),
+  })
+}
+
+/** El valor de una entrega ya hecha, como texto para precargar un campo del formulario. */
+function valueToString(value: unknown): string {
+  if (value === null || value === undefined) return ''
+  return String(value)
+}
+
 // ---------------------------------------------------------------------------
-// La semana que se propone por omisión
+// La única semana disponible
 // ---------------------------------------------------------------------------
 
 /**
  * De las semanas configuradas, la que contiene hoy — o `undefined` si hoy cae
  * fuera de todas (antes de la semana 1 o después de la última).
  *
- * Se preselecciona en vez de dejar el select vacío porque es la respuesta
- * correcta casi siempre; el alumno la puede cambiar para reportar una semana
- * atrasada.
+ * Es la única semana que se puede entregar o corregir: ya no hay selector
+ * (regla del profesor, `0020_weekly_log_current_week_only.sql`). Una semana
+ * atrasada que nadie reportó a tiempo queda sin reportar.
  */
 function weekForToday(weeks: SemesterWeek[]): SemesterWeek | undefined {
   const hoy = isoDate(new Date())

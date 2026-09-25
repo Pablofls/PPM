@@ -26,9 +26,11 @@ import type {
   IndeedRow,
   InternshipLogInput,
   InternshipLogRow,
+  InternshipLogUpdateInput,
   InternshipRow,
   JobSearchLogInput,
   JobSearchLogRow,
+  JobSearchLogUpdateInput,
   MbtiRow,
   PanelFilters,
   ReflectionRow,
@@ -486,6 +488,37 @@ export const supabaseRepository: PanelRepository = {
   async submitInternshipLog(input: InternshipLogInput): Promise<void> {
     const { error } = await supabase.rpc('submit_internship_log', {
       p_week_number: input.weekNumber,
+      p_activities: input.activities,
+      p_hours_worked: input.hoursWorked,
+      p_skills_practiced: input.skillsPracticed,
+      p_proposal: input.proposal,
+    })
+
+    if (error) throw new Error(submissionError(error.message))
+  },
+
+  /**
+   * Corrige una entrega ya hecha. Igual que al entregar, el RPC no recibe de
+   * qué alumno es -sale de `current_student_id()`- y el servidor rechaza el
+   * intento si la semana de esa entrega ya no es la semana en curso (política
+   * de UPDATE de `0020_weekly_log_current_week_only.sql`).
+   */
+  async updateJobSearchLog(input: JobSearchLogUpdateInput): Promise<void> {
+    const { error } = await supabase.rpc('update_job_search_log', {
+      p_submission_id: input.submissionId,
+      p_activities: input.activities,
+      p_applications: input.applications,
+      p_interviews: input.interviews,
+      p_learnings: input.learnings,
+      p_next_steps: input.nextSteps,
+    })
+
+    if (error) throw new Error(submissionError(error.message))
+  },
+
+  async updateInternshipLog(input: InternshipLogUpdateInput): Promise<void> {
+    const { error } = await supabase.rpc('update_internship_log', {
+      p_submission_id: input.submissionId,
       p_activities: input.activities,
       p_hours_worked: input.hoursWorked,
       p_skills_practiced: input.skillsPracticed,

@@ -206,8 +206,8 @@ export const WEEKLY_FORMS: WeeklyFormMeta[] = [
     path: '/alumno/reporte-de-busqueda',
     instructions: [
       'Se entrega una vez por semana, mientras sigas en búsqueda de prácticas.',
-      'Reporta la semana que ya trabajaste, no la que empieza.',
-      'Cada entrega se guarda aparte: si te equivocaste, vuelve a entregar la semana y tu profesor verá las dos.',
+      'Solo puedes reportar la semana en curso: el sistema no te deja elegir otra.',
+      'Puedes corregirla las veces que quieras mientras siga siendo esta semana; en cuanto termine, ya no se puede editar.',
     ],
     fields: [
       {
@@ -251,7 +251,7 @@ export const WEEKLY_FORMS: WeeklyFormMeta[] = [
     instructions: [
       'Se entrega una vez por semana, desde que empiezas tus prácticas.',
       'Las horas son las de esa semana, no el acumulado: el total lo suma el sistema.',
-      'Cada entrega se guarda aparte: si te equivocaste, vuelve a entregar la semana y tu profesor verá las dos.',
+      'Solo puedes reportar la semana en curso, y puedes corregirla mientras siga en curso; en cuanto termine, ya no se puede editar.',
     ],
     fields: [
       {

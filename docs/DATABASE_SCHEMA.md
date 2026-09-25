@@ -628,11 +628,7 @@ la fila de `submissions`. Desde `0018_semester_weeks.sql` reciben
 `week_number` en vez de `week_start`/`week_end`: la función resuelve el rango
 buscando `(current_student_period(), week_number)` en `semester_weeks` —el
 alumno ya no puede invertir una semana ni escribir una de más de un mes,
-porque ya no escribe fechas—. Sigue validando que la semana no sea futura; esa
-validación no era un `CHECK` de tabla porque la tabla tiene que seguir
-aceptando los 18 rangos mal capturados que ya se importaron del Sheets. Lo que
-llega mal de la historia se conserva; lo que se captura hoy se captura bien.
-Ver [Semanas del semestre](#semanas-del-semestre).
+porque ya no escribe fechas—. Ver [Semanas del semestre](#semanas-del-semestre).
 
 > `0016` definió estas tres funciones con `week_start`/`week_end` como
 > parámetros; ese archivo no se edita. `0018` las redefine con la firma
@@ -640,9 +636,55 @@ Ver [Semanas del semestre](#semanas-del-semestre).
 > `create or replace` con otro número de parámetros habría dejado un
 > *overload* viejo colgado en vez de reemplazarlo.
 
-> **No hay políticas de `UPDATE` ni de `DELETE`.** Una entrega no se edita ni se
-> borra: corregir una semana es volver a entregarla, y las dos quedan en el
-> expediente (regla «Historial completo» de CLAUDE.md).
+> **`DELETE` sigue sin existir.** `UPDATE` tampoco, con una excepción acotada:
+> ver [La semana en curso se puede corregir](#la-semana-en-curso-se-puede-corregir),
+> más abajo.
+
+#### La semana en curso se puede corregir
+
+> Migración `0020_weekly_log_current_week_only.sql` — ✅ ejecutada en Supabase
+> (2026-09-25).
+
+Hasta `0018`, `new_weekly_submission()` solo rechazaba una semana **futura**;
+una semana ya pasada se aceptaba igual, y era la manera de ponerse al
+corriente con un reporte atrasado. `0020` lo cierra más: ahora `p_week_number`
+tiene que ser **la semana de hoy** o la función lo rechaza
+(`'Solo puedes entregar la semana en curso.'`). La pantalla del alumno ya no
+ofrece otra: el selector de semana desapareció y siempre manda la semana que
+contiene la fecha de hoy.
+
+Mientras esa semana siga siendo la de hoy, el alumno puede corregir lo que ya
+mandó en vez de crear una entrega nueva — `update_job_search_log(submission_id,
+…)` y `update_internship_log(submission_id, …)`, mismo patrón `SECURITY
+INVOKER` que las `submit_*`. Lo que autoriza la corrección no es la función,
+son dos políticas nuevas de `UPDATE` sobre `job_search_logs` e
+`internship_logs` (no sobre `submissions`: lo que identifica a la entrega no
+cambia, solo su contenido):
+
+```sql
+using (
+  exists (
+    select 1 from submissions sub
+    where sub.id = job_search_logs.submission_id
+      and sub.student_id = public.current_student_id()
+      and sub.form_code = 'form_busqueda'
+      and current_date between sub.week_start and sub.week_end
+  )
+)
+```
+
+(`internship_logs` lleva la gemela, con `form_practicas`.) El `WITH CHECK` es
+idéntico al `USING`: sin eso, un `UPDATE` que reasignara `submission_id` a la
+entrega de otra semana —propia o ajena— se validaría contra la fila vieja y no
+contra la nueva.
+
+En cuanto la semana termina, `current_date between week_start and week_end` deja
+de cumplirse y la fila vuelve a ser inmutable para siempre — el `UPDATE` no
+truena, afecta cero filas, y `update_job_search_log()`/`update_internship_log()`
+lo convierten en un error legible (`'Ya no puedes corregir esa entrega...'`) en
+vez de un guardado silencioso que no guardó nada. Es la excepción acotada a la
+regla «Historial completo» de CLAUDE.md: una semana cerrada se sigue sin poder
+editar ni borrar, igual que antes.
 
 ---
 
@@ -993,12 +1035,16 @@ Las funciones de sincronización (`sheet_*`, `ingest_sheet_rows`,
 `authenticated`: **ni siquiera un admin puede dispararlas desde el navegador**.
 Solo `service_role` —la llave que vive en el Apps Script— y el SQL Editor.
 
-No hay política de `UPDATE` en **ninguna** tabla: RLS deniega por omisión, así
-que desde el navegador no se puede modificar una fila aunque se manipule la
-petición. `DELETE` sigue sin existir para las tablas de datos de alumnos
-—una entrega no se borra— pero sí para las dos tablas de configuración del
-admin, `form_deadlines` y `semester_weeks`: ahí corregir es borrar y volver a
-crear, no editar (ver sus secciones).
+No hay política de `UPDATE` en **ninguna** tabla, con una sola excepción desde
+`0020`: `job_search_logs` e `internship_logs` la ganan, acotada a que la
+semana de la entrega siga siendo la semana en curso (ver
+[La semana en curso se puede corregir](#la-semana-en-curso-se-puede-corregir)).
+En el resto, RLS deniega por omisión, así que desde el navegador no se puede
+modificar una fila aunque se manipule la petición. `DELETE` sigue sin existir
+para las tablas de datos de alumnos —una entrega no se borra, ni siquiera la
+de la semana en curso: se corrige— pero sí para las dos tablas de
+configuración del admin, `form_deadlines` y `semester_weeks`: ahí corregir es
+borrar y volver a crear, no editar (ver sus secciones).
 
 Hasta `0016` el único `INSERT` desde el navegador era el del alumno en sus dos
 bitácoras. `0017` agrega el segundo: `form_deadlines` acepta `insert` y
@@ -1076,6 +1122,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0017_form_deadlines.sql` | `submission_state`, `form_deadlines`, `resolve_form_deadline()`, `submission_status()`, `v_submission_status` | ✅ 2026-09-25 |
 | `0018_semester_weeks.sql` | `semester_weeks`, `current_student_period()`, `new_weekly_submission()`/`submit_job_search_log()`/`submit_internship_log()` redefinidas con `week_number` | ✅ 2026-09-25 |
 | `0019_student_dossier_read.sql` | políticas de lectura del alumno sobre su propio expediente: `students`, `demographics`, `holland_results`, `mbti_results`, `disc_results`, `values_results`, `company_profiles` | ⏳ **pendiente** |
+| `0020_weekly_log_current_week_only.sql` | `new_weekly_submission()` exige que la semana sea la de hoy; políticas de `UPDATE` de `job_search_logs`/`internship_logs` acotadas a la semana en curso; `update_job_search_log()`, `update_internship_log()` | ✅ 2026-09-25 |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.

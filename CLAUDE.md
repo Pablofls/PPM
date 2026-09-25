@@ -105,6 +105,12 @@ fila por alumno; el perfil del alumno muestra el historial completo.
 
 > Al agregar un formulario nuevo, nunca poner un `UNIQUE (student_id, form_code)`.
 
+La semana en curso de una bitácora es la única excepción: mientras sigue en
+curso tiene una sola versión vigente, porque el alumno la puede corregir en
+vez de reenviar (ver regla «Toda pantalla nace protegida y admin-only», y
+`0020_weekly_log_current_week_only.sql`). En cuanto la semana cierra, vuelve a
+acumular como cualquier otra.
+
 ### 6. Habilidades (formulario 1.4): columnas anchas
 
 `skills_assessment` tiene una columna por habilidad, réplica de la hoja de cálculo.
@@ -151,8 +157,13 @@ La vista del alumno sigue la misma regla desde el otro lado: su guardia es
 
 El alumno solo escribe sus dos bitácoras, y la política lo acota por código de
 formulario (`0016`). Abrirle un formulario más es una decisión que se pide, no
-se asume. **Nunca hay política de `UPDATE` ni de `DELETE`:** corregir una
-entrega es volver a entregar (regla «Historial completo»).
+se asume. **Nunca hay política de `DELETE`.** Tampoco hay `UPDATE`, con una
+única excepción, acotada por fecha y no por confianza en la pantalla: mientras
+la semana de una bitácora siga siendo la semana en curso, el alumno la puede
+corregir (`0020`); en cuanto termina, la fila vuelve a ser inmutable para
+siempre, igual que cualquier otra. Corregir una semana ya cerrada sigue sin
+ser posible — eso sigue siendo «volver a entregar» (regla «Historial
+completo»), porque ya no se puede: la semana pasada.
 
 ### 9. Alcance de las pantallas
 

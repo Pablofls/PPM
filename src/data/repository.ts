@@ -26,9 +26,11 @@ import type {
   IndeedRow,
   InternshipLogInput,
   InternshipLogRow,
+  InternshipLogUpdateInput,
   InternshipRow,
   JobSearchLogInput,
   JobSearchLogRow,
+  JobSearchLogUpdateInput,
   MbtiRow,
   PanelFilters,
   ReflectionRow,
@@ -93,17 +95,28 @@ export interface PanelRepository {
   getInternshipLogs(studentId: string): Promise<InternshipLogRow[]>
 
   /**
-   * Entrega una bitácora del alumno de la sesión.
+   * Entrega una bitácora del alumno de la sesión, para la semana en curso.
    *
    * No reciben `studentId`: el alumno sale de la sesión, en la base. Un
    * parámetro aquí sería un parámetro que alguien puede cambiar en el
    * navegador.
    *
-   * Cada llamada crea una entrega nueva; nunca sobrescribe la anterior (regla
-   * «Historial completo» de CLAUDE.md).
+   * Cada llamada crea una entrega nueva. El servidor rechaza cualquier semana
+   * que no sea la de hoy -ya no hay forma de ponerse al corriente con una
+   * semana atrasada, es la excepción acotada a «Historial completo» de
+   * CLAUDE.md que abre `0020_weekly_log_current_week_only.sql`-.
    */
   submitJobSearchLog(input: JobSearchLogInput): Promise<void>
   submitInternshipLog(input: InternshipLogInput): Promise<void>
+
+  /**
+   * Corrige el contenido de una entrega ya hecha, mientras su semana siga
+   * siendo la semana en curso. Pasado ese punto la fila vuelve a ser
+   * inmutable para siempre: el servidor lo rechaza aunque la pantalla lo deje
+   * intentar (RLS de `0020_weekly_log_current_week_only.sql`).
+   */
+  updateJobSearchLog(input: JobSearchLogUpdateInput): Promise<void>
+  updateInternshipLog(input: InternshipLogUpdateInput): Promise<void>
 
   /**
    * La última corrida de la sincronización con el Sheets. `null` si todavía no
@@ -207,6 +220,12 @@ export const emptyRepository: PanelRepository = {
   },
   async submitInternshipLog() {
     throw new Error('No hay conexión con la base de datos. Tu entrega no se guardó.')
+  },
+  async updateJobSearchLog() {
+    throw new Error('No hay conexión con la base de datos. Tu corrección no se guardó.')
+  },
+  async updateInternshipLog() {
+    throw new Error('No hay conexión con la base de datos. Tu corrección no se guardó.')
   },
   async getLastSync() {
     return null

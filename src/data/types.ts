@@ -266,6 +266,29 @@ export interface InternshipLogInput extends WeeklyLogInput {
   proposal: string
 }
 
+/**
+ * Lo que identifica la entrega que se está corrigiendo: su id, no su semana
+ * -la semana no se puede cambiar al corregir, solo el contenido-.
+ */
+export interface WeeklyLogUpdateInput {
+  submissionId: string
+}
+
+export interface JobSearchLogUpdateInput extends WeeklyLogUpdateInput {
+  activities: string
+  applications: string
+  interviews: string
+  learnings: string
+  nextSteps: string
+}
+
+export interface InternshipLogUpdateInput extends WeeklyLogUpdateInput {
+  activities: string
+  hoursWorked: number | null
+  skillsPracticed: string
+  proposal: string
+}
+
 /** Una entrada del historial de respuestas de un alumno a un formulario. */
 export interface SubmissionHistoryEntry {
   submissionId: string
