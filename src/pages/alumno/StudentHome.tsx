@@ -10,15 +10,11 @@ import { WEEKLY_FORMS, type WeeklyFormMeta } from '../../lib/catalog'
 import { formatRelativeTime, formatWeekRange } from '../../lib/format'
 
 /**
- * Índice del portal del alumno: sus tareas.
+ * Índice del portal del alumno: su ADN Profesional y sus tareas.
  *
- * Es la lista de tareas de un curso, no un panel de resultados. Hoy son las dos
- * bitácoras semanales, que son los únicos formularios que el alumno contesta
- * aquí; los otros trece se siguen contestando en Google Forms.
- *
- * La sección «Próximamente» comunica a dónde va esto sin prometer que ya
- * funciona, igual que el rail del profesor (regla «Alcance de las pantallas»
- * de CLAUDE.md).
+ * Las tareas son la lista de tareas de un curso, no un panel de resultados.
+ * Hoy son las dos bitácoras semanales, que son los únicos formularios que el
+ * alumno contesta aquí; los otros trece se siguen contestando en Google Forms.
  */
 export function StudentHome() {
   const { profile, session } = useAuth()
@@ -49,49 +45,6 @@ export function StudentHome() {
           {WEEKLY_FORMS.map((form) => (
             <li key={form.code}>
               <AssignmentCard form={form} />
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="mt-8 rounded-xl border border-ink-200 bg-white p-6 shadow-sm">
-        <h2 className="text-sm font-semibold text-ink-900">Tu cuenta</h2>
-        <dl className="mt-4 space-y-3 text-sm">
-          <div className="sm:flex sm:gap-4">
-            <dt className="w-44 shrink-0 text-ink-500">Nombre</dt>
-            <dd className="text-ink-800">{nombre || 'No registrado'}</dd>
-          </div>
-          <div className="sm:flex sm:gap-4">
-            <dt className="w-44 shrink-0 text-ink-500">Correo institucional</dt>
-            <dd className="break-all text-ink-800">{correo}</dd>
-          </div>
-          <div className="sm:flex sm:gap-4">
-            <dt className="w-44 shrink-0 text-ink-500">Contraseña</dt>
-            <dd className="text-ink-800">Tu matrícula</dd>
-          </div>
-        </dl>
-        <p className="mt-4 border-t border-ink-100 pt-4 text-xs leading-relaxed text-ink-500">
-          Si algo de tus datos no coincide, lo que manda es lo que registraste
-          en el formulario 1.0 Datos Demográficos. Avísale a tu profesor para
-          corregirlo.
-        </p>
-      </section>
-
-      <section className="mt-6">
-        <h2 className="px-1 text-[11px] font-semibold tracking-widest text-ink-500 uppercase">
-          Próximamente
-        </h2>
-        <ul className="mt-2 space-y-2">
-          {PROXIMAMENTE.map((seccion) => (
-            <li
-              key={seccion.titulo}
-              title="Todavía no está disponible"
-              className="cursor-not-allowed rounded-xl border border-dashed border-ink-200 bg-ink-50/50 px-5 py-4"
-            >
-              <p className="text-sm font-medium text-ink-600">{seccion.titulo}</p>
-              <p className="mt-0.5 text-xs leading-relaxed text-ink-500">
-                {seccion.descripcion}
-              </p>
             </li>
           ))}
         </ul>
@@ -219,12 +172,3 @@ function useHandoffToast(): [string | null, () => void] {
 
   return [toast, dismiss]
 }
-
-/** Lo que el alumno va a poder ver de sí mismo, y todavía no. */
-const PROXIMAMENTE = [
-  {
-    titulo: 'Mis entregas',
-    descripcion:
-      'Qué formularios ya entregaste y cuándo, de los Módulos 1 y 2 y los apéndices.',
-  },
-]

@@ -366,11 +366,10 @@ formulario de entrega y lo que ya entregó.
 | Aviso | Al volver de entregar, la confirmación de que se guardó. Se va solo a los 6 segundos |
 | ADN Profesional | Su propio expediente (secciones I a V: identidad, intereses, personalidad, comportamiento, valores y los datos de la práctica en curso). Mismo componente que abre el profesor, `DossierProfile`, sin las bitácoras ni el historial de respuestas |
 | Tareas | Una tarjeta por bitácora: nombre, para qué es, cuántas entregas lleva y cuál fue la última |
-| Tu cuenta | Nombre, correo institucional y el recordatorio de que la contraseña es su matrícula |
-| Próximamente | Mis entregas, deshabilitada |
 
-«Mis bitácoras» salió de «Próximamente»: ya existe, y es la lista de tareas. «Mi
-expediente» también salió: es el bloque ADN Profesional, de arriba.
+Sin «Tu cuenta» ni «Próximamente»: el bloque ADN Profesional ya muestra su
+nombre y correo, y «Mis bitácoras»/«Mi expediente» —lo único que tenía esa
+lista— ya son parte de la pantalla.
 
 El resumen de cada tarjeta es lo que hace útil la lista. Sin él, el alumno
 tendría que entrar a cada tarea para saber si ya entregó la semana. Si la
