@@ -340,9 +340,9 @@ Define las semanas que después elige el alumno al entregar una bitácora, en
 vez de que las escriba a mano (la causa más común de captura mal hecha en el
 Sheets original).
 
-- **Periodo**: `<input>` de texto libre, no un select — el profesor tiene que
-  poder escribir un periodo que todavía no existe en ningún otro lado
-  (`PR-27`).
+- **Periodo**: el mismo `Select` de `PERIOD_OPTIONS` que usa "Asignar fecha de
+  entrega" — un periodo nuevo (`PR-27`) se agrega a ese catálogo antes de
+  poder configurarle semanas.
 - **Semana 1 empieza (lunes)**: `<input type="date">`. Un aviso en rojo avisa
   si la fecha elegida no cae en lunes; la base lo vuelve a validar.
 - **Número de semanas**: numérico, 1–53. Las semanas 2 en adelante salen solas,

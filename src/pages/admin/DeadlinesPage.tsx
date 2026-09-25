@@ -252,10 +252,9 @@ function optionLabel(options: FilterOption[], value: string | null): string | nu
  * Semanas del semestre: el profesor da la semana 1 y cuántas hay, y el resto
  * sale de sumar 7 días (lo calcula `createSemesterWeeks`, no esta pantalla).
  *
- * El periodo es texto libre y no el `Select` de `PERIOD_OPTIONS`: ese
- * catálogo es una lista fija de periodos que ya existen, y aquí el profesor
- * necesita poder escribir uno nuevo (`PR-27`) antes de que exista en ningún
- * otro lado.
+ * El periodo es el mismo `Select` de `PERIOD_OPTIONS` que usa "Asignar fecha
+ * de entrega": un periodo nuevo (`PR-27`) se agrega ahí antes de poder
+ * configurarle semanas, no se escribe a mano aquí.
  */
 function SemesterWeeksSection() {
   const [periodCode, setPeriodCode] = useState('')
@@ -277,7 +276,7 @@ function SemesterWeeksSection() {
     firstWeekStart !== '' && new Date(`${firstWeekStart}T00:00:00`).getDay() === 1
   const puedeGenerar =
     !saving &&
-    periodCode.trim() !== '' &&
+    periodCode !== '' &&
     isMonday &&
     Number.isInteger(parsedCount) &&
     parsedCount >= 1 &&
@@ -289,7 +288,7 @@ function SemesterWeeksSection() {
     setMessage(null)
 
     try {
-      await repository.createSemesterWeeks(periodCode.trim(), firstWeekStart, parsedCount)
+      await repository.createSemesterWeeks(periodCode, firstWeekStart, parsedCount)
       setPeriodCode('')
       setFirstWeekStart('')
       setWeekCount('')
@@ -318,19 +317,7 @@ function SemesterWeeksSection() {
       </p>
 
       <div className="mt-4 flex flex-wrap items-end gap-3">
-        <div>
-          <label htmlFor="periodo-semanas" className="mb-1 block text-xs font-medium text-ink-500">
-            Periodo
-          </label>
-          <input
-            id="periodo-semanas"
-            type="text"
-            placeholder="OT-26"
-            value={periodCode}
-            onChange={(event) => setPeriodCode(event.target.value)}
-            className={`${FIELD_INPUT} w-28`}
-          />
-        </div>
+        <Select label="Período" value={periodCode} options={PERIOD_OPTIONS} onChange={setPeriodCode} />
         <div>
           <label htmlFor="semana-1" className="mb-1 block text-xs font-medium text-ink-500">
             Semana 1 empieza (lunes)
