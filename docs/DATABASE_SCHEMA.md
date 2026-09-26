@@ -1138,7 +1138,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0019_student_dossier_read.sql` | políticas de lectura del alumno sobre su propio expediente: `students`, `demographics`, `holland_results`, `mbti_results`, `disc_results`, `values_results`, `company_profiles` | ⏳ **pendiente** |
 | `0020_weekly_log_current_week_only.sql` | `new_weekly_submission()` exige que la semana sea la de hoy; políticas de `UPDATE` de `job_search_logs`/`internship_logs` acotadas a la semana en curso; `update_job_search_log()`, `update_internship_log()` | ✅ 2026-09-25 |
 | `0021_sync_creates_student_accounts.sql` | `import_sheet_rows()` redefinida: llama a `create_student_accounts()` en cada corrida | ✅ 2026-09-25 |
-| `0022_admin_run_sheet_sync.sql` | `admin_run_sheet_sync()`: puerta admin-only para que el botón "Procesar datos" del panel dispare `import_sheet_rows()` a mano | ⏳ **pendiente** |
+| `0022_admin_run_sheet_sync.sql` | `admin_run_sheet_sync()`: puerta admin-only para que el botón "Procesar datos" del panel dispare `import_sheet_rows()` a mano | ✅ 2026-09-25 |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.
