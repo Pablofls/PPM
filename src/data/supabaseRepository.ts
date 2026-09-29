@@ -463,6 +463,20 @@ export const supabaseRepository: PanelRepository = {
   },
 
   /**
+   * Llama `admin_set_weekly_log_week_number()` (`0029`), que resuelve sola a
+   * qué tabla (`job_search_logs` o `internship_logs`) escribir según el
+   * `form_code` de la entrega. `weekNumber: null` borra la corrección.
+   */
+  async setWeeklyLogWeekNumber(submissionId: string, weekNumber: number | null): Promise<void> {
+    const { error } = await supabase.rpc('admin_set_weekly_log_week_number', {
+      p_submission_id: submissionId,
+      p_week_number: weekNumber,
+    })
+
+    if (error) throw new Error(`No se pudo corregir la semana: ${error.message}`)
+  },
+
+  /**
    * Las entregas del alumno.
    *
    * Pasan por una función de la base y no por dos `insert` encadenados porque

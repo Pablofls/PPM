@@ -98,6 +98,16 @@ export interface PanelRepository {
   getInternshipLogs(studentId: string): Promise<InternshipLogRow[]>
 
   /**
+   * El profesor corrige (o asigna) el número de semana de una entrega, para
+   * cuando el mejor esfuerzo automático (`best_matching_week_number()`,
+   * `0028`) no calza o calza mal — rangos corridos o corruptos del Google
+   * Forms viejo. `null` borra la corrección y vuelve al cálculo automático.
+   * Admin-only: `admin_set_weekly_log_week_number()` (`0029`) rechaza a
+   * cualquiera que no sea admin.
+   */
+  setWeeklyLogWeekNumber(submissionId: string, weekNumber: number | null): Promise<void>
+
+  /**
    * Entrega una bitácora del alumno de la sesión, para la semana en curso.
    *
    * No reciben `studentId`: el alumno sale de la sesión, en la base. Un
@@ -244,6 +254,9 @@ export const emptyRepository: PanelRepository = {
   },
   async getInternshipLogs() {
     return []
+  },
+  async setWeeklyLogWeekNumber() {
+    throw new Error('No hay conexión con la base de datos. La semana no se corrigió.')
   },
   async submitJobSearchLog() {
     // Las lecturas devuelven vacío sin base de datos; una entrega no puede

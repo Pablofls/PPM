@@ -135,8 +135,12 @@ export function useSubmissionStatus(studentId: string | null) {
   return { statuses, error }
 }
 
-/** Igual que `useSubmissionStatus`, pero para la matriz de semanas. */
-export function useWeeklyLogStatus(studentId: string | null) {
+/**
+ * Igual que `useSubmissionStatus`, pero para la matriz de semanas.
+ * `refreshKey` fuerza una nueva consulta sin depender de `studentId`: lo usa
+ * la corrección de semana del expediente.
+ */
+export function useWeeklyLogStatus(studentId: string | null, refreshKey = 0) {
   const [weeks, setWeeks] = useState<WeeklyLogStatusCell[]>([])
   const [error, setError] = useState<string | null>(null)
 
@@ -164,7 +168,7 @@ export function useWeeklyLogStatus(studentId: string | null) {
     return () => {
       cancelled = true
     }
-  }, [studentId])
+  }, [studentId, refreshKey])
 
   return { weeks, error }
 }

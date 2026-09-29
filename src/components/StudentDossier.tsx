@@ -54,9 +54,21 @@ export function StudentDossier<T extends BaseRow>({
   children,
 }: StudentDossierProps<T>) {
   const studentId = row?.studentId ?? null
-  const { dossier, jobSearch, internship, error } = useDossier(studentId)
+  const [weekFixKey, setWeekFixKey] = useState(0)
+  const { dossier, jobSearch, internship, error } = useDossier(studentId, weekFixKey)
   const { statuses, error: statusError } = useSubmissionStatus(studentId)
-  const { weeks, error: weeksError } = useWeeklyLogStatus(studentId)
+  const { weeks, error: weeksError } = useWeeklyLogStatus(studentId, weekFixKey)
+
+  /**
+   * El profesor corrige el número de semana de una entrega (botón "Clasificar
+   * semana"/"Corregir" en `LogTable`). Refresca las bitácoras y la matriz de
+   * "Semanas": los dos leen `week_number` resuelto por la misma función y
+   * cambian juntos.
+   */
+  async function classifyWeek(submissionId: string, weekNumber: number | null) {
+    await repository.setWeeklyLogWeekNumber(submissionId, weekNumber)
+    setWeekFixKey((key) => key + 1)
+  }
 
   useEffect(() => {
     if (!row) return
@@ -103,8 +115,8 @@ export function StudentDossier<T extends BaseRow>({
             ) : (
               <>
                 <DossierProfile dossier={dossier} fallback={row} />
-                <JobSearchLogs rows={jobSearch} />
-                <InternshipLogs rows={internship} />
+                <JobSearchLogs rows={jobSearch} onClassifyWeek={classifyWeek} />
+                <InternshipLogs rows={internship} onClassifyWeek={classifyWeek} />
               </>
             )}
 
@@ -402,7 +414,15 @@ function Internship({ dossier }: { dossier: Dossier | null }) {
 }
 
 /** VI — Bitácora de búsqueda de empleo. */
-function JobSearchLogs({ rows }: { rows: JobSearchLogRow[] }) {
+type ClassifyWeek = (submissionId: string, weekNumber: number | null) => Promise<void>
+
+function JobSearchLogs({
+  rows,
+  onClassifyWeek,
+}: {
+  rows: JobSearchLogRow[]
+  onClassifyWeek: ClassifyWeek
+}) {
   if (!rows.length) return null
 
   return (
@@ -428,13 +448,20 @@ function JobSearchLogs({ rows }: { rows: JobSearchLogRow[] }) {
             log.nextSteps,
           ],
         }))}
+        onClassifyWeek={onClassifyWeek}
       />
     </Section>
   )
 }
 
 /** VII — Bitácora de prácticas, con las horas acumuladas. */
-function InternshipLogs({ rows }: { rows: InternshipLogRow[] }) {
+function InternshipLogs({
+  rows,
+  onClassifyWeek,
+}: {
+  rows: InternshipLogRow[]
+  onClassifyWeek: ClassifyWeek
+}) {
   if (!rows.length) return null
 
   // Igual en todas las filas: la vista lo calcula por alumno.
@@ -464,6 +491,7 @@ function InternshipLogs({ rows }: { rows: InternshipLogRow[] }) {
           ],
           numeric: [1, 2],
         }))}
+        onClassifyWeek={onClassifyWeek}
       />
 
       {total !== null && (
@@ -483,6 +511,7 @@ function InternshipLogs({ rows }: { rows: InternshipLogRow[] }) {
 interface LogRow {
   key: string
   week: {
+    submissionId: string
     weekStart: string | null
     weekEnd: string | null
     weekNumber: number | null
@@ -497,7 +526,15 @@ interface LogRow {
  * Tabla de una bitácora. Las celdas son texto libre que el alumno escribió, así
  * que se limitan de ancho y conservan sus saltos de línea.
  */
-function LogTable({ headers, rows }: { headers: string[]; rows: LogRow[] }) {
+function LogTable({
+  headers,
+  rows,
+  onClassifyWeek,
+}: {
+  headers: string[]
+  rows: LogRow[]
+  onClassifyWeek: ClassifyWeek
+}) {
   return (
     <div className="max-h-96 overflow-auto rounded-lg border border-ink-200">
       <table className="w-full border-collapse text-sm">
@@ -516,11 +553,13 @@ function LogTable({ headers, rows }: { headers: string[]; rows: LogRow[] }) {
         <tbody>
           {rows.map((row) => (
             <tr key={row.key} className="align-top hover:bg-ink-50/60">
-              <td className="tnum border-b border-ink-100 px-3 py-2.5 text-xs whitespace-nowrap text-ink-500">
-                {row.week.weekNumber !== null && (
-                  <div className="font-medium text-ink-900">Semana {row.week.weekNumber}</div>
-                )}
-                {formatWeekRange(row.week.weekStart, row.week.weekEnd) || <Dash />}
+              <td className="border-b border-ink-100 px-3 py-2.5 text-xs whitespace-nowrap text-ink-500">
+                <WeekNumberCell
+                  weekStart={row.week.weekStart}
+                  weekEnd={row.week.weekEnd}
+                  weekNumber={row.week.weekNumber}
+                  onSave={(weekNumber) => onClassifyWeek(row.week.submissionId, weekNumber)}
+                />
               </td>
               {row.cells.map((cell, index) => (
                 <td
@@ -541,6 +580,94 @@ function LogTable({ headers, rows }: { headers: string[]; rows: LogRow[] }) {
           ))}
         </tbody>
       </table>
+    </div>
+  )
+}
+
+/**
+ * La celda "Semana": el número resuelto (si hay uno) sobre el rango de
+ * fechas, con un botón para clasificarla a mano cuando el mejor esfuerzo
+ * automático no calzó, o para corregirla cuando calzó con la semana
+ * equivocada — el profesor la reconoce a simple vista, la base no.
+ */
+function WeekNumberCell({
+  weekStart,
+  weekEnd,
+  weekNumber,
+  onSave,
+}: {
+  weekStart: string | null
+  weekEnd: string | null
+  weekNumber: number | null
+  onSave: (weekNumber: number | null) => Promise<void>
+}) {
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(weekNumber !== null ? String(weekNumber) : '')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  if (editing) {
+    return (
+      <div className="space-y-1">
+        <input
+          type="number"
+          min={1}
+          max={53}
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          placeholder="Semana"
+          autoFocus
+          className="w-20 rounded border border-ink-300 px-1.5 py-0.5 text-xs tnum"
+        />
+        {error && <p className="text-[10px] text-red-700">{error}</p>}
+        <div className="flex gap-2">
+          <button
+            type="button"
+            disabled={saving}
+            onClick={async () => {
+              setSaving(true)
+              setError(null)
+              try {
+                await onSave(value.trim() === '' ? null : Number(value))
+                setEditing(false)
+              } catch (cause) {
+                setError(cause instanceof Error ? cause.message : 'No se pudo guardar.')
+              } finally {
+                setSaving(false)
+              }
+            }}
+            className="text-[11px] font-medium text-emerald-700 hover:underline disabled:text-ink-400"
+          >
+            {saving ? 'Guardando…' : 'Guardar'}
+          </button>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => {
+              setValue(weekNumber !== null ? String(weekNumber) : '')
+              setError(null)
+              setEditing(false)
+            }}
+            className="text-[11px] font-medium text-ink-500 hover:underline"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-0.5">
+      {weekNumber !== null && <div className="font-medium text-ink-900">Semana {weekNumber}</div>}
+      <div>{formatWeekRange(weekStart, weekEnd) || <Dash />}</div>
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        className="font-medium text-ink-400 normal-case hover:text-ink-700 hover:underline"
+      >
+        {weekNumber !== null ? 'Corregir' : 'Clasificar semana'}
+      </button>
     </div>
   )
 }
@@ -671,7 +798,8 @@ export function useStudentDossier(studentId: string | null) {
   return { dossier, error }
 }
 
-function useDossier(studentId: string | null) {
+/** `refreshKey` fuerza una nueva consulta sin depender de `studentId`: lo usa la corrección de semana. */
+function useDossier(studentId: string | null, refreshKey = 0) {
   const [dossier, setDossier] = useState<Dossier | null>(null)
   const [jobSearch, setJobSearch] = useState<JobSearchLogRow[]>([])
   const [internship, setInternship] = useState<InternshipLogRow[]>([])
@@ -711,7 +839,7 @@ function useDossier(studentId: string | null) {
     return () => {
       cancelled = true
     }
-  }, [studentId])
+  }, [studentId, refreshKey])
 
   return { dossier, jobSearch, internship, error }
 }

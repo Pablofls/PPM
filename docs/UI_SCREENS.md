@@ -160,6 +160,24 @@ el total. Ordena por **semana reportada**, no por fecha de envío: una bitácora
 atrasada se acomoda donde corresponde. La plataforma anterior ordenaba comparando
 `dd/MM/yyyy` como texto, así que `09/04` quedaba antes que `16/03`.
 
+La columna **Semana** de las dos tablas (`WeekNumberCell`,
+`src/components/StudentDossier.tsx`) muestra el número resuelto —"Semana 7"—
+sobre el rango de fechas que ya traía; una entrega cuyo rango no calza con
+ninguna semana configurada se queda mostrando solo la fecha, como antes. Debajo,
+un botón: **"Clasificar semana"** si no tiene número, **"Corregir"** si ya lo
+tiene. Los dos abren el mismo campo para teclear el número y Guardar/Cancelar,
+y llaman a `admin_set_weekly_log_week_number()` (`0029`) — necesario porque el
+cálculo automático (`best_matching_week_number()`, `0028`) es mejor esfuerzo, no
+perfecto: algunas entregas del Google Forms viejo traen el rango corrupto o
+corrido, y el profesor las reconoce a simple vista donde la base no puede.
+Corregir refresca la tabla y la matriz de "Semanas" de Estado de Entregas
+juntas, porque las dos leen el mismo número resuelto.
+
+Al final de cada fila, la columna **Marca Temporal** muestra
+`updatedAt ?? submittedAt`: la fecha de la corrección más reciente si la
+entrega se editó dentro de la semana en curso (`0020`), o la de envío
+original si no.
+
 ---
 
 ## Módulo 1 — Conócete

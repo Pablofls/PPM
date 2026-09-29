@@ -169,6 +169,7 @@ erDiagram
         text learnings
         text next_steps
         timestamptz updated_at "solo si se corrigió"
+        smallint week_number_override "el profesor lo corrige a mano"
     }
     INTERNSHIP_LOGS {
         uuid submission_id PK
@@ -177,6 +178,7 @@ erDiagram
         text skills_practiced
         text proposal
         timestamptz updated_at "solo si se corrigió"
+        smallint week_number_override "el profesor lo corrige a mano"
     }
     DEMOGRAPHICS {
         uuid submission_id PK
@@ -571,6 +573,7 @@ La semana reportada no está en estas tablas, sino en `submissions.week_start` /
 | `learnings` | `text` | `aprendizajes` |
 | `next_steps` | `text` | `siguientesPasos` |
 | `updated_at` | `timestamptz` NULL | `0026`. Solo se llena si `update_job_search_log()` corrige la entrega mientras su semana sigue siendo la actual |
+| `week_number_override` | `smallint` NULL, CHECK 1–53 | `0029`. El profesor corrige el número de semana a mano cuando `best_matching_week_number()` no calza o calza mal |
 
 Todo es texto libre semanal. No se parsea a listas: el formato lo pone el alumno
 y no es confiable.
@@ -585,6 +588,7 @@ y no es confiable.
 | `skills_practiced` | `text` | `habilidades` |
 | `proposal` | `text` | `propuesta` |
 | `updated_at` | `timestamptz` NULL | `0026`. Solo se llena si `update_internship_log()` corrige la entrega mientras su semana sigue siendo la actual |
+| `week_number_override` | `smallint` NULL, CHECK 1–53 | `0029`. El profesor corrige el número de semana a mano cuando `best_matching_week_number()` no calza o calza mal |
 
 `hours_worked` es **decimal y no entero** porque el origen trae `'31.20'`. Excel
 además convirtió 40 de las 116 celdas a fechas de 1900 —serial 20 → `1900-01-20`
@@ -866,6 +870,46 @@ había reportado—. Esta entrega comparte 1 día con la semana anterior y 7 con
 la correcta; `best_matching_week_number()` compara el traslape completo, no
 solo el primer día, y se queda con la que más comparte.
 
+### El profesor corrige el número de semana a mano
+
+> Migración `0029_weekly_log_manual_week_override.sql` — ⏳ pendiente de
+> ejecutar en Supabase.
+
+`best_matching_week_number()` es mejor esfuerzo, no perfecto: una entrega cuyo
+rango viene corrupto de origen —`0011_weekly_logs.sql` ya advertía que 6 de
+183 entregas reales traen el rango invertido y 12 más duran entre 12 y 365
+días— simplemente no calza con ninguna semana configurada, y se queda sin
+número. También puede calzar, pero con la semana equivocada, si dos rangos
+corridos se pisan. El profesor la reconoce a simple vista; la base no.
+
+`job_search_logs`/`internship_logs` ganan `week_number_override smallint`
+(`CHECK between 1 and 53`, igual que `semester_weeks.week_number`), nula por
+default. Vive en la tabla de respuesta, no en `submissions`: es una decisión
+sobre cómo se **lee** esta bitácora, no un dato de la entrega en sí, mismo
+criterio que `updated_at` (`0026`).
+
+`resolved_week_number(period_code, week_start, week_end, override)` es lo que
+las tres vistas exponen como `week_number` desde aquí en adelante:
+
+```sql
+select coalesce(p_override, public.best_matching_week_number(p_period_code, p_week_start, p_week_end))
+```
+
+La corrección se escribe con `admin_set_weekly_log_week_number(submission_id,
+week_number)`: resuelve sola a qué tabla escribir según el `form_code` de la
+entrega, y `week_number = NULL` borra la corrección y regresa al cálculo
+automático. No hay política de `UPDATE` para el admin sobre
+`job_search_logs`/`internship_logs` —la única que existe es la del alumno,
+acotada a su propia semana en curso (`0020`)—: esta función es la única
+puerta, y por eso valida `is_admin()` ella misma en vez de apoyarse en RLS,
+mismo patrón que `admin_run_sheet_sync()` (`0022`).
+
+En el expediente, el botón "Clasificar semana" (sin número) o "Corregir" (ya
+tiene uno) de `WeekNumberCell`
+(`src/components/StudentDossier.tsx`) llama a `setWeeklyLogWeekNumber()` del
+repositorio y refresca la bitácora y la matriz de "Semanas" juntas — las dos
+leen `week_number` resuelto por la misma función.
+
 ### `v_submission_status`
 
 La matriz alumno × formulario de "Estado de Entregas". A diferencia de las
@@ -1102,8 +1146,8 @@ hacer clic en su nombre desde cualquier pantalla.
 | Vista | Filas | Qué junta |
 |---|---|---|
 | `v_student_dossier` | 1 por alumno | demográficos + Holland + MBTI + DISC + Valores + datos de la práctica (B.1) |
-| `v_student_job_search_logs` | N por alumno | la bitácora de búsqueda completa, con `week_number` (`0026`, mejor esfuerzo contra `semester_weeks`) y `updated_at` |
-| `v_student_internship_logs` | N por alumno | la bitácora de prácticas, con horas acumuladas, `week_number` (`0026`, ídem) y `updated_at` |
+| `v_student_job_search_logs` | N por alumno | la bitácora de búsqueda completa, con `week_number` (`resolved_week_number()`, `0029`: la corrección manual del profesor si existe, si no el mejor esfuerzo de `0028` contra `semester_weeks`) y `updated_at` |
+| `v_student_internship_logs` | N por alumno | la bitácora de prácticas, con horas acumuladas, `week_number` (ídem) y `updated_at` |
 
 **`v_student_dossier` usa `LEFT JOIN` en todo.** Un alumno que solo contestó el
 1.0 tiene que aparecer igual, con el resto en `NULL`: un `INNER JOIN` escondería
@@ -1309,6 +1353,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0026_weekly_log_week_number_and_updates.sql` | `updated_at` en `job_search_logs`/`internship_logs`; `update_job_search_log()`/`update_internship_log()` lo llenan al corregir; `v_student_job_search_logs`/`v_student_internship_logs` agregan `updated_at` y `week_number` (mejor esfuerzo contra `semester_weeks`) | ✅ 2026-09-28 |
 | `0027_weekly_submission_status.sql` | `v_weekly_submission_status`: "Estado de Entregas" por semana configurada en vez de por formulario, reutilizando `submission_status()` contra `semester_weeks.week_end` | ✅ 2026-09-28 |
 | `0028_weekly_log_match_by_overlap.sql` | `best_matching_week_number()`: reemplaza el anclaje por `week_start` de `0026`/`0027` con la semana de mayor traslape, corrigiendo entregas viejas mal clasificadas por un rango corrido un día | ✅ 2026-09-28 |
+| `0029_weekly_log_manual_week_override.sql` | `week_number_override` en `job_search_logs`/`internship_logs`; `resolved_week_number()`; `admin_set_weekly_log_week_number()` para que el profesor corrija a mano lo que `best_matching_week_number()` no calza o calza mal | ⏳ **pendiente** |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.
