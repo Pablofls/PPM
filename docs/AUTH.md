@@ -150,16 +150,20 @@ del profesor. Cualquiera que conozca la matrícula de un compañero y su correo
 institucional puede entrar a su cuenta.
 
 Hoy eso no expone nada —el rol `alumno` no lee ninguna tabla—, pero deja de ser
-aceptable **el día que la vista del alumno muestre sus datos**. Antes de ese
-paso hace falta decidir una de dos:
-
-- obligar a cambiar la contraseña en el primer inicio de sesión, o
-- mandar un enlace mágico al correo institucional en vez de usar contraseña.
+aceptable **el día que la vista del alumno muestre sus datos**, que ya pasó
+(`0019`, ADN Profesional). `ProfilePage` (`/alumno/perfil`) le da al alumno
+la opción de cambiar su contraseña desde el portal, para que dejar de depender
+de la matrícula no dependa de un admin. Sigue pendiente, porque nadie la pidió
+todavía, obligar el cambio en el primer inicio de sesión o mandar un enlace
+mágico en su lugar.
 
 Nota práctica: Supabase exige 10 caracteres mínimo al cambiar o restablecer una
 contraseña por la API. Una matrícula de 6 dígitos funciona para entrar, porque el
 alta se hace en la base y esa política solo la aplica la API, pero el alumno no
-podrá *ponerse* una contraseña corta.
+podrá *ponerse* una contraseña corta: `ProfilePage` valida los 10 caracteres en
+el cliente antes de llamar a `updateUser()`, y traduce el error de Supabase si
+de todos modos se le escapa algo (`translateAuthError()` en `AuthProvider.tsx`,
+compartida con el login).
 
 ### Por qué el alta se hace en SQL y no con la API
 
@@ -296,6 +300,7 @@ En **Authentication → Providers**:
 | `src/layouts/StudentShell.tsx` | el marco de la vista del alumno, gemelo del `AppShell` |
 | `src/pages/alumno/StudentHome.tsx` | índice de tareas del alumno, con su ADN Profesional (`DossierProfile`, secciones I a V) |
 | `src/pages/alumno/WeeklyLogPage.tsx` | entrega de una bitácora y sus entregas anteriores |
+| `src/pages/alumno/ProfilePage.tsx` | `/alumno/perfil`: cambio de contraseña con `supabase.auth.updateUser()` |
 
 Todo el panel cuelga de `ProtectedRoute` en `App.tsx`: no hay una sola ruta
 accesible sin sesión y sin rol `admin`. Entrar directo a `/modulo1/habilidades`

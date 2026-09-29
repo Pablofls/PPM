@@ -28,6 +28,12 @@ export function StudentShell() {
           <span className="hidden max-w-56 truncate text-ink-600 sm:inline" title={correo}>
             {correo}
           </span>
+          <Link
+            to="/alumno/perfil"
+            className="rounded-lg px-2.5 py-1.5 font-medium text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-900"
+          >
+            Mi perfil
+          </Link>
           <button
             type="button"
             onClick={signOut}

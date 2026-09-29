@@ -126,8 +126,14 @@ export function useAuth(): AuthState {
   return context
 }
 
-/** Los mensajes de Supabase vienen en inglés; la interfaz está en español. */
-function translateAuthError(message: string): string {
+/**
+ * Los mensajes de Supabase vienen en inglés; la interfaz está en español.
+ *
+ * Sirve tanto para `signInWithPassword()` como para `updateUser()` (cambio de
+ * contraseña desde `ProfilePage`): los dos devuelven el mismo tipo de error y
+ * varios casos —red, rate limit— son idénticos en ambos flujos.
+ */
+export function translateAuthError(message: string): string {
   const normalized = message.toLowerCase()
 
   if (normalized.includes('invalid login credentials')) {
@@ -136,11 +142,17 @@ function translateAuthError(message: string): string {
   if (normalized.includes('email not confirmed')) {
     return 'Tu cuenta todavía no está confirmada. Revisa tu correo.'
   }
+  if (normalized.includes('should be at least') || normalized.includes('at least 10')) {
+    return 'La contraseña debe tener al menos 10 caracteres.'
+  }
+  if (normalized.includes('should be different from the old password')) {
+    return 'La nueva contraseña debe ser diferente a la actual.'
+  }
   if (normalized.includes('too many requests') || normalized.includes('rate limit')) {
     return 'Demasiados intentos. Espera un momento y vuelve a intentarlo.'
   }
   if (normalized.includes('failed to fetch') || normalized.includes('network')) {
     return 'No se pudo conectar con el servidor. Revisa tu conexión.'
   }
-  return `No se pudo iniciar sesión: ${message}`
+  return `No se pudo completar la operación: ${message}`
 }
