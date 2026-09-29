@@ -377,14 +377,14 @@ Semestre, Período), igual que las pantallas de Módulo 1.
 | Columna | Contenido |
 |---|---|
 | Nombre · Carrera · Sem. | comunes, columna Nombre fija |
-| una por cada uno de los 12 formularios | un cuadro de color: verde *a tiempo*, ámbar *tarde*, rojo *no entregado*, gris *sin fecha límite configurada* |
+| una por cada uno de los 12 formularios | un cuadro de color: verde *a tiempo* (o entregado, si el formulario no tiene fecha límite), ámbar *tarde*, rojo *no entregado y la fecha ya pasó*, gris *sin entregar y sin nada que reprocharle todavía* |
 | Resumen | conteo de verdes/ámbares/rojos de esa fila |
 
 El color de cada cuadro trae un tooltip con la marca temporal exacta de la
-entrega (o "No entregado" / "Sin fecha límite configurada"). Un formulario
-gris no es un formulario atrasado: es un formulario al que todavía no se le
-asignó fecha desde el Panel de Administrador — no se penaliza al alumno por
-una fecha que nadie configuró.
+entrega, o si no ha entregado: "No entregado" (rojo, ya venció), "Todavía no
+vence: `fecha`" (gris, tiene fecha pero no ha llegado) o "Sin fecha límite
+configurada" (gris, nadie la asignó). El gris cubre dos casos a propósito: en
+ninguno de los dos hay, todavía, algo que reprocharle al alumno.
 
 El cuadro de color y la leyenda son un componente compartido
 (`src/components/SubmissionStatusGrid.tsx`): la misma fila, de un solo alumno,

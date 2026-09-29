@@ -45,9 +45,9 @@ const columns: Column<SubmissionStatusRow>[] = [
  * Estado de Entregas — la matriz alumno × formulario.
  *
  * Compara la `marca temporal` de cada entrega (`v_submission_status`) contra
- * la fecha límite que se asignó en el Panel de Administrador. Un formulario
- * sin fecha configurada se pinta gris, no rojo: no se penaliza al alumno por
- * una fecha que nadie puso.
+ * la fecha límite que se asignó en el Panel de Administrador. Sin entrega, se
+ * pinta gris (no rojo) hasta que esa fecha pasa —o si nadie la configuró—: no
+ * se penaliza al alumno por una fecha que no ha llegado o que nadie puso.
  */
 export function SubmissionStatusPage() {
   const [filters, setFilter, clearFilters] = useFilters()

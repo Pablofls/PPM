@@ -348,6 +348,8 @@ export interface FormDeadlineInput {
 export interface SubmissionStatusCell {
   state: SubmissionState
   submittedAt: string | null
+  /** `null` cuando el formulario no tiene fecha límite configurada. */
+  dueAt: string | null
 }
 
 /**

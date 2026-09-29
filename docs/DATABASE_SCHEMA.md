@@ -352,7 +352,7 @@ editar su propio perfil podría ascenderse a `admin`.
 | `mbti_nature` | `pensamiento`, `emocional` | idénticos |
 | `mbti_tactics` | `juzgador`, `prospeccion` | `Juzgador`, `Prospección` |
 | `mbti_identity` | `asertivo`, `cauteloso` | idénticos |
-| `submission_state` | `a_tiempo`, `tarde`, `pendiente`, `sin_fecha` | — (lo calcula `submission_status()`, `0017`) |
+| `submission_state` | `a_tiempo`, `tarde`, `pendiente`, `sin_fecha` | — (lo calcula `submission_status()`, `0017`, redefinida en `0024`) |
 
 > **El orden de `skill_level` importa**: define `<`, `>`, `ORDER BY` y `max()`.
 > Va de menor a mayor dominio.
@@ -798,14 +798,31 @@ Empate → la regla con `created_at` más reciente.
 
 ### `submission_status(due_at, submitted_at)`
 
-Compara la marca temporal contra la fecha límite ya resuelta:
+Compara la marca temporal contra la fecha límite ya resuelta, y contra el
+reloj cuando todavía no hay entrega:
 
-| `due_at` | `submitted_at` | Resultado |
-|---|---|---|
-| `NULL` | cualquiera | `sin_fecha` — nadie configuró fecha, no se penaliza a nadie |
-| no `NULL` | `NULL` | `pendiente` — no ha entregado |
-| no `NULL` | `<= due_at` | `a_tiempo` |
-| no `NULL` | `> due_at` | `tarde` |
+| `due_at` | `submitted_at` | `now()` | Resultado |
+|---|---|---|---|
+| `NULL` | `NULL` | — | `sin_fecha` — nadie configuró fecha y no ha entregado |
+| `NULL` | cualquiera | — | `a_tiempo` — sin plazo con qué comparar, que haya entregado es lo único que importa |
+| no `NULL` | `<= due_at` | — | `a_tiempo` |
+| no `NULL` | `> due_at` | — | `tarde` |
+| no `NULL` | `NULL` | `> due_at` | `pendiente` — la fecha ya pasó y no ha entregado |
+| no `NULL` | `NULL` | `<= due_at` | `sin_fecha` — la fecha existe pero todavía no vence, no se le puede pedir cuentas todavía |
+
+`0024_submission_status_due_date_aware.sql` (⏳ todavía no se pega en
+Supabase) redefine esta función: antes, sin entrega, marcaba `pendiente` en
+cuanto existía una fecha configurada, sin importar si ya había pasado. Ahora
+compara contra `now()`, así que dejó de ser `IMMUTABLE` —su resultado ya
+depende del reloj, no solo de los dos parámetros— y pasó a `STABLE`, como
+`resolve_form_deadline()`.
+
+`sin_fecha` (gris) ya cubre dos casos: «nadie configuró fecha» y «hay fecha
+pero todavía no vence». Los dos se pintan igual a propósito: en ninguno de
+los dos hay algo que reprocharle al alumno todavía. El tooltip de cada
+cuadro (`SubmissionStatusSquare`,
+`src/components/SubmissionStatusGrid.tsx`) sí distingue uno del otro,
+mostrando la fecha de vencimiento cuando existe.
 
 ### `v_submission_status`
 
@@ -1150,6 +1167,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0021_sync_creates_student_accounts.sql` | `import_sheet_rows()` redefinida: llama a `create_student_accounts()` en cada corrida | ✅ 2026-09-25 |
 | `0022_admin_run_sheet_sync.sql` | `admin_run_sheet_sync()`: puerta admin-only para que el botón "Procesar datos" del panel dispare `import_sheet_rows()` a mano | ✅ 2026-09-25 |
 | `0023_student_form_deadlines_read.sql` | `form_deadlines_select_alumno`: el alumno lee `form_deadlines` para poder calcular su propio estado de entregas | ✅ 2026-09-28 |
+| `0024_submission_status_due_date_aware.sql` | `submission_status()` redefinida: sin entrega, ya no marca `pendiente` hasta que la fecha límite pasa; antes de vencer, sale `sin_fecha` | ⏳ **pendiente** |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.

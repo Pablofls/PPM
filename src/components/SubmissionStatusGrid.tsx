@@ -23,7 +23,9 @@ export function SubmissionStatusSquare({ cell }: { cell: SubmissionStatusCell | 
     ? `Entregado: ${formatDateTime(cell.submittedAt)}`
     : state === 'pendiente'
       ? 'No entregado'
-      : 'Sin fecha límite configurada'
+      : cell?.dueAt
+        ? `Todavía no vence: ${formatDateTime(cell.dueAt)}`
+        : 'Sin fecha límite configurada'
 
   return (
     <span className="group/cell relative inline-block">

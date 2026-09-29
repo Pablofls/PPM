@@ -647,6 +647,7 @@ export const supabaseRepository: PanelRepository = {
       row.statuses[record.form_code as FormCode] = {
         state: (str(record.state) as SubmissionState) ?? 'sin_fecha',
         submittedAt: str(record.submitted_at),
+        dueAt: str(record.due_at),
       }
     }
     return [...rows.values()]
@@ -662,7 +663,7 @@ export const supabaseRepository: PanelRepository = {
   ): Promise<Partial<Record<FormCode, SubmissionStatusCell>>> {
     const { data, error } = await supabase
       .from('v_submission_status')
-      .select('form_code, state, submitted_at')
+      .select('form_code, state, submitted_at, due_at')
       .eq('student_id', studentId)
 
     if (error) throw new Error(`No se pudieron cargar las entregas: ${error.message}`)
@@ -672,6 +673,7 @@ export const supabaseRepository: PanelRepository = {
       statuses[record.form_code as FormCode] = {
         state: (str(record.state) as SubmissionState) ?? 'sin_fecha',
         submittedAt: str(record.submitted_at),
+        dueAt: str(record.due_at),
       }
     }
     return statuses

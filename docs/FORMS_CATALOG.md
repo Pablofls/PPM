@@ -107,8 +107,11 @@ pasos:
    coincide en **más** de esas tres columnas — más específica gana.
 2. Empate entre reglas igual de específicas → gana la de `created_at` más
    reciente (la última que asignó el profesor).
-3. Ninguna regla aplica → estado `sin_fecha`.
+3. Ninguna regla aplica → estado `sin_fecha`, salvo que ya haya una entrega:
+   entonces sale `a_tiempo` (`0024_submission_status_due_date_aware.sql`) —
+   sin plazo con qué comparar, que haya entregado es lo único que importa.
 
-Los formularios sin fecha configurada no se marcan como pendientes ni tarde: se
-muestran como `sin_fecha` para que el profesor sepa que falta configurarla, no
-que el alumno esté atrasado.
+Un formulario sin entrega no se marca `pendiente` hasta que su fecha límite
+ya pasó. Mientras no pase —o si nunca se configuró una— sale `sin_fecha`, para
+que el profesor sepa que el alumno todavía no está atrasado, no que ya lo
+está.
