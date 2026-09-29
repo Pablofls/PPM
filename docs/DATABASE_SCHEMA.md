@@ -872,8 +872,8 @@ solo el primer día, y se queda con la que más comparte.
 
 ### El profesor corrige el número de semana a mano
 
-> Migración `0029_weekly_log_manual_week_override.sql` — ⏳ pendiente de
-> ejecutar en Supabase.
+> Migración `0029_weekly_log_manual_week_override.sql` — ✅ ejecutada en
+> Supabase (2026-09-28).
 
 `best_matching_week_number()` es mejor esfuerzo, no perfecto: una entrega cuyo
 rango viene corrupto de origen —`0011_weekly_logs.sql` ya advertía que 6 de
@@ -1353,7 +1353,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0026_weekly_log_week_number_and_updates.sql` | `updated_at` en `job_search_logs`/`internship_logs`; `update_job_search_log()`/`update_internship_log()` lo llenan al corregir; `v_student_job_search_logs`/`v_student_internship_logs` agregan `updated_at` y `week_number` (mejor esfuerzo contra `semester_weeks`) | ✅ 2026-09-28 |
 | `0027_weekly_submission_status.sql` | `v_weekly_submission_status`: "Estado de Entregas" por semana configurada en vez de por formulario, reutilizando `submission_status()` contra `semester_weeks.week_end` | ✅ 2026-09-28 |
 | `0028_weekly_log_match_by_overlap.sql` | `best_matching_week_number()`: reemplaza el anclaje por `week_start` de `0026`/`0027` con la semana de mayor traslape, corrigiendo entregas viejas mal clasificadas por un rango corrido un día | ✅ 2026-09-28 |
-| `0029_weekly_log_manual_week_override.sql` | `week_number_override` en `job_search_logs`/`internship_logs`; `resolved_week_number()`; `admin_set_weekly_log_week_number()` para que el profesor corrija a mano lo que `best_matching_week_number()` no calza o calza mal | ⏳ **pendiente** |
+| `0029_weekly_log_manual_week_override.sql` | `week_number_override` en `job_search_logs`/`internship_logs`; `resolved_week_number()`; `admin_set_weekly_log_week_number()` para que el profesor corrija a mano lo que `best_matching_week_number()` no calza o calza mal | ✅ 2026-09-28 |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.
