@@ -3,7 +3,12 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../../auth/AuthProvider'
 import { Badge } from '../../components/Badge'
-import { SubmissionStatusGrid, useSubmissionStatus } from '../../components/SubmissionStatusGrid'
+import {
+  SubmissionStatusGrid,
+  useSubmissionStatus,
+  useWeeklyLogStatus,
+  WeeklyLogStatusGrid,
+} from '../../components/SubmissionStatusGrid'
 import { DossierProfile, useStudentDossier } from '../../components/StudentDossier'
 import { Toast } from '../../components/Toast'
 import { repository } from '../../data/repository'
@@ -24,6 +29,7 @@ export function StudentHome() {
   const [toast, dismissToast] = useHandoffToast()
   const { dossier } = useStudentDossier(profile?.student_id ?? null)
   const { statuses, error: statusError } = useSubmissionStatus(profile?.student_id ?? null)
+  const { weeks, error: weeksError } = useWeeklyLogStatus(profile?.student_id ?? null)
 
   return (
     <>
@@ -42,7 +48,24 @@ export function StudentHome() {
             {statusError ? (
               <p className="text-sm text-red-800">{statusError}</p>
             ) : (
-              <SubmissionStatusGrid statuses={statuses} />
+              <div className="flex flex-wrap gap-8">
+                <div className="space-y-2">
+                  <p className="text-[11px] font-semibold tracking-wider text-ink-500 uppercase">
+                    Formularios
+                  </p>
+                  <SubmissionStatusGrid statuses={statuses} />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-[11px] font-semibold tracking-wider text-ink-500 uppercase">
+                    Semanas
+                  </p>
+                  {weeksError ? (
+                    <p className="text-sm text-red-800">{weeksError}</p>
+                  ) : (
+                    <WeeklyLogStatusGrid weeks={weeks} />
+                  )}
+                </div>
+              </div>
             )}
           </section>
         </div>

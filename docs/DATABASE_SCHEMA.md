@@ -848,6 +848,56 @@ datos reales para el alumno, pero `forms` sola devolvía `[]`. `forms_select_alu
 sigue el mismo criterio que `form_deadlines_select_alumno`: `current_student_id()
 is not null`, no `authenticated` a secas.
 
+### `v_weekly_submission_status`
+
+> Migración `0027_weekly_submission_status.sql` — ⏳ pendiente de ejecutar en
+> Supabase.
+
+La misma idea de "Estado de Entregas", pero por semana configurada en vez de
+por formulario: el alumno reporta una sola bitácora por semana (Búsqueda
+mientras no tiene práctica, Prácticas en cuanto la consigue — nunca las dos),
+así que lo que importa es si esa semana quedó reportada, no cuál de las dos
+formas se usó. `job_search_logs`/`internship_logs` nunca estuvieron en
+`v_submission_status` a propósito (no tienen una fecha límite fija, tienen una
+por semana), y esta vista no las agrega ahí: es una matriz aparte,
+alumno × semana.
+
+No hace falta una fecha límite nueva: cada semana ya trae la suya,
+`semester_weeks.week_end`. Reutiliza `submission_status()` tal cual,
+comparando contra el fin de esa semana (`week_end` a las 23:59:59, hora de
+Monterrey) en vez de una fecha fija:
+
+```sql
+from v_students_directory dir
+join semester_weeks sw on sw.period_code = dir.period_code
+left join lateral (
+  select min(sub.submitted_at) as submitted_at
+  from submissions sub
+  where sub.student_id = dir.student_id
+    and sub.form_code in ('form_busqueda', 'form_practicas')
+    and sub.week_start between sw.week_start and sw.week_end
+) wl on true
+```
+
+El emparejamiento de `submissions.week_start` contra el rango de la semana
+configurada es el mismo de mejor esfuerzo que `v_student_job_search_logs`/
+`v_student_internship_logs` (`0026`): una entrega hecha desde la plataforma
+siempre calza exacto; una entrega vieja del Google Forms, con fechas
+tecleadas a mano, puede no caer en ninguna semana y esa semana simplemente no
+tiene entrega que mostrarle (`pendiente` o `sin_fecha`, según si ya venció).
+
+A diferencia de `v_student_job_search_logs`/`v_student_internship_logs`
+(0026), **esta vista sí la puede leer el alumno sobre su propia fila**: parte
+de `v_students_directory`, y hoy (`submissions_select_own` de `0016`,
+`students_select_own` y `demographics_select_own` de `0019`) esa vista ya
+resuelve el periodo del alumno tanto para el profesor (`is_admin()`) como para
+el propio alumno — a diferencia de cuando se escribió el comentario de
+`current_student_period()` en `0018`, antes de que existieran esas dos
+últimas políticas. La usan el expediente del profesor (`StudentDossier`) y el
+portal del alumno (`StudentHome`), con el mismo componente de cuadro y color
+que `v_submission_status` (`WeeklyLogStatusGrid`, junto a `SubmissionStatusGrid`
+en `src/components/SubmissionStatusGrid.tsx`).
+
 ---
 
 ## Sincronización con el Sheets
@@ -1050,6 +1100,26 @@ formulario, aunque siga sin entregarlo.
 
 También lleva `security_invoker = on`.
 
+### `v_weekly_submission_status`
+
+> `0027_weekly_submission_status.sql`. Detalle en
+> [Fechas de entrega y estado de las entregas](#fechas-de-entrega-y-estado-de-las-entregas).
+
+La misma idea que `v_submission_status`, pero una fila por alumno **y semana
+configurada de su periodo** (`semester_weeks`) en vez de por formulario: el
+alumno reporta una sola bitácora por semana, así que lo que hay que mostrarle
+al profesor es si esa semana quedó reportada, no en cuál de las dos formas.
+El "formulario" de esta matriz es la semana, y su "fecha límite" es el propio
+`week_end` de esa semana.
+
+A diferencia de `v_submission_status` (que parte de `forms`, admin-only), y a
+diferencia de `v_student_job_search_logs`/`v_student_internship_logs` (`0026`,
+que solo resuelven para el profesor), esta vista sí la lee el alumno sobre su
+propia fila: la usan tanto el expediente del profesor como el portal del
+alumno.
+
+También lleva `security_invoker = on`.
+
 ### Una nota sobre `submissions_unique_response`
 
 `UNIQUE (student_id, form_code, submitted_at)` implica que **dos bitácoras
@@ -1188,6 +1258,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0024_submission_status_due_date_aware.sql` | `submission_status()` redefinida: sin entrega, ya no marca `pendiente` hasta que la fecha límite pasa; antes de vencer, sale `sin_fecha` | ✅ 2026-09-28 |
 | `0025_student_forms_read.sql` | `forms_select_alumno`: el alumno lee `forms` — sin ella, el `cross join` de `v_submission_status` le devolvía cero filas | ✅ 2026-09-29 |
 | `0026_weekly_log_week_number_and_updates.sql` | `updated_at` en `job_search_logs`/`internship_logs`; `update_job_search_log()`/`update_internship_log()` lo llenan al corregir; `v_student_job_search_logs`/`v_student_internship_logs` agregan `updated_at` y `week_number` (mejor esfuerzo contra `semester_weeks`) | ✅ 2026-09-28 |
+| `0027_weekly_submission_status.sql` | `v_weekly_submission_status`: "Estado de Entregas" por semana configurada en vez de por formulario, reutilizando `submission_status()` contra `semester_weeks.week_end` | ⏳ **pendiente** |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.

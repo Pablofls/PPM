@@ -44,6 +44,7 @@ import type {
   SyncRunResult,
   SyncStatus,
   ValuesRow,
+  WeeklyLogStatusCell,
 } from './types'
 
 /** Fila cruda de una vista `v_panel_*`. */
@@ -677,6 +678,28 @@ export const supabaseRepository: PanelRepository = {
       }
     }
     return statuses
+  },
+
+  /**
+   * La misma matriz que `getSubmissionStatusForStudent`, pero una fila por
+   * semana configurada del periodo del alumno (`v_weekly_submission_status`,
+   * `0027`) en vez de una por formulario.
+   */
+  async getWeeklyLogStatusForStudent(studentId: string): Promise<WeeklyLogStatusCell[]> {
+    const { data, error } = await supabase
+      .from('v_weekly_submission_status')
+      .select('week_number, state, submitted_at, due_at')
+      .eq('student_id', studentId)
+      .order('week_number', { ascending: true })
+
+    if (error) throw new Error(`No se pudo cargar el estado de las semanas: ${error.message}`)
+
+    return (data ?? []).map((record: PanelRecord) => ({
+      weekNumber: num(record.week_number) ?? 0,
+      state: (str(record.state) as SubmissionState) ?? 'sin_fecha',
+      submittedAt: str(record.submitted_at),
+      dueAt: str(record.due_at),
+    }))
   },
 
   /**

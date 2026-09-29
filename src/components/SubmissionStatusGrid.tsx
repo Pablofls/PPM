@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { repository } from '../data/repository'
-import type { SubmissionState, SubmissionStatusCell } from '../data/types'
+import type { SubmissionState, SubmissionStatusCell, WeeklyLogStatusCell } from '../data/types'
 import { DEADLINE_FORMS, type FormCode } from '../lib/catalog'
 import { formatDateTime } from '../lib/format'
 
@@ -52,6 +52,30 @@ export function SubmissionStatusGrid({
         <div key={form.code} className="flex flex-col items-center gap-1">
           <SubmissionStatusSquare cell={statuses[form.code]} />
           <span className="text-[10px] font-medium text-ink-500">{form.label}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/**
+ * La misma matriz que `SubmissionStatusGrid`, pero un cuadro por semana
+ * configurada en vez de por formulario: el alumno reporta una sola bitácora
+ * por semana (Búsqueda o Prácticas, nunca las dos), así que no hay una
+ * columna por formulario que mostrar — una por semana ya dice si esa semana
+ * quedó reportada. Mismo componente de cuadro y el mismo color.
+ */
+export function WeeklyLogStatusGrid({ weeks }: { weeks: WeeklyLogStatusCell[] }) {
+  if (!weeks.length) {
+    return <p className="text-sm text-ink-500">El profesor no ha configurado tus semanas.</p>
+  }
+
+  return (
+    <div className="flex flex-wrap gap-3">
+      {weeks.map((week) => (
+        <div key={week.weekNumber} className="flex flex-col items-center gap-1">
+          <SubmissionStatusSquare cell={week} />
+          <span className="text-[10px] font-medium text-ink-500">{week.weekNumber}</span>
         </div>
       ))}
     </div>
@@ -109,4 +133,38 @@ export function useSubmissionStatus(studentId: string | null) {
   }, [studentId])
 
   return { statuses, error }
+}
+
+/** Igual que `useSubmissionStatus`, pero para la matriz de semanas. */
+export function useWeeklyLogStatus(studentId: string | null) {
+  const [weeks, setWeeks] = useState<WeeklyLogStatusCell[]>([])
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!studentId) {
+      setWeeks([])
+      setError(null)
+      return
+    }
+
+    let cancelled = false
+    repository
+      .getWeeklyLogStatusForStudent(studentId)
+      .then((result) => {
+        if (cancelled) return
+        setWeeks(result)
+        setError(null)
+      })
+      .catch((cause: unknown) => {
+        if (cancelled) return
+        setWeeks([])
+        setError(cause instanceof Error ? cause.message : 'Error desconocido')
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [studentId])
+
+  return { weeks, error }
 }

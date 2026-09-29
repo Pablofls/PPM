@@ -357,6 +357,15 @@ export interface SubmissionStatusCell {
 }
 
 /**
+ * Una celda de la misma matriz, pero por semana configurada en vez de por
+ * formulario: ¿reportó el alumno alguna de las dos bitácoras esa semana? Ver
+ * `v_weekly_submission_status` (`0027`).
+ */
+export interface WeeklyLogStatusCell extends SubmissionStatusCell {
+  weekNumber: number
+}
+
+/**
  * Una fila de la matriz: un alumno con su estado en cada uno de los
  * formularios que pueden llevar fecha límite. Un formulario ausente del mapa
  * es un formulario sin fila en `v_submission_status` para este alumno — no

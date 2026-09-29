@@ -104,7 +104,7 @@ clic; aquí la arma `v_student_dossier` en una sola consulta.
 | V — Datos de Prácticas Profesionales | B.1 |
 | VI — Reporte de Búsqueda | `form_busqueda` |
 | VII — Reporte de Prácticas | `form_practicas` |
-| Estado de Entregas | `v_submission_status`, filtrada a este alumno |
+| Estado de Entregas | `v_submission_status` (formularios) y `v_weekly_submission_status` (semanas de bitácora), filtradas a este alumno |
 | Detalle del formulario y su historial | la pantalla desde la que se abrió |
 
 **Una sección sin datos no se dibuja.** Un alumno que no contestó el 1.2 no ve un
@@ -140,6 +140,15 @@ cada formulario con fecha límite, para que el profesor sepa de un vistazo qué
 le falta entregar sin tener que ir a esa otra pantalla y buscarlo en la
 matriz. Comparte componente y color con esa pantalla a propósito — un solo
 código de color en todo el panel.
+
+Al lado, la misma idea pero por semana en vez de por formulario
+(`WeeklyLogStatusGrid`, mismo archivo, `0027_weekly_submission_status.sql`):
+un cuadro por cada semana configurada del periodo del alumno, verde si esa
+semana reportó cualquiera de las dos bitácoras (Búsqueda o Prácticas — el
+alumno solo llena una, nunca las dos), ámbar si la reportó tarde, rojo si la
+semana ya cerró sin reporte, gris si todavía no llega. No hay una columna por
+formulario aquí porque no aplica: lo que importa es si la semana quedó
+cubierta, no cuál de las dos bitácoras se usó.
 
 #### Historial de respuestas
 
@@ -391,6 +400,11 @@ El cuadro de color y la leyenda son un componente compartido
 se reutiliza en la sección «Estado de Entregas» del expediente (ver
 [Expediente del alumno](#expediente-del-alumno)) y en el portal del alumno.
 
+Esa misma sección del expediente y del portal agrega, al lado, una segunda
+matriz por semana en vez de por formulario (`v_weekly_submission_status`,
+`WeeklyLogStatusGrid`) — ver arriba, [Estado de Entregas](#estado-de-entregas)
+dentro de [Expediente del alumno](#expediente-del-alumno).
+
 ## Portal del alumno
 
 Lo que ve un usuario con rol `alumno`. Vive fuera del `AppShell` y bajo su
@@ -408,7 +422,7 @@ formulario de entrega y lo que ya entregó.
 | Bloque | Contenido |
 |---|---|
 | Aviso | Al volver de entregar, la confirmación de que se guardó. Se va solo a los 6 segundos |
-| ADN Profesional | Su propio expediente (secciones I a V: identidad, intereses, personalidad, comportamiento, valores y los datos de la práctica en curso) más su fila de Estado de Entregas. Las secciones I-V son el mismo componente que abre el profesor, `DossierProfile`, sin las bitácoras ni el historial de respuestas — esas siguen siendo contexto del profesor |
+| ADN Profesional | Su propio expediente (secciones I a V: identidad, intereses, personalidad, comportamiento, valores y los datos de la práctica en curso) más su fila de Estado de Entregas (formularios) y la matriz de sus semanas de bitácora. Las secciones I-V son el mismo componente que abre el profesor, `DossierProfile`, sin las bitácoras ni el historial de respuestas — esas siguen siendo contexto del profesor |
 | Tareas | Una tarjeta por bitácora: nombre, para qué es, cuántas entregas lleva y cuál fue la última |
 
 Sin «Tu cuenta» ni «Próximamente»: el bloque ADN Profesional ya muestra su

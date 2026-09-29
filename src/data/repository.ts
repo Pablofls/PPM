@@ -43,6 +43,7 @@ import type {
   SyncRunResult,
   SyncStatus,
   ValuesRow,
+  WeeklyLogStatusCell,
 } from './types'
 
 export interface PanelRepository {
@@ -165,6 +166,15 @@ export interface PanelRepository {
   ): Promise<Partial<Record<FormCode, SubmissionStatusCell>>>
 
   /**
+   * La misma matriz, pero por semana configurada en vez de por formulario: el
+   * alumno reporta una sola bitácora por semana (Búsqueda o Prácticas, nunca
+   * las dos), así que lo que importa es si esa semana quedó reportada, no
+   * cuál de las dos usó. La usan el expediente del profesor y el portal del
+   * alumno, igual que `getSubmissionStatusForStudent`.
+   */
+  getWeeklyLogStatusForStudent(studentId: string): Promise<WeeklyLogStatusCell[]>
+
+  /**
    * Las semanas configuradas. RLS decide cuáles: el admin ve las de todos los
    * periodos, el alumno solo las del suyo — el mismo método sirve a las dos
    * pantallas.
@@ -269,6 +279,9 @@ export const emptyRepository: PanelRepository = {
   },
   async getSubmissionStatusForStudent() {
     return {}
+  },
+  async getWeeklyLogStatusForStudent() {
+    return []
   },
   async getSemesterWeeks() {
     return []

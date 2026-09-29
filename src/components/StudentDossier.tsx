@@ -26,6 +26,8 @@ import {
   SubmissionStatusGrid,
   SubmissionStatusLegend,
   useSubmissionStatus,
+  useWeeklyLogStatus,
+  WeeklyLogStatusGrid,
 } from './SubmissionStatusGrid'
 import { SubmissionTimeline } from './SubmissionTimeline'
 
@@ -57,6 +59,7 @@ export function StudentDossier<T extends BaseRow>({
   const { dossier, jobSearch, internship, error } = useDossier(studentId)
   const { history, error: historyError } = useSubmissionHistory(studentId, form.code)
   const { statuses, error: statusError } = useSubmissionStatus(studentId)
+  const { weeks, error: weeksError } = useWeeklyLogStatus(studentId)
 
   useEffect(() => {
     if (!row) return
@@ -112,13 +115,30 @@ export function StudentDossier<T extends BaseRow>({
               <Section title={`${form.label} ${form.name}`}>{children(row)}</Section>
             )}
 
-            <Section title="Estado de Entregas" hint="todos los formularios">
+            <Section title="Estado de Entregas" hint="todos los formularios y las semanas de bitácora">
               {statusError ? (
                 <p className="text-sm text-red-800">{statusError}</p>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <SubmissionStatusLegend />
-                  <SubmissionStatusGrid statuses={statuses} />
+                  <div className="flex flex-wrap gap-8">
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-semibold tracking-wider text-ink-500 uppercase">
+                        Formularios
+                      </p>
+                      <SubmissionStatusGrid statuses={statuses} />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-semibold tracking-wider text-ink-500 uppercase">
+                        Semanas
+                      </p>
+                      {weeksError ? (
+                        <p className="text-sm text-red-800">{weeksError}</p>
+                      ) : (
+                        <WeeklyLogStatusGrid weeks={weeks} />
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
             </Section>
