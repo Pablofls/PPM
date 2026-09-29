@@ -202,8 +202,12 @@ export interface StudentDossier extends StudentColumns {
 interface WeeklyLogBase {
   submissionId: string
   submittedAt: string | null
+  /** Cuándo se corrigió la entrega, si se corrigió. Ver 0026. */
+  updatedAt: string | null
   weekStart: string | null
   weekEnd: string | null
+  /** Número de semana resuelto contra `semester_weeks`, por mejor esfuerzo. Ver 0026. */
+  weekNumber: number | null
   activities: string | null
 }
 

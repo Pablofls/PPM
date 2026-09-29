@@ -12,6 +12,7 @@ import type {
 import type { FormCode, FormMeta } from '../lib/catalog'
 import {
   formatDate,
+  formatDateTime,
   formatGender,
   formatSemester,
   formatSessionDay,
@@ -408,10 +409,11 @@ function JobSearchLogs({ rows }: { rows: JobSearchLogRow[] }) {
           'Entrevistas',
           'Aprendizajes',
           'Siguientes pasos',
+          'Marca Temporal',
         ]}
         rows={rows.map((log) => ({
           key: log.submissionId,
-          week: log,
+          week: { ...log, timestamp: log.updatedAt ?? log.submittedAt },
           cells: [
             log.activities,
             log.applications,
@@ -435,10 +437,18 @@ function InternshipLogs({ rows }: { rows: InternshipLogRow[] }) {
   return (
     <Section title="VII — Reporte de Prácticas" hint={entryCount(rows.length)}>
       <LogTable
-        headers={['Semana', 'Actividades', 'Horas', 'Acumulado', 'Habilidades', 'Propuesta']}
+        headers={[
+          'Semana',
+          'Actividades',
+          'Horas',
+          'Acumulado',
+          'Habilidades',
+          'Propuesta',
+          'Marca Temporal',
+        ]}
         rows={rows.map((log) => ({
           key: log.submissionId,
-          week: log,
+          week: { ...log, timestamp: log.updatedAt ?? log.submittedAt },
           cells: [
             log.activities,
             log.hoursWorked === null ? null : String(log.hoursWorked),
@@ -466,7 +476,12 @@ function InternshipLogs({ rows }: { rows: InternshipLogRow[] }) {
 
 interface LogRow {
   key: string
-  week: { weekStart: string | null; weekEnd: string | null }
+  week: {
+    weekStart: string | null
+    weekEnd: string | null
+    weekNumber: number | null
+    timestamp: string | null
+  }
   cells: (string | null)[]
   /** Índices de `cells` que se alinean a la derecha. */
   numeric?: number[]
@@ -496,6 +511,9 @@ function LogTable({ headers, rows }: { headers: string[]; rows: LogRow[] }) {
           {rows.map((row) => (
             <tr key={row.key} className="align-top hover:bg-ink-50/60">
               <td className="tnum border-b border-ink-100 px-3 py-2.5 text-xs whitespace-nowrap text-ink-500">
+                {row.week.weekNumber !== null && (
+                  <div className="font-medium text-ink-900">Semana {row.week.weekNumber}</div>
+                )}
                 {formatWeekRange(row.week.weekStart, row.week.weekEnd) || <Dash />}
               </td>
               {row.cells.map((cell, index) => (
@@ -510,6 +528,9 @@ function LogTable({ headers, rows }: { headers: string[]; rows: LogRow[] }) {
                   {cell || <Dash />}
                 </td>
               ))}
+              <td className="tnum border-b border-ink-100 px-3 py-2.5 text-xs whitespace-nowrap text-ink-500">
+                {formatDateTime(row.week.timestamp) || <Dash />}
+              </td>
             </tr>
           ))}
         </tbody>

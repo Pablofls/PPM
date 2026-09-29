@@ -168,6 +168,7 @@ erDiagram
         text interviews
         text learnings
         text next_steps
+        timestamptz updated_at "solo si se corrigió"
     }
     INTERNSHIP_LOGS {
         uuid submission_id PK
@@ -175,6 +176,7 @@ erDiagram
         numeric hours_worked
         text skills_practiced
         text proposal
+        timestamptz updated_at "solo si se corrigió"
     }
     DEMOGRAPHICS {
         uuid submission_id PK
@@ -568,6 +570,7 @@ La semana reportada no está en estas tablas, sino en `submissions.week_start` /
 | `interviews` | `text` | `entrevistas` |
 | `learnings` | `text` | `aprendizajes` |
 | `next_steps` | `text` | `siguientesPasos` |
+| `updated_at` | `timestamptz` NULL | `0026`. Solo se llena si `update_job_search_log()` corrige la entrega mientras su semana sigue siendo la actual |
 
 Todo es texto libre semanal. No se parsea a listas: el formato lo pone el alumno
 y no es confiable.
@@ -581,6 +584,7 @@ y no es confiable.
 | `hours_worked` | `numeric(5,1)` | `horas` |
 | `skills_practiced` | `text` | `habilidades` |
 | `proposal` | `text` | `propuesta` |
+| `updated_at` | `timestamptz` NULL | `0026`. Solo se llena si `update_internship_log()` corrige la entrega mientras su semana sigue siendo la actual |
 
 `hours_worked` es **decimal y no entero** porque el origen trae `'31.20'`. Excel
 además convirtió 40 de las 116 celdas a fechas de 1900 —serial 20 → `1900-01-20`
@@ -999,8 +1003,8 @@ hacer clic en su nombre desde cualquier pantalla.
 | Vista | Filas | Qué junta |
 |---|---|---|
 | `v_student_dossier` | 1 por alumno | demográficos + Holland + MBTI + DISC + Valores + datos de la práctica (B.1) |
-| `v_student_job_search_logs` | N por alumno | la bitácora de búsqueda completa |
-| `v_student_internship_logs` | N por alumno | la bitácora de prácticas, con horas acumuladas |
+| `v_student_job_search_logs` | N por alumno | la bitácora de búsqueda completa, con `week_number` (`0026`, mejor esfuerzo contra `semester_weeks`) y `updated_at` |
+| `v_student_internship_logs` | N por alumno | la bitácora de prácticas, con horas acumuladas, `week_number` (`0026`, ídem) y `updated_at` |
 
 **`v_student_dossier` usa `LEFT JOIN` en todo.** Un alumno que solo contestó el
 1.0 tiene que aparecer igual, con el resto en `NULL`: un `INNER JOIN` escondería
@@ -1183,6 +1187,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0023_student_form_deadlines_read.sql` | `form_deadlines_select_alumno`: el alumno lee `form_deadlines` para poder calcular su propio estado de entregas | ✅ 2026-09-28 |
 | `0024_submission_status_due_date_aware.sql` | `submission_status()` redefinida: sin entrega, ya no marca `pendiente` hasta que la fecha límite pasa; antes de vencer, sale `sin_fecha` | ✅ 2026-09-28 |
 | `0025_student_forms_read.sql` | `forms_select_alumno`: el alumno lee `forms` — sin ella, el `cross join` de `v_submission_status` le devolvía cero filas | ✅ 2026-09-29 |
+| `0026_weekly_log_week_number_and_updates.sql` | `updated_at` en `job_search_logs`/`internship_logs`; `update_job_search_log()`/`update_internship_log()` lo llenan al corregir; `v_student_job_search_logs`/`v_student_internship_logs` agregan `updated_at` y `week_number` (mejor esfuerzo contra `semester_weeks`) | ✅ 2026-09-28 |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.

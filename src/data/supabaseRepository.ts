@@ -798,8 +798,10 @@ function weeklyLogBase(record: PanelRecord) {
   return {
     submissionId: str(record.submission_id) ?? '',
     submittedAt: str(record.submitted_at),
+    updatedAt: str(record.updated_at),
     weekStart: str(record.week_start),
     weekEnd: str(record.week_end),
+    weekNumber: record.week_number == null ? null : Number(record.week_number),
     activities: str(record.activities),
   }
 }
