@@ -21,6 +21,11 @@ import {
 import { HOLLAND_LABELS } from '../lib/catalog'
 import { Badge, Dash } from './Badge'
 import { HollandRadar } from './HollandRadar'
+import {
+  SubmissionStatusGrid,
+  SubmissionStatusLegend,
+  useSubmissionStatus,
+} from './SubmissionStatusGrid'
 import { SubmissionTimeline } from './SubmissionTimeline'
 
 interface StudentDossierProps<T extends BaseRow> {
@@ -50,6 +55,7 @@ export function StudentDossier<T extends BaseRow>({
   const studentId = row?.studentId ?? null
   const { dossier, jobSearch, internship, error } = useDossier(studentId)
   const { history, error: historyError } = useSubmissionHistory(studentId, form.code)
+  const { statuses, error: statusError } = useSubmissionStatus(studentId)
 
   useEffect(() => {
     if (!row) return
@@ -104,6 +110,17 @@ export function StudentDossier<T extends BaseRow>({
             {children && (
               <Section title={`${form.label} ${form.name}`}>{children(row)}</Section>
             )}
+
+            <Section title="Estado de Entregas" hint="todos los formularios">
+              {statusError ? (
+                <p className="text-sm text-red-800">{statusError}</p>
+              ) : (
+                <div className="space-y-3">
+                  <SubmissionStatusLegend />
+                  <SubmissionStatusGrid statuses={statuses} />
+                </div>
+              )}
+            </Section>
 
             <Section title="Historial de respuestas">
               {historyError ? (

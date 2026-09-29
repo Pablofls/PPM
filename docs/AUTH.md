@@ -24,7 +24,7 @@ usuario recién registrado puede iniciar sesión y no ve ni una fila.
 | Rol | Qué puede hacer |
 |---|---|
 | `pendiente` | Iniciar sesión y ver su propio perfil. **Nada más.** Es el rol con el que nace todo usuario |
-| `alumno` | Iniciar sesión, entregar sus dos bitácoras semanales, leer **sus propias** entregas y su propio expediente (ADN Profesional). Nada de ningún otro alumno, nada de los otros trece formularios |
+| `alumno` | Iniciar sesión, entregar sus dos bitácoras semanales, leer **sus propias** entregas, su propio expediente (ADN Profesional) y su propio estado de entregas. Nada de ningún otro alumno, nada de los otros trece formularios |
 | `admin` | Leer todas las pantallas del panel y administrar los roles de los demás |
 
 Todas las pantallas **del panel** son admin-only. El alumno tiene su propio
@@ -32,8 +32,8 @@ Todas las pantallas **del panel** son admin-only. El alumno tiene su propio
 
 ### Lo que el alumno puede hacer
 
-> Migraciones `0016_student_weekly_logs.sql`, `0018_semester_weeks.sql` y
-> `0019_student_dossier_read.sql`.
+> Migraciones `0016_student_weekly_logs.sql`, `0018_semester_weeks.sql`,
+> `0019_student_dossier_read.sql` y `0023_student_form_deadlines_read.sql`.
 
 | Tabla | Lectura | Escritura |
 |---|---|---|
@@ -44,6 +44,7 @@ Todas las pantallas **del panel** son admin-only. El alumno tiene su propio
 | `semester_weeks` | las de su propio periodo | no |
 | `students` | la suya | no |
 | `demographics`, `holland_results`, `mbti_results`, `disc_results`, `values_results`, `company_profiles` | las suyas | no |
+| `form_deadlines` | todas — no tiene datos personales, es la misma regla para todos | no |
 | todo lo demás | **no** | **no** |
 
 La condición de «mío» es siempre la misma para `submissions` y las tablas de
@@ -73,6 +74,18 @@ volver sobre lo enviado.
 > `holland_results`, `mbti_results`, `disc_results`, `values_results` y
 > `company_profiles`, todas acotadas por `EXISTS` contra `submissions` igual
 > que `job_search_logs_select_own`.
+>
+> `0023` abre una lectura más, con el mismo criterio: el profesor pidió
+> mostrar, tanto en el expediente que él abre como en el portal del alumno,
+> una fila con el estado de sus entregas por formulario (`v_submission_status`,
+> `docs/DATABASE_SCHEMA.md#fechas-de-entrega-y-estado-de-las-entregas`). Esa
+> vista ya resolvía «solo lo mío» del lado del alumno gracias a `0019`, pero
+> `resolve_form_deadline()` consulta `form_deadlines`, que hasta entonces solo
+> leía `is_admin()` — sin esa lectura el alumno veía `due_at` siempre `NULL` y
+> por lo tanto todo en `sin_fecha`. `form_deadlines_select_alumno` abre
+> `form_deadlines` completa, no solo «lo mío», porque la tabla no tiene datos
+> personales de ningún alumno: son reglas de fecha por
+> formulario/idioma/frecuencia/periodo, iguales para todos.
 
 ## Cómo se crean las cuentas de los alumnos
 

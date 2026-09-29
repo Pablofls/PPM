@@ -779,6 +779,15 @@ pasó por `is_admin()`, así que extender esa misma condición a políticas de
 fecha es borrar la regla y crear otra, igual que las entregas del alumno
 (regla «Historial completo»).
 
+`0023_student_form_deadlines_read.sql` agrega una cuarta política,
+`form_deadlines_select_alumno`, acotada a `current_student_id() is not null`
+—no a `authenticated` a secas, un `pendiente` sigue sin ver nada—: sin ella
+`resolve_form_deadline()` le devolvía `NULL` al alumno (la tabla es
+`is_admin()`-only desde `0017`) y `v_submission_status` le mostraba todo en
+`sin_fecha`, así hubiera entregado a tiempo. `form_deadlines` no tiene datos
+personales de ningún alumno, así que abrir su lectura a cualquier alumno
+activo es seguro.
+
 ### `resolve_form_deadline(form_code, language, session_day, period_code)`
 
 Devuelve el `due_at` que aplica. Entre las reglas del formulario cuyo
@@ -1040,7 +1049,7 @@ RLS habilitado en **las 20 tablas**.
 |---|---|
 | `anon` | ninguno |
 | `authenticated` con rol `pendiente` | solo su propio `profiles` |
-| `authenticated` con rol `alumno` | su propio `profiles`; sus propias `submissions`, `job_search_logs` e `internship_logs`; lectura de las `semester_weeks` de su propio periodo; su propio `students` y su propio expediente (`demographics`, `holland_results`, `mbti_results`, `disc_results`, `values_results`, `company_profiles`). Ninguna fila de otro alumno, ninguna otra tabla |
+| `authenticated` con rol `alumno` | su propio `profiles`; sus propias `submissions`, `job_search_logs` e `internship_logs`; lectura de las `semester_weeks` de su propio periodo; su propio `students` y su propio expediente (`demographics`, `holland_results`, `mbti_results`, `disc_results`, `values_results`, `company_profiles`); lectura de `form_deadlines` completa —no tiene datos personales, es la misma regla para todos— para poder calcular su propio estado de entregas. Ninguna fila de otro alumno, ninguna otra tabla |
 | `authenticated` con rol `admin` | lectura de todo; escritura directa de `form_deadlines` y `semester_weeks` |
 | `service_role` | escritura (importación y sincronización); se salta RLS por definición |
 
@@ -1139,6 +1148,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0020_weekly_log_current_week_only.sql` | `new_weekly_submission()` exige que la semana sea la de hoy; políticas de `UPDATE` de `job_search_logs`/`internship_logs` acotadas a la semana en curso; `update_job_search_log()`, `update_internship_log()` | ✅ 2026-09-25 |
 | `0021_sync_creates_student_accounts.sql` | `import_sheet_rows()` redefinida: llama a `create_student_accounts()` en cada corrida | ✅ 2026-09-25 |
 | `0022_admin_run_sheet_sync.sql` | `admin_run_sheet_sync()`: puerta admin-only para que el botón "Procesar datos" del panel dispare `import_sheet_rows()` a mano | ✅ 2026-09-25 |
+| `0023_student_form_deadlines_read.sql` | `form_deadlines_select_alumno`: el alumno lee `form_deadlines` para poder calcular su propio estado de entregas | ⏳ **pendiente** |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.
@@ -1149,7 +1159,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 |---|---|
 | Tablas | 20 |
 | Tablas con RLS activo | **20** |
-| Políticas | 33 — 20 admin-only, las 6 del alumno de `0016`, las 3 de `form_deadlines` de `0017` y las 4 de `semester_weeks` de `0018` (3 admin + `semester_weeks_select_own` del alumno) |
+| Políticas | 33 — 20 admin-only, las 6 del alumno de `0016`, las 3 de `form_deadlines` de `0017` y las 4 de `semester_weeks` de `0018` (3 admin + `semester_weeks_select_own` del alumno). No cuenta las de `0019` ni `form_deadlines_select_alumno` de `0023`: ninguna de las dos se ha ejecutado en Supabase todavía |
 | Vistas | 16, todas con `security_invoker = on` |
 | Índices `idx_*` | 7 |
 | Formularios en el catálogo | 15 |

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../../auth/AuthProvider'
 import { Badge } from '../../components/Badge'
+import { SubmissionStatusGrid, useSubmissionStatus } from '../../components/SubmissionStatusGrid'
 import { DossierProfile, useStudentDossier } from '../../components/StudentDossier'
 import { Toast } from '../../components/Toast'
 import { repository } from '../../data/repository'
@@ -22,6 +23,7 @@ export function StudentHome() {
   const correo = profile?.email ?? session?.user?.email
   const [toast, dismissToast] = useHandoffToast()
   const { dossier } = useStudentDossier(profile?.student_id ?? null)
+  const { statuses, error: statusError } = useSubmissionStatus(profile?.student_id ?? null)
 
   return (
     <>
@@ -34,6 +36,15 @@ export function StudentHome() {
             dossier={dossier}
             fallback={{ fullName: nombre ?? null, institutionalEmail: correo ?? null }}
           />
+
+          <section>
+            <h3 className="mb-3 text-sm font-semibold text-ink-950">Estado de Entregas</h3>
+            {statusError ? (
+              <p className="text-sm text-red-800">{statusError}</p>
+            ) : (
+              <SubmissionStatusGrid statuses={statuses} />
+            )}
+          </section>
         </div>
       </section>
 

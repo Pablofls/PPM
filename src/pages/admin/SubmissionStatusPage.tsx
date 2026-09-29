@@ -1,17 +1,14 @@
 import { DataTable, type Column } from '../../components/DataTable'
 import { FilterBar, useFilters } from '../../components/FilterBar'
+import {
+  SubmissionStatusLegend,
+  SubmissionStatusSquare,
+} from '../../components/SubmissionStatusGrid'
 import { useRepositoryQuery } from '../../data/hooks'
 import { repository } from '../../data/repository'
-import type { SubmissionState, SubmissionStatusCell, SubmissionStatusRow } from '../../data/types'
+import type { SubmissionStatusRow } from '../../data/types'
 import { DEADLINE_FORMS } from '../../lib/catalog'
-import { formatDateTime, formatSemester } from '../../lib/format'
-
-const STATE_COLOR: Record<SubmissionState, string> = {
-  a_tiempo: 'bg-emerald-500',
-  tarde: 'bg-accent-500',
-  pendiente: 'bg-red-500',
-  sin_fecha: 'bg-ink-200',
-}
+import { formatSemester } from '../../lib/format'
 
 const columns: Column<SubmissionStatusRow>[] = [
   {
@@ -34,7 +31,7 @@ const columns: Column<SubmissionStatusRow>[] = [
   ...DEADLINE_FORMS.map<Column<SubmissionStatusRow>>((form) => ({
     key: form.code,
     header: form.label,
-    render: (row) => <StatusSquare cell={row.statuses[form.code]} />,
+    render: (row) => <SubmissionStatusSquare cell={row.statuses[form.code]} />,
   })),
   {
     key: 'resumen',
@@ -71,7 +68,7 @@ export function SubmissionStatusPage() {
             Compara la marca temporal de cada entrega contra la fecha límite asignada.
           </p>
         </div>
-        <Legend />
+        <SubmissionStatusLegend />
       </header>
 
       <FilterBar filters={filters} onChange={setFilter} onClear={clearFilters} />
@@ -85,34 +82,6 @@ export function SubmissionStatusPage() {
         error={error}
       />
     </>
-  )
-}
-
-/**
- * El cuadro de la matriz, con su propio tooltip.
- *
- * El atributo `title` nativo del navegador tarda casi un segundo en aparecer y
- * no se ve igual en todos los navegadores; este es un tooltip propio, que
- * aparece al instante y con el mismo estilo en cualquier lado.
- */
-function StatusSquare({ cell }: { cell: SubmissionStatusCell | undefined }) {
-  const state = cell?.state ?? 'sin_fecha'
-  const label = cell?.submittedAt
-    ? `Entregado: ${formatDateTime(cell.submittedAt)}`
-    : state === 'pendiente'
-      ? 'No entregado'
-      : 'Sin fecha límite configurada'
-
-  return (
-    <span className="group/cell relative inline-block">
-      <span className={`inline-block size-5 rounded-sm ${STATE_COLOR[state]}`} />
-      <span
-        role="tooltip"
-        className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1.5 -translate-x-1/2 rounded-md bg-ink-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity group-hover/cell:opacity-100"
-      >
-        {label}
-      </span>
-    </span>
   )
 }
 
@@ -144,24 +113,5 @@ function Summary({ row }: { row: SubmissionStatusRow }) {
         {missing}
       </span>
     </div>
-  )
-}
-
-function Legend() {
-  return (
-    <div className="flex items-center gap-4 text-xs text-ink-500">
-      <LegendItem color="bg-emerald-500" label="A tiempo" />
-      <LegendItem color="bg-accent-500" label="Tarde" />
-      <LegendItem color="bg-red-500" label="No entregado" />
-    </div>
-  )
-}
-
-function LegendItem({ color, label }: { color: string; label: string }) {
-  return (
-    <span className="flex items-center gap-1.5">
-      <span className={`size-2.5 rounded-sm ${color}`} />
-      {label}
-    </span>
   )
 }

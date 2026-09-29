@@ -38,6 +38,7 @@ import type {
   SkillsRow,
   StudentDossier,
   SubmissionHistoryEntry,
+  SubmissionStatusCell,
   SubmissionStatusRow,
   SyncRunResult,
   SyncStatus,
@@ -153,6 +154,17 @@ export interface PanelRepository {
   getSubmissionStatus(filters: PanelFilters): Promise<SubmissionStatusRow[]>
 
   /**
+   * El estado de un solo alumno en cada formulario con fecha límite: la misma
+   * matriz de "Estado de Entregas", para una fila. La usan el expediente que
+   * abre el profesor y el portal del alumno sobre sí mismo — cada uno la
+   * consulta con su propio RLS (`v_submission_status` ya resuelve "solo lo
+   * mío" del lado del alumno).
+   */
+  getSubmissionStatusForStudent(
+    studentId: string,
+  ): Promise<Partial<Record<FormCode, SubmissionStatusCell>>>
+
+  /**
    * Las semanas configuradas. RLS decide cuáles: el admin ve las de todos los
    * periodos, el alumno solo las del suyo — el mismo método sirve a las dos
    * pantallas.
@@ -254,6 +266,9 @@ export const emptyRepository: PanelRepository = {
   },
   async getSubmissionStatus() {
     return []
+  },
+  async getSubmissionStatusForStudent() {
+    return {}
   },
   async getSemesterWeeks() {
     return []

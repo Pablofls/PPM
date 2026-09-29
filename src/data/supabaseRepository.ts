@@ -39,6 +39,7 @@ import type {
   StudentDossier,
   SubmissionHistoryEntry,
   SubmissionState,
+  SubmissionStatusCell,
   SubmissionStatusRow,
   SyncRunResult,
   SyncStatus,
@@ -649,6 +650,31 @@ export const supabaseRepository: PanelRepository = {
       }
     }
     return [...rows.values()]
+  },
+
+  /**
+   * El mismo pivote que `getSubmissionStatus`, pero filtrado a un alumno: lo
+   * usan el expediente que abre el profesor y el portal del alumno sobre sí
+   * mismo. No hace falta traer nombre ni carrera — el llamador ya los tiene.
+   */
+  async getSubmissionStatusForStudent(
+    studentId: string,
+  ): Promise<Partial<Record<FormCode, SubmissionStatusCell>>> {
+    const { data, error } = await supabase
+      .from('v_submission_status')
+      .select('form_code, state, submitted_at')
+      .eq('student_id', studentId)
+
+    if (error) throw new Error(`No se pudieron cargar las entregas: ${error.message}`)
+
+    const statuses: Partial<Record<FormCode, SubmissionStatusCell>> = {}
+    for (const record of (data ?? []) as PanelRecord[]) {
+      statuses[record.form_code as FormCode] = {
+        state: (str(record.state) as SubmissionState) ?? 'sin_fecha',
+        submittedAt: str(record.submitted_at),
+      }
+    }
+    return statuses
   },
 
   /**
