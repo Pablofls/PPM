@@ -33,7 +33,8 @@ Todas las pantallas **del panel** son admin-only. El alumno tiene su propio
 ### Lo que el alumno puede hacer
 
 > Migraciones `0016_student_weekly_logs.sql`, `0018_semester_weeks.sql`,
-> `0019_student_dossier_read.sql` y `0023_student_form_deadlines_read.sql`.
+> `0019_student_dossier_read.sql`, `0023_student_form_deadlines_read.sql` y
+> `0025_student_forms_read.sql`.
 
 | Tabla | Lectura | Escritura |
 |---|---|---|
@@ -44,7 +45,7 @@ Todas las pantallas **del panel** son admin-only. El alumno tiene su propio
 | `semester_weeks` | las de su propio periodo | no |
 | `students` | la suya | no |
 | `demographics`, `holland_results`, `mbti_results`, `disc_results`, `values_results`, `company_profiles` | las suyas | no |
-| `form_deadlines` | todas — no tiene datos personales, es la misma regla para todos | no |
+| `form_deadlines`, `forms` | todas — ninguna de las dos tiene datos personales, son catálogos y reglas iguales para todos | no |
 | todo lo demás | **no** | **no** |
 
 La condición de «mío» es siempre la misma para `submissions` y las tablas de
@@ -86,6 +87,17 @@ volver sobre lo enviado.
 > `form_deadlines` completa, no solo «lo mío», porque la tabla no tiene datos
 > personales de ningún alumno: son reglas de fecha por
 > formulario/idioma/frecuencia/periodo, iguales para todos.
+>
+> `0025` corrige un permiso que se quedó fuera de `0023` por descuido:
+> `v_submission_status` también hace `cross join` contra `forms` (el catálogo
+> de los 15 formularios), que tiene RLS admin-only desde `0006` — agregada en
+> el mismo bloque que `students`/`submissions`, aunque `forms` no tiene ni un
+> dato personal. Sin `forms_select_alumno`, ese `cross join` le devolvía
+> **cero filas** al alumno (no una fila por formulario en `sin_fecha`: ninguna
+> fila), así que su fila de "Estado de Entregas" salía completamente vacía
+> aunque `form_deadlines` y sus propias `submissions` ya fueran legibles. Se
+> detectó comparando la respuesta real de la API para el alumno contra la del
+> SQL Editor como admin.
 
 ## Cómo se crean las cuentas de los alumnos
 

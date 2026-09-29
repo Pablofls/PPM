@@ -830,6 +830,20 @@ La matriz alumno × formulario de "Estado de Entregas". A diferencia de las
 `v_panel_*`, es un `LEFT JOIN` contra `latest_submissions`: el alumno que no ha
 entregado también tiene que aparecer. Detalle en [Vistas](#vistas).
 
+Su `FROM` hace `cross join (select code from forms where code <> 'form1_0')`.
+`forms` tiene RLS admin-only desde `0006_views_rls.sql` (`forms_select_admin`,
+agregada en el mismo bloque que `students`/`submissions`, aunque ella misma
+solo guarda el catálogo de los 15 formularios, sin datos personales). Hasta
+`0025_student_forms_read.sql` (✅ ejecutada en Supabase, 2026-09-29) el alumno
+no tenía política sobre `forms`, así que ese `cross join` le devolvía **cero
+filas** —no una fila por formulario en `sin_fecha`, sino ninguna fila—: su
+"Estado de Entregas" salía completamente vacío aunque `form_deadlines` (`0023`)
+y sus propias `submissions` sí fueran legibles. Se detectó comparando
+directamente contra la API: `latest_submissions` y `form_deadlines` devolvían
+datos reales para el alumno, pero `forms` sola devolvía `[]`. `forms_select_alumno`
+sigue el mismo criterio que `form_deadlines_select_alumno`: `current_student_id()
+is not null`, no `authenticated` a secas.
+
 ---
 
 ## Sincronización con el Sheets
@@ -1168,6 +1182,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0022_admin_run_sheet_sync.sql` | `admin_run_sheet_sync()`: puerta admin-only para que el botón "Procesar datos" del panel dispare `import_sheet_rows()` a mano | ✅ 2026-09-25 |
 | `0023_student_form_deadlines_read.sql` | `form_deadlines_select_alumno`: el alumno lee `form_deadlines` para poder calcular su propio estado de entregas | ✅ 2026-09-28 |
 | `0024_submission_status_due_date_aware.sql` | `submission_status()` redefinida: sin entrega, ya no marca `pendiente` hasta que la fecha límite pasa; antes de vencer, sale `sin_fecha` | ✅ 2026-09-28 |
+| `0025_student_forms_read.sql` | `forms_select_alumno`: el alumno lee `forms` — sin ella, el `cross join` de `v_submission_status` le devolvía cero filas | ✅ 2026-09-29 |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.
@@ -1178,7 +1193,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 |---|---|
 | Tablas | 20 |
 | Tablas con RLS activo | **20** |
-| Políticas | 34 — 20 admin-only, las 6 del alumno de `0016`, las 3 de `form_deadlines` de `0017`, las 4 de `semester_weeks` de `0018` (3 admin + `semester_weeks_select_own` del alumno) y `form_deadlines_select_alumno` de `0023`. No cuenta las 7 de `0019`: todavía no se ha ejecutado en Supabase |
+| Políticas | 35 — 20 admin-only, las 6 del alumno de `0016`, las 3 de `form_deadlines` de `0017`, las 4 de `semester_weeks` de `0018` (3 admin + `semester_weeks_select_own` del alumno), `form_deadlines_select_alumno` de `0023` y `forms_select_alumno` de `0025`. No cuenta las 7 de `0019`: todavía no se ha ejecutado en Supabase |
 | Vistas | 16, todas con `security_invoker = on` |
 | Índices `idx_*` | 7 |
 | Formularios en el catálogo | 15 |
