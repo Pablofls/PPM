@@ -1308,7 +1308,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0025_student_forms_read.sql` | `forms_select_alumno`: el alumno lee `forms` — sin ella, el `cross join` de `v_submission_status` le devolvía cero filas | ✅ 2026-09-29 |
 | `0026_weekly_log_week_number_and_updates.sql` | `updated_at` en `job_search_logs`/`internship_logs`; `update_job_search_log()`/`update_internship_log()` lo llenan al corregir; `v_student_job_search_logs`/`v_student_internship_logs` agregan `updated_at` y `week_number` (mejor esfuerzo contra `semester_weeks`) | ✅ 2026-09-28 |
 | `0027_weekly_submission_status.sql` | `v_weekly_submission_status`: "Estado de Entregas" por semana configurada en vez de por formulario, reutilizando `submission_status()` contra `semester_weeks.week_end` | ✅ 2026-09-28 |
-| `0028_weekly_log_match_by_overlap.sql` | `best_matching_week_number()`: reemplaza el anclaje por `week_start` de `0026`/`0027` con la semana de mayor traslape, corrigiendo entregas viejas mal clasificadas por un rango corrido un día | ⏳ **pendiente** |
+| `0028_weekly_log_match_by_overlap.sql` | `best_matching_week_number()`: reemplaza el anclaje por `week_start` de `0026`/`0027` con la semana de mayor traslape, corrigiendo entregas viejas mal clasificadas por un rango corrido un día | ✅ 2026-09-28 |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.
