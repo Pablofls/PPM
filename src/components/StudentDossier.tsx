@@ -7,9 +7,8 @@ import type {
   JobSearchLogRow,
   SessionDay,
   StudentDossier as Dossier,
-  SubmissionHistoryEntry,
 } from '../data/types'
-import type { FormCode, FormMeta } from '../lib/catalog'
+import type { FormMeta } from '../lib/catalog'
 import {
   formatDate,
   formatDateTime,
@@ -29,7 +28,6 @@ import {
   useWeeklyLogStatus,
   WeeklyLogStatusGrid,
 } from './SubmissionStatusGrid'
-import { SubmissionTimeline } from './SubmissionTimeline'
 
 interface StudentDossierProps<T extends BaseRow> {
   row: T | null
@@ -57,7 +55,6 @@ export function StudentDossier<T extends BaseRow>({
 }: StudentDossierProps<T>) {
   const studentId = row?.studentId ?? null
   const { dossier, jobSearch, internship, error } = useDossier(studentId)
-  const { history, error: historyError } = useSubmissionHistory(studentId, form.code)
   const { statuses, error: statusError } = useSubmissionStatus(studentId)
   const { weeks, error: weeksError } = useWeeklyLogStatus(studentId)
 
@@ -140,17 +137,6 @@ export function StudentDossier<T extends BaseRow>({
                     </div>
                   </div>
                 </div>
-              )}
-            </Section>
-
-            <Section title="Historial de respuestas">
-              {historyError ? (
-                <p className="text-sm text-red-800">{historyError}</p>
-              ) : (
-                <SubmissionTimeline
-                  entries={history}
-                  isConnected={repository.isConnected}
-                />
               )}
             </Section>
           </div>
@@ -728,37 +714,4 @@ function useDossier(studentId: string | null) {
   }, [studentId])
 
   return { dossier, jobSearch, internship, error }
-}
-
-function useSubmissionHistory(studentId: string | null, formCode: FormCode) {
-  const [history, setHistory] = useState<SubmissionHistoryEntry[]>([])
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!studentId) {
-      setHistory([])
-      setError(null)
-      return
-    }
-
-    let cancelled = false
-    repository
-      .getSubmissionHistory(studentId, formCode)
-      .then((entries) => {
-        if (cancelled) return
-        setHistory(entries)
-        setError(null)
-      })
-      .catch((cause: unknown) => {
-        if (cancelled) return
-        setHistory([])
-        setError(cause instanceof Error ? cause.message : 'Error desconocido')
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [studentId, formCode])
-
-  return { history, error }
 }

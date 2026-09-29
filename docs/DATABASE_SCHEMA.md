@@ -828,6 +828,44 @@ cuadro (`SubmissionStatusSquare`,
 `src/components/SubmissionStatusGrid.tsx`) sí distingue uno del otro,
 mostrando la fecha de vencimiento cuando existe.
 
+### `best_matching_week_number(period_code, week_start, week_end)`
+
+> Migración `0028_weekly_log_match_by_overlap.sql` — ✅ ejecutada en Supabase
+> (2026-09-28).
+
+La semana de `semester_weeks` del periodo dado que **más días comparte** con
+el rango recibido — no la primera en la que cae `week_start`, sino la de
+mayor traslape:
+
+```sql
+where sw.period_code = p_period_code
+  and sw.week_start <= p_week_end
+  and sw.week_end   >= p_week_start
+order by
+  least(p_week_end, sw.week_end) - greatest(p_week_start, sw.week_start) desc,
+  sw.week_start
+limit 1
+```
+
+Es el emparejamiento de mejor esfuerzo que usan `v_student_job_search_logs`,
+`v_student_internship_logs` (`0026`) y `v_weekly_submission_status` (`0027`)
+para resolver el número de semana de una entrega, ahora factorizado en una
+sola función en vez de repetido en las tres vistas.
+
+Reemplaza el emparejamiento de `0026`/`0027`, que anclaba solo en
+`submissions.week_start` (`sw.week_start <= week_start <= sw.week_end`). Una
+entrega hecha desde la plataforma siempre calza exacto con una sola semana
+configurada, así que ahí no cambia nada. El problema era una entrega vieja
+del Google Forms cuyo rango viene corrido: una alumna reportó
+"13/09/2026 – 20/09/2026" (domingo a domingo) en vez de la semana
+lunes-domingo real, "14/09/2026 – 20/09/2026". Su `week_start` (13/09,
+domingo) caía exactamente en el último día de la semana **anterior**
+configurada, y el anclaje-por-inicio la etiquetaba con el número equivocado
+—duplicando esa semana y dejando la semana correcta en rojo, aunque sí se
+había reportado—. Esta entrega comparte 1 día con la semana anterior y 7 con
+la correcta; `best_matching_week_number()` compara el traslape completo, no
+solo el primer día, y se queda con la que más comparte.
+
 ### `v_submission_status`
 
 La matriz alumno × formulario de "Estado de Entregas". A diferencia de las
@@ -875,16 +913,27 @@ left join lateral (
   from submissions sub
   where sub.student_id = dir.student_id
     and sub.form_code in ('form_busqueda', 'form_practicas')
-    and sub.week_start between sw.week_start and sw.week_end
+    and public.best_matching_week_number(dir.period_code, sub.week_start, sub.week_end) = sw.week_number
 ) wl on true
 ```
 
-El emparejamiento de `submissions.week_start` contra el rango de la semana
-configurada es el mismo de mejor esfuerzo que `v_student_job_search_logs`/
-`v_student_internship_logs` (`0026`): una entrega hecha desde la plataforma
-siempre calza exacto; una entrega vieja del Google Forms, con fechas
-tecleadas a mano, puede no caer en ninguna semana y esa semana simplemente no
-tiene entrega que mostrarle (`pendiente` o `sin_fecha`, según si ya venció).
+El emparejamiento usa `best_matching_week_number()` (`0028`), la misma
+función que `v_student_job_search_logs`/`v_student_internship_logs`: una
+entrega hecha desde la plataforma siempre calza exacto; una entrega vieja del
+Google Forms, con fechas tecleadas a mano, puede no caer en ninguna semana y
+esa semana simplemente no tiene entrega que mostrarle (`pendiente` o
+`sin_fecha`, según si ya venció).
+
+> `0027` emparejaba anclando solo en `sub.week_start between sw.week_start and
+> sw.week_end` — el primer día de lo que reportó el alumno tenía que caer
+> dentro de la semana configurada. Con una entrega real cuyo rango venía
+> corrido un día ("13/09/2026 – 20/09/2026" en vez de la semana lunes-domingo
+> "14/09/2026 – 20/09/2026"), el `week_start` caía en el último día de la
+> semana **anterior** y esa entrega se etiquetaba con el número equivocado —
+> duplicando esa semana y dejando la semana correcta en rojo, aunque sí se
+> había reportado. `0028_weekly_log_match_by_overlap.sql` lo corrige: en vez
+> de "¿dónde cae el primer día?", pregunta "¿con qué semana configurada
+> comparte más días?" (`best_matching_week_number()`, más abajo).
 
 A diferencia de `v_student_job_search_logs`/`v_student_internship_logs`
 (0026), **esta vista sí la puede leer el alumno sobre su propia fila**: parte
@@ -1259,6 +1308,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0025_student_forms_read.sql` | `forms_select_alumno`: el alumno lee `forms` — sin ella, el `cross join` de `v_submission_status` le devolvía cero filas | ✅ 2026-09-29 |
 | `0026_weekly_log_week_number_and_updates.sql` | `updated_at` en `job_search_logs`/`internship_logs`; `update_job_search_log()`/`update_internship_log()` lo llenan al corregir; `v_student_job_search_logs`/`v_student_internship_logs` agregan `updated_at` y `week_number` (mejor esfuerzo contra `semester_weeks`) | ✅ 2026-09-28 |
 | `0027_weekly_submission_status.sql` | `v_weekly_submission_status`: "Estado de Entregas" por semana configurada en vez de por formulario, reutilizando `submission_status()` contra `semester_weeks.week_end` | ✅ 2026-09-28 |
+| `0028_weekly_log_match_by_overlap.sql` | `best_matching_week_number()`: reemplaza el anclaje por `week_start` de `0026`/`0027` con la semana de mayor traslape, corrigiendo entregas viejas mal clasificadas por un rango corrido un día | ⏳ **pendiente** |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.

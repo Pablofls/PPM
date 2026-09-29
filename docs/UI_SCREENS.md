@@ -105,7 +105,7 @@ clic; aquí la arma `v_student_dossier` en una sola consulta.
 | VI — Reporte de Búsqueda | `form_busqueda` |
 | VII — Reporte de Prácticas | `form_practicas` |
 | Estado de Entregas | `v_submission_status` (formularios) y `v_weekly_submission_status` (semanas de bitácora), filtradas a este alumno |
-| Detalle del formulario y su historial | la pantalla desde la que se abrió |
+| Detalle del formulario | la pantalla desde la que se abrió |
 
 **Una sección sin datos no se dibuja.** Un alumno que no contestó el 1.2 no ve un
 recuadro vacío de Personalidad; ve un expediente más corto.
@@ -149,12 +149,6 @@ alumno solo llena una, nunca las dos), ámbar si la reportó tarde, rojo si la
 semana ya cerró sin reporte, gris si todavía no llega. No hay una columna por
 formulario aquí porque no aplica: lo que importa es si la semana quedó
 cubierta, no cuál de las dos bitácoras se usó.
-
-#### Historial de respuestas
-
-`SubmissionTimeline` lista todas las respuestas de un alumno al formulario desde
-el que se abrió el expediente, de la más reciente a la más antigua, marcando cuál
-es la vigente. Si un alumno reenvía, la respuesta anterior sigue consultable.
 
 #### Las bitácoras semanales viven aquí
 
@@ -422,7 +416,7 @@ formulario de entrega y lo que ya entregó.
 | Bloque | Contenido |
 |---|---|
 | Aviso | Al volver de entregar, la confirmación de que se guardó. Se va solo a los 6 segundos |
-| ADN Profesional | Su propio expediente (secciones I a V: identidad, intereses, personalidad, comportamiento, valores y los datos de la práctica en curso) más su fila de Estado de Entregas (formularios) y la matriz de sus semanas de bitácora. Las secciones I-V son el mismo componente que abre el profesor, `DossierProfile`, sin las bitácoras ni el historial de respuestas — esas siguen siendo contexto del profesor |
+| ADN Profesional | Su propio expediente (secciones I a V: identidad, intereses, personalidad, comportamiento, valores y los datos de la práctica en curso) más su fila de Estado de Entregas (formularios) y la matriz de sus semanas de bitácora. Las secciones I-V son el mismo componente que abre el profesor, `DossierProfile`, sin las bitácoras — esas siguen siendo contexto del profesor |
 | Tareas | Una tarjeta por bitácora: nombre, para qué es, cuántas entregas lleva y cuál fue la última |
 
 Sin «Tu cuenta» ni «Próximamente»: el bloque ADN Profesional ya muestra su
