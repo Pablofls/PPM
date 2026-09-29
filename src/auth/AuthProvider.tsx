@@ -142,8 +142,13 @@ export function translateAuthError(message: string): string {
   if (normalized.includes('email not confirmed')) {
     return 'Tu cuenta todavía no está confirmada. Revisa tu correo.'
   }
-  if (normalized.includes('should be at least') || normalized.includes('at least 10')) {
-    return 'La contraseña debe tener al menos 10 caracteres.'
+  // El número lo saca del mensaje de Supabase en vez de tenerlo fijo: es la
+  // longitud mínima que de verdad tiene configurada el dashboard
+  // (Authentication → Providers), y ese valor puede cambiar sin que este
+  // archivo se entere.
+  const longitudMinima = message.match(/at least (\d+) characters?/i)?.[1]
+  if (longitudMinima) {
+    return `La contraseña debe tener al menos ${longitudMinima} caracteres.`
   }
   if (normalized.includes('should be different from the old password')) {
     return 'La nueva contraseña debe ser diferente a la actual.'

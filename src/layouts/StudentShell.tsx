@@ -11,8 +11,7 @@ import { useAuth } from '../auth/AuthProvider'
  * tiene (regla «Alcance de las pantallas» de CLAUDE.md).
  */
 export function StudentShell() {
-  const { profile, session, signOut } = useAuth()
-  const correo = profile?.email ?? session?.user?.email
+  const { signOut } = useAuth()
 
   return (
     <div className="flex min-h-full flex-col">
@@ -25,9 +24,6 @@ export function StudentShell() {
         </Link>
 
         <div className="flex shrink-0 items-center gap-3 text-sm">
-          <span className="hidden max-w-56 truncate text-ink-600 sm:inline" title={correo}>
-            {correo}
-          </span>
           <Link
             to="/alumno/perfil"
             className="rounded-lg px-2.5 py-1.5 font-medium text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-900"

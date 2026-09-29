@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom'
 
 import { translateAuthError, useAuth } from '../../auth/AuthProvider'
 import { supabase } from '../../data/supabaseClient'
+import { PasswordInput } from '../../components/PasswordInput'
 import { Toast } from '../../components/Toast'
 
-const LONGITUD_MINIMA = 10
+const LONGITUD_MINIMA = 8
 
 /**
  * Cambio de contraseña del alumno.
@@ -16,14 +17,18 @@ const LONGITUD_MINIMA = 10
  * Profesional), cualquiera con esos dos datos podía entrar a ver el de otro
  * (ver docs/AUTH.md#lo-que-hay-que-saber-de-este-esquema-de-contraseñas).
  *
- * `supabase.auth.updateUser()` cambia la contraseña de la sesión ya
- * autenticada, sin pedir la actual: es la misma API que usa el resto del
- * panel, no toca ninguna tabla de `public` y no hace falta una migración.
+ * Pide la contraseña actual antes de dejar poner una nueva: `updateUser()`
+ * por sí solo cambia la contraseña de cualquier sesión ya abierta sin
+ * volver a pedirla, y esta pantalla es justo la que existe para que abrir
+ * sesión con la matrícula deje de bastar. La verificación es un
+ * `signInWithPassword()` extra contra la contraseña actual; solo si esa
+ * llamada funciona se manda el `updateUser()` con la nueva.
  */
 export function ProfilePage() {
   const { profile, session } = useAuth()
   const correo = profile?.email ?? session?.user?.email
 
+  const [currentPassword, setCurrentPassword] = useState('')
   const [password, setPassword] = useState('')
   const [confirmacion, setConfirmacion] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -42,8 +47,27 @@ export function ProfilePage() {
       setError('Las contraseñas no coinciden.')
       return
     }
+    if (!correo) {
+      setError('No se pudo identificar tu correo. Vuelve a iniciar sesión.')
+      return
+    }
 
     setSubmitting(true)
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: correo,
+      password: currentPassword,
+    })
+    if (signInError) {
+      setSubmitting(false)
+      setError(
+        signInError.message.toLowerCase().includes('invalid login credentials')
+          ? 'Tu contraseña actual es incorrecta.'
+          : translateAuthError(signInError.message),
+      )
+      return
+    }
+
     const { error: updateError } = await supabase.auth.updateUser({ password })
     setSubmitting(false)
 
@@ -52,6 +76,7 @@ export function ProfilePage() {
       return
     }
 
+    setCurrentPassword('')
     setPassword('')
     setConfirmacion('')
     setToast('Tu contraseña se actualizó correctamente.')
@@ -68,12 +93,12 @@ export function ProfilePage() {
         ← Mis tareas
       </Link>
 
-      <header className="mt-4">
+      <header className="mt-4 text-center">
         <h1 className="text-2xl font-semibold tracking-tight text-ink-950">Mi perfil</h1>
         <p className="mt-1 text-sm text-ink-600">Tu cuenta y tu contraseña.</p>
       </header>
 
-      <section className="mt-6 max-w-md rounded-xl border border-ink-200 bg-white p-6 shadow-sm">
+      <section className="mx-auto mt-6 max-w-md rounded-xl border border-ink-200 bg-white p-6 shadow-sm">
         <p className="text-sm text-ink-700">Correo institucional</p>
         <p className="mt-1 text-sm font-medium text-ink-950">{correo}</p>
 
@@ -85,28 +110,34 @@ export function ProfilePage() {
           </p>
 
           <label className="mt-4 block">
+            <span className="text-sm text-ink-700">Contraseña actual</span>
+            <PasswordInput
+              value={currentPassword}
+              onChange={setCurrentPassword}
+              required
+              autoComplete="current-password"
+            />
+          </label>
+
+          <label className="mt-4 block">
             <span className="text-sm text-ink-700">Nueva contraseña</span>
-            <input
-              type="password"
+            <PasswordInput
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              onChange={setPassword}
               required
               minLength={LONGITUD_MINIMA}
               autoComplete="new-password"
-              className="mt-1.5 w-full rounded-lg border border-ink-200 px-3 py-2 text-sm focus:border-ink-400 focus:ring-2 focus:ring-ink-900/5 focus:outline-none"
             />
           </label>
 
           <label className="mt-4 block">
             <span className="text-sm text-ink-700">Confirmar contraseña</span>
-            <input
-              type="password"
+            <PasswordInput
               value={confirmacion}
-              onChange={(event) => setConfirmacion(event.target.value)}
+              onChange={setConfirmacion}
               required
               minLength={LONGITUD_MINIMA}
               autoComplete="new-password"
-              className="mt-1.5 w-full rounded-lg border border-ink-200 px-3 py-2 text-sm focus:border-ink-400 focus:ring-2 focus:ring-ink-900/5 focus:outline-none"
             />
           </label>
 

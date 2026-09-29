@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 
+import { PasswordInput } from '../components/PasswordInput'
 import { isSupabaseConfigured } from '../data/supabaseClient'
 import { useAuth } from './AuthProvider'
 
@@ -64,13 +65,11 @@ export function LoginPage() {
 
           <label className="mt-4 block">
             <span className="text-sm text-ink-700">Contraseña</span>
-            <input
-              type="password"
+            <PasswordInput
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              onChange={setPassword}
               required
               autoComplete="current-password"
-              className="mt-1.5 w-full rounded-lg border border-ink-200 px-3 py-2 text-sm focus:border-ink-400 focus:ring-2 focus:ring-ink-900/5 focus:outline-none"
             />
           </label>
 

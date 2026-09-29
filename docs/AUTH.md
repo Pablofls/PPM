@@ -157,13 +157,26 @@ de la matrícula no dependa de un admin. Sigue pendiente, porque nadie la pidió
 todavía, obligar el cambio en el primer inicio de sesión o mandar un enlace
 mágico en su lugar.
 
-Nota práctica: Supabase exige 10 caracteres mínimo al cambiar o restablecer una
-contraseña por la API. Una matrícula de 6 dígitos funciona para entrar, porque el
-alta se hace en la base y esa política solo la aplica la API, pero el alumno no
-podrá *ponerse* una contraseña corta: `ProfilePage` valida los 10 caracteres en
-el cliente antes de llamar a `updateUser()`, y traduce el error de Supabase si
-de todos modos se le escapa algo (`translateAuthError()` en `AuthProvider.tsx`,
-compartida con el login).
+`ProfilePage` pide la contraseña actual antes de dejar poner una nueva:
+`updateUser()` por sí solo cambia la contraseña de cualquier sesión ya
+abierta sin volver a pedirla, y la pantalla existe justo para que entrar con
+la matrícula deje de bastar. La verificación es un `signInWithPassword()`
+extra contra la contraseña actual — la misma llamada que usa el login — y
+solo si esa llamada funciona se manda el `updateUser()` con la nueva.
+
+Nota práctica: `ProfilePage` valida en el cliente un mínimo de **8 caracteres**
+antes de llamar a `updateUser()`. Una matrícula de 6 dígitos funciona para
+entrar, porque el alta se hace en la base y la longitud mínima solo la aplica
+la API al *cambiar* la contraseña, no al iniciar sesión.
+
+> ⚠️ **Pendiente en el dashboard:** Authentication → Providers todavía tiene
+> configurados **10 caracteres** como mínimo (ver «Configuración del
+> dashboard» abajo). Mientras no se baje a 8 ahí, una contraseña de 8 o 9
+> caracteres pasa la validación de `ProfilePage` pero la API de Supabase la
+> rechaza igual. `translateAuthError()` no tiene el número fijo — lo saca del
+> mensaje de error de Supabase — así que el aviso que ve el alumno siempre
+> dice la longitud real que exige el dashboard, aunque no coincida todavía
+> con el mínimo del formulario.
 
 ### Por qué el alta se hace en SQL y no con la API
 
@@ -281,7 +294,10 @@ ejecuta con los permisos del dueño, se salta RLS y corta el ciclo.
 En **Authentication → Providers**:
 
 - Habilitar **Email**, con *Confirm email* según se decida.
-- Longitud mínima de contraseña: **10 caracteres**.
+- Longitud mínima de contraseña: **10 caracteres** hoy — pendiente bajarla a
+  **8** a mano en el dashboard, para que coincida con lo que valida
+  `ProfilePage` (ver «Lo que hay que saber de este esquema de contraseñas»
+  arriba).
 - El registro queda abierto mientras se crean los admins. Después se puede cerrar
   desde **Authentication → Sign In / Providers**, y dar de alta usuarios a mano.
 
@@ -300,7 +316,8 @@ En **Authentication → Providers**:
 | `src/layouts/StudentShell.tsx` | el marco de la vista del alumno, gemelo del `AppShell` |
 | `src/pages/alumno/StudentHome.tsx` | índice de tareas del alumno, con su ADN Profesional (`DossierProfile`, secciones I a V) |
 | `src/pages/alumno/WeeklyLogPage.tsx` | entrega de una bitácora y sus entregas anteriores |
-| `src/pages/alumno/ProfilePage.tsx` | `/alumno/perfil`: cambio de contraseña con `supabase.auth.updateUser()` |
+| `src/pages/alumno/ProfilePage.tsx` | `/alumno/perfil`: cambio de contraseña, verificando la actual con `signInWithPassword()` antes de `updateUser()` |
+| `src/components/PasswordInput.tsx` | campo de contraseña con el ojo para mostrarla u ocultarla, compartido por el login y el perfil |
 
 Todo el panel cuelga de `ProtectedRoute` en `App.tsx`: no hay una sola ruta
 accesible sin sesión y sin rol `admin`. Entrar directo a `/modulo1/habilidades`
