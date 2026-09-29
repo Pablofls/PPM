@@ -779,8 +779,9 @@ pasó por `is_admin()`, así que extender esa misma condición a políticas de
 fecha es borrar la regla y crear otra, igual que las entregas del alumno
 (regla «Historial completo»).
 
-`0023_student_form_deadlines_read.sql` agrega una cuarta política,
-`form_deadlines_select_alumno`, acotada a `current_student_id() is not null`
+`0023_student_form_deadlines_read.sql` (✅ ejecutada en Supabase, 2026-09-28)
+agrega una cuarta política, `form_deadlines_select_alumno`, acotada a
+`current_student_id() is not null`
 —no a `authenticated` a secas, un `pendiente` sigue sin ver nada—: sin ella
 `resolve_form_deadline()` le devolvía `NULL` al alumno (la tabla es
 `is_admin()`-only desde `0017`) y `v_submission_status` le mostraba todo en
@@ -1148,7 +1149,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0020_weekly_log_current_week_only.sql` | `new_weekly_submission()` exige que la semana sea la de hoy; políticas de `UPDATE` de `job_search_logs`/`internship_logs` acotadas a la semana en curso; `update_job_search_log()`, `update_internship_log()` | ✅ 2026-09-25 |
 | `0021_sync_creates_student_accounts.sql` | `import_sheet_rows()` redefinida: llama a `create_student_accounts()` en cada corrida | ✅ 2026-09-25 |
 | `0022_admin_run_sheet_sync.sql` | `admin_run_sheet_sync()`: puerta admin-only para que el botón "Procesar datos" del panel dispare `import_sheet_rows()` a mano | ✅ 2026-09-25 |
-| `0023_student_form_deadlines_read.sql` | `form_deadlines_select_alumno`: el alumno lee `form_deadlines` para poder calcular su propio estado de entregas | ⏳ **pendiente** |
+| `0023_student_form_deadlines_read.sql` | `form_deadlines_select_alumno`: el alumno lee `form_deadlines` para poder calcular su propio estado de entregas | ✅ 2026-09-28 |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.
@@ -1159,7 +1160,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 |---|---|
 | Tablas | 20 |
 | Tablas con RLS activo | **20** |
-| Políticas | 33 — 20 admin-only, las 6 del alumno de `0016`, las 3 de `form_deadlines` de `0017` y las 4 de `semester_weeks` de `0018` (3 admin + `semester_weeks_select_own` del alumno). No cuenta las de `0019` ni `form_deadlines_select_alumno` de `0023`: ninguna de las dos se ha ejecutado en Supabase todavía |
+| Políticas | 34 — 20 admin-only, las 6 del alumno de `0016`, las 3 de `form_deadlines` de `0017`, las 4 de `semester_weeks` de `0018` (3 admin + `semester_weeks_select_own` del alumno) y `form_deadlines_select_alumno` de `0023`. No cuenta las 7 de `0019`: todavía no se ha ejecutado en Supabase |
 | Vistas | 16, todas con `security_invoker = on` |
 | Índices `idx_*` | 7 |
 | Formularios en el catálogo | 15 |
