@@ -14,8 +14,21 @@ const DATE_TIME_FORMAT = new Intl.DateTimeFormat('es-MX', {
   minute: '2-digit',
 })
 
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/
+
+/**
+ * `new Date('2026-08-03')` la interpreta como medianoche UTC; en un huso
+ * negativo (México) eso cae en el día anterior al formatear en hora local.
+ * Las columnas `date` de Postgres (semanas del semestre, fechas límite,
+ * fecha de nacimiento) no traen hora: se arma la fecha en horario local para
+ * que el día no se recorra.
+ */
 export function formatDate(value: string | null): string {
   if (!value) return ''
+  if (DATE_ONLY.test(value)) {
+    const [year, month, day] = value.split('-').map(Number)
+    return DATE_FORMAT.format(new Date(year, month - 1, day))
+  }
   return DATE_FORMAT.format(new Date(value))
 }
 
