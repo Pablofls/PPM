@@ -850,8 +850,8 @@ is not null`, no `authenticated` a secas.
 
 ### `v_weekly_submission_status`
 
-> Migración `0027_weekly_submission_status.sql` — ⏳ pendiente de ejecutar en
-> Supabase.
+> Migración `0027_weekly_submission_status.sql` — ✅ ejecutada en Supabase
+> (2026-09-28).
 
 La misma idea de "Estado de Entregas", pero por semana configurada en vez de
 por formulario: el alumno reporta una sola bitácora por semana (Búsqueda
@@ -1258,7 +1258,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0024_submission_status_due_date_aware.sql` | `submission_status()` redefinida: sin entrega, ya no marca `pendiente` hasta que la fecha límite pasa; antes de vencer, sale `sin_fecha` | ✅ 2026-09-28 |
 | `0025_student_forms_read.sql` | `forms_select_alumno`: el alumno lee `forms` — sin ella, el `cross join` de `v_submission_status` le devolvía cero filas | ✅ 2026-09-29 |
 | `0026_weekly_log_week_number_and_updates.sql` | `updated_at` en `job_search_logs`/`internship_logs`; `update_job_search_log()`/`update_internship_log()` lo llenan al corregir; `v_student_job_search_logs`/`v_student_internship_logs` agregan `updated_at` y `week_number` (mejor esfuerzo contra `semester_weeks`) | ✅ 2026-09-28 |
-| `0027_weekly_submission_status.sql` | `v_weekly_submission_status`: "Estado de Entregas" por semana configurada en vez de por formulario, reutilizando `submission_status()` contra `semester_weeks.week_end` | ⏳ **pendiente** |
+| `0027_weekly_submission_status.sql` | `v_weekly_submission_status`: "Estado de Entregas" por semana configurada en vez de por formulario, reutilizando `submission_status()` contra `semester_weeks.week_end` | ✅ 2026-09-28 |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.
