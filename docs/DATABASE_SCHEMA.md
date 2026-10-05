@@ -676,7 +676,7 @@ using (
     where sub.id = job_search_logs.submission_id
       and sub.student_id = public.current_student_id()
       and sub.form_code = 'form_busqueda'
-      and current_date between sub.week_start and sub.week_end
+      and public.today_monterrey() between sub.week_start and sub.week_end
   )
 )
 ```
@@ -686,7 +686,12 @@ idéntico al `USING`: sin eso, un `UPDATE` que reasignara `submission_id` a la
 entrega de otra semana —propia o ajena— se validaría contra la fila vieja y no
 contra la nueva.
 
-En cuanto la semana termina, `current_date between week_start and week_end` deja
+> **Zona horaria (`0030`).** «Hoy» es `public.today_monterrey()` (fecha en
+> `America/Monterrey`), no `current_date`: este último es UTC en Supabase y a
+> partir de las ~7–8 pm del último día la semana parecía cerrada. La semana
+> termina a las 23:59:59 hora de Monterrey.
+
+En cuanto la semana termina, `today_monterrey() between week_start and week_end` deja
 de cumplirse y la fila vuelve a ser inmutable para siempre — el `UPDATE` no
 truena, afecta cero filas, y `update_job_search_log()`/`update_internship_log()`
 lo convierten en un error legible (`'Ya no puedes corregir esa entrega...'`) en
@@ -1354,6 +1359,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0027_weekly_submission_status.sql` | `v_weekly_submission_status`: "Estado de Entregas" por semana configurada en vez de por formulario, reutilizando `submission_status()` contra `semester_weeks.week_end` | ✅ 2026-09-28 |
 | `0028_weekly_log_match_by_overlap.sql` | `best_matching_week_number()`: reemplaza el anclaje por `week_start` de `0026`/`0027` con la semana de mayor traslape, corrigiendo entregas viejas mal clasificadas por un rango corrido un día | ✅ 2026-09-28 |
 | `0029_weekly_log_manual_week_override.sql` | `week_number_override` en `job_search_logs`/`internship_logs`; `resolved_week_number()`; `admin_set_weekly_log_week_number()` para que el profesor corrija a mano lo que `best_matching_week_number()` no calza o calza mal | ✅ 2026-09-28 |
+| `0030_weekly_log_monterrey_today.sql` | `today_monterrey()`; `new_weekly_submission()` y las políticas de corrección de `0020` comparan contra la fecha de Monterrey en vez de `current_date` (UTC), que cerraba la semana a las ~7–8 pm del último día | ✅ 2026-10-04 |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.

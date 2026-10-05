@@ -570,9 +570,7 @@ function weekForToday(weeks: SemesterWeek[]): SemesterWeek | undefined {
   return weeks.find((week) => week.weekStart <= hoy && hoy <= week.weekEnd)
 }
 
-/** `YYYY-MM-DD` en la zona local. */
+/** `YYYY-MM-DD` en Monterrey, igual que `today_monterrey()` en la base (`0030`). */
 function isoDate(value: Date): string {
-  const mes = String(value.getMonth() + 1).padStart(2, '0')
-  const dia = String(value.getDate()).padStart(2, '0')
-  return `${value.getFullYear()}-${mes}-${dia}`
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Monterrey' }).format(value)
 }
