@@ -21,6 +21,8 @@ import type {
   DiscRow,
   FormDeadline,
   FormDeadlineInput,
+  Group,
+  GroupInput,
   RegisteredStudent,
   RegistrationResult,
   StudentRegistrationInput,
@@ -46,6 +48,7 @@ import type {
   SubmissionStatusRow,
   SyncRunResult,
   SyncStatus,
+  Teacher,
   ValuesRow,
   WeeklyLogStatusCell,
 } from './types'
@@ -71,6 +74,7 @@ function applyFilters<T extends PostgrestFilterBuilder<any, any, any, any, any>>
   if (filters.degree) next = next.eq('degree_code', filters.degree) as T
   if (filters.semester) next = next.eq('semester', Number(filters.semester)) as T
   if (filters.period) next = next.eq('period_code', filters.period) as T
+  if (filters.group) next = next.eq('group_id', filters.group) as T
   return next
 }
 
@@ -89,6 +93,7 @@ async function fetchAppendix(view: string, filters: PanelFilters): Promise<Panel
     query = query.or(`full_name.ilike.${patron},company_name.ilike.${patron}`)
   }
   if (filters.period) query = query.eq('period_code', filters.period)
+  if (filters.group) query = query.eq('group_id', filters.group)
 
   const { data, error } = await query.order('full_name', {
     ascending: true,
@@ -411,6 +416,8 @@ export const supabaseRepository: PanelRepository = {
       birthCountry: str(record.birth_country),
       gender: (str(record.gender) as StudentDossier['gender']) ?? null,
 
+      groupId: str(record.group_id),
+
       hollandCode: str(record.holland_code),
       hollandTypes,
 
@@ -656,7 +663,7 @@ export const supabaseRepository: PanelRepository = {
   async getRegisteredStudents(): Promise<RegisteredStudent[]> {
     const { data, error } = await supabase
       .from('v_students_directory')
-      .select('student_id, institutional_email, full_name, student_number, period_code, session_day, language')
+      .select('student_id, institutional_email, full_name, student_number, period_code, session_day, language, group_id')
       .order('institutional_email')
 
     if (error) throw new Error(`No se pudieron cargar los alumnos: ${error.message}`)
@@ -669,7 +676,77 @@ export const supabaseRepository: PanelRepository = {
       periodCode: str(record.period_code),
       sessionDay: (str(record.session_day) as 'lunes' | 'miercoles' | null) ?? null,
       language: (str(record.language) as 'es' | 'en' | null) ?? null,
+      groupId: str(record.group_id),
     }))
+  },
+
+  async getGroups(): Promise<Group[]> {
+    const { data, error } = await supabase
+      .from('v_groups')
+      .select('*')
+      .order('period_code', { ascending: false })
+      .order('session_day')
+      .order('language')
+
+    if (error) throw new Error(`No se pudieron cargar los grupos: ${error.message}`)
+
+    return ((data ?? []) as PanelRecord[]).map((record) => ({
+      id: str(record.group_id) ?? '',
+      periodCode: str(record.period_code) ?? '',
+      sessionDay: str(record.session_day) as Group['sessionDay'],
+      language: str(record.language) as Group['language'],
+      teacherId: str(record.teacher_id) ?? '',
+      teacherName: str(record.teacher_name),
+      teacherEmail: str(record.teacher_email) ?? '',
+      studentCount: num(record.student_count) ?? 0,
+    }))
+  },
+
+  async createGroup(input: GroupInput): Promise<void> {
+    const { error } = await supabase.rpc('admin_create_group', {
+      p_period_code: input.periodCode,
+      p_session_day: input.sessionDay,
+      p_language: input.language,
+      p_teacher_id: input.teacherId,
+    })
+    if (error) throw new Error(`No se pudo crear el grupo: ${error.message}`)
+  },
+
+  async deleteGroup(id: string): Promise<void> {
+    const { error } = await supabase.from('groups').delete().eq('id', id)
+    if (error) {
+      // 23503: la llave foránea de student_enrollments. Es el caso esperado,
+      // no un error raro: el grupo todavía tiene alumnos.
+      if (error.code === '23503') {
+        throw new Error('El grupo todavía tiene alumnos. Muévelos a otro grupo antes de borrarlo.')
+      }
+      throw new Error(`No se pudo borrar el grupo: ${error.message}`)
+    }
+  },
+
+  async getTeachers(): Promise<Teacher[]> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, full_name, email')
+      .eq('role', 'admin')
+      .eq('is_active', true)
+      .order('full_name')
+
+    if (error) throw new Error(`No se pudieron cargar los maestros: ${error.message}`)
+
+    return ((data ?? []) as PanelRecord[]).map((record) => ({
+      id: str(record.id) ?? '',
+      name: str(record.full_name),
+      email: str(record.email) ?? '',
+    }))
+  },
+
+  async moveStudentToGroup(studentId: string, groupId: string): Promise<void> {
+    const { error } = await supabase.rpc('admin_move_student', {
+      p_student_id: studentId,
+      p_group_id: groupId,
+    })
+    if (error) throw new Error(`No se pudo mover al alumno: ${error.message}`)
   },
 
   /**

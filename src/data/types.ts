@@ -184,6 +184,9 @@ export interface StudentDossier extends StudentColumns {
   valuesScore: number | null
   valuesReportUrl: string | null
 
+  /** Su grupo vigente (`0032`); `null` si todavía no tiene. */
+  groupId: string | null
+
   /** B.1: los datos de la práctica en curso */
   companyName: string | null
   industry: string | null
@@ -312,6 +315,12 @@ export interface PanelFilters {
   degree: string
   semester: string
   period: string
+  /**
+   * El grupo elegido en el selector del encabezado (`groups.id`). No es un
+   * filtro de la barra: es global a todas las pantallas y «Limpiar» no lo
+   * toca. Ver `GroupProvider`.
+   */
+  group: string
 }
 
 export const EMPTY_FILTERS: PanelFilters = {
@@ -321,6 +330,7 @@ export const EMPTY_FILTERS: PanelFilters = {
   degree: '',
   semester: '',
   period: '',
+  group: '',
 }
 
 /**
@@ -453,4 +463,39 @@ export interface RegisteredStudent {
   periodCode: string | null
   sessionDay: SessionDay | null
   language: Language | null
+  /** Su grupo vigente; `null` si todavía no tiene. Ver `0032`. */
+  groupId: string | null
+}
+
+/**
+ * Un grupo (`v_groups`, `0032`): una clase concreta de un maestro. El nombre
+ * no se guarda en la base; se arma con `formatGroupLabel()`.
+ */
+export interface Group {
+  id: string
+  periodCode: string
+  sessionDay: SessionDay
+  language: Language
+  teacherId: string
+  teacherName: string | null
+  teacherEmail: string
+  studentCount: number
+}
+
+/** Lo que el admin manda al crear un grupo. */
+export interface GroupInput {
+  periodCode: string
+  sessionDay: SessionDay
+  language: Language
+  teacherId: string
+}
+
+/**
+ * Quien puede impartir un grupo. Mientras no existan los roles de maestro
+ * (fase 2), es cualquier perfil admin activo.
+ */
+export interface Teacher {
+  id: string
+  name: string | null
+  email: string
 }

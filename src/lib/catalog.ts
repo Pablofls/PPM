@@ -304,11 +304,11 @@ export const REFLECTION_FORMS = ['form2_1', 'form2_2', 'form2_4', 'form2_5'] as 
 export const DEADLINE_FORMS: FormMeta[] = FORMS.filter((form) => form.code !== 'form1_0')
 
 /** Secciones del proyecto que todavía no tienen pantalla. Ver regla «Alcance de las pantallas» de CLAUDE.md. */
-export const UPCOMING_SECTIONS = [
+export const UPCOMING_SECTIONS: string[] = [
   // Las bitácoras semanales salieron de esta lista: ya existen, pero dentro del
   // expediente del alumno, no como pantalla propia del rail. Estado de
-  // Entregas salió con el Panel de Administrador: ver AppShell.tsx.
-  'Grupos',
+  // Entregas salió con el Panel de Administrador, y Grupos con `0032`: ver
+  // AppShell.tsx. Vacía, el rail no muestra la sección «Próximamente».
 ]
 
 // ---------------------------------------------------------------------------

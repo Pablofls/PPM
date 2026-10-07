@@ -21,6 +21,8 @@ import type {
   DiscRow,
   FormDeadline,
   FormDeadlineInput,
+  Group,
+  GroupInput,
   RegisteredStudent,
   RegistrationResult,
   StudentRegistrationInput,
@@ -45,6 +47,7 @@ import type {
   SubmissionStatusRow,
   SyncRunResult,
   SyncStatus,
+  Teacher,
   ValuesRow,
   WeeklyLogStatusCell,
 } from './types'
@@ -170,6 +173,27 @@ export interface PanelRepository {
 
   /** Directorio de alumnos con su inscripción, por correo. */
   getRegisteredStudents(): Promise<RegisteredStudent[]>
+
+  /** Los grupos, del periodo más reciente al más antiguo. Ver `0032`. */
+  getGroups(): Promise<Group[]>
+
+  /**
+   * Crea un grupo (`admin_create_group()`). Si hay alumnos sin grupo cuyo 1.0
+   * coincide solo con este, quedan inscritos en el mismo paso.
+   */
+  createGroup(input: GroupInput): Promise<void>
+
+  /** Borra un grupo. La base lo impide si todavía tiene alumnos. */
+  deleteGroup(id: string): Promise<void>
+
+  /** Quién puede impartir un grupo. */
+  getTeachers(): Promise<Teacher[]>
+
+  /**
+   * Asigna o mueve a un alumno de grupo (`admin_move_student()`): reemplaza
+   * su grupo de ese mismo periodo, si tenía; los de otros periodos no se tocan.
+   */
+  moveStudentToGroup(studentId: string, groupId: string): Promise<void>
 
   /**
    * La matriz de "Estado de Entregas": un alumno por fila, con su estado en
@@ -305,6 +329,21 @@ export const emptyRepository: PanelRepository = {
   },
   async getRegisteredStudents() {
     return []
+  },
+  async getGroups() {
+    return []
+  },
+  async createGroup() {
+    throw new Error('No hay conexión con la base de datos. El grupo no se creó.')
+  },
+  async deleteGroup() {
+    throw new Error('No hay conexión con la base de datos. El grupo no se borró.')
+  },
+  async getTeachers() {
+    return []
+  },
+  async moveStudentToGroup() {
+    throw new Error('No hay conexión con la base de datos. El alumno no se movió.')
   },
   async getSubmissionStatus() {
     return []

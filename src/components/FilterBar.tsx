@@ -10,9 +10,13 @@ import {
   type FilterOption,
 } from '../lib/catalog'
 import type { PanelFilters } from '../data/types'
+import { useGroups } from '../layouts/GroupProvider'
+
+/** Los filtros de la barra: todos salvo el grupo, que es global (`GroupProvider`). */
+type BarFilterKey = Exclude<keyof PanelFilters, 'group'>
 
 /** Nombres de los parámetros en la URL. En español: el profesor los ve y los comparte. */
-const PARAM_NAMES: Record<keyof PanelFilters, string> = {
+const PARAM_NAMES: Record<BarFilterKey, string> = {
   search: 'buscar',
   language: 'idioma',
   sessionDay: 'frecuencia',
@@ -25,9 +29,10 @@ const PARAM_NAMES: Record<keyof PanelFilters, string> = {
  * Los filtros viven en la URL para que el profesor pueda guardar o compartir una
  * vista filtrada. Son los mismos en todas las pantallas.
  */
-export function useFilters(): [PanelFilters, (key: keyof PanelFilters, value: string) => void, () => void] {
+export function useFilters(): [PanelFilters, (key: BarFilterKey, value: string) => void, () => void] {
   const [searchParams, setSearchParams] = useSearchParams()
   const queryString = searchParams.toString()
+  const group = useGroups()?.selectedGroupId ?? ''
 
   // La identidad del objeto tiene que ser estable: es una dependencia de las
   // consultas al repositorio, y recrearlo en cada render provocaría un bucle.
@@ -40,14 +45,15 @@ export function useFilters(): [PanelFilters, (key: keyof PanelFilters, value: st
       degree: params.get('carrera') ?? '',
       semester: params.get('semestre') ?? '',
       period: params.get('periodo') ?? '',
+      group,
     }
-  }, [queryString])
+  }, [queryString, group])
 
   // Forma funcional: parte siempre de los parámetros vigentes, no de los que
   // había al renderizar. Sin esto, dos filtros cambiados en el mismo ciclo de
   // React se pisan y solo se aplica el último.
   const setFilter = useCallback(
-    (key: keyof PanelFilters, value: string) => {
+    (key: BarFilterKey, value: string) => {
       setSearchParams(
         (current) => {
           const next = new URLSearchParams(current)
@@ -74,7 +80,7 @@ export function useFilters(): [PanelFilters, (key: keyof PanelFilters, value: st
 
 interface FilterBarProps {
   filters: PanelFilters
-  onChange: (key: keyof PanelFilters, value: string) => void
+  onChange: (key: BarFilterKey, value: string) => void
   onClear: () => void
   /** `'solo-busqueda'` oculta los cinco selectores compartidos. */
   mode?: 'completos' | 'solo-busqueda'
@@ -91,7 +97,8 @@ export function FilterBar({
   searchPlaceholder = 'Buscar por correo institucional…',
   children,
 }: FilterBarProps) {
-  const hasActiveFilters = Object.values(filters).some(Boolean)
+  // El grupo no cuenta: «Limpiar» no lo quita, así que no debe aparecer por él.
+  const hasActiveFilters = (Object.keys(PARAM_NAMES) as BarFilterKey[]).some((key) => filters[key])
   const showSelectors = mode === 'completos'
 
   return (

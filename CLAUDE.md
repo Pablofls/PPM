@@ -33,6 +33,13 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
 - **Alumnos Registrados** (`0031`, ejecutada el 2026-10-07): el profesor da
   de alta alumnos (correo, matrícula, periodo, frecuencia, idioma) a mano o con
   un Excel, y se les crea la cuenta sin que contesten el 1.0.
+- **Grupos** (`0032`–`0033`, **pendientes de ejecutar**): fase 1 de «varios
+  maestros, coordinadores y administradores». Grupo = periodo + frecuencia +
+  idioma + maestro; un alumno está en un grupo por periodo. Los datos actuales
+  se clasifican y se asignan al profesor actual. Selector de grupo global en el
+  encabezado y pantalla Grupos. Todavía no cambia quién ve qué: siguen las
+  fases de roles múltiples, usuarios y perfiles, permisos y «ver como».
+  Todo cambio de BD de estas fases se normaliza hasta 4FN.
 - El **rol `alumno`** existe: las cuentas se crean desde `demographics` (usuario =
   correo institucional, contraseña = matrícula) con
   `create_student_accounts()`, y el alumno entra a `/alumno`. Las cuentas ya se
@@ -172,11 +179,10 @@ completo»), porque ya no se puede: la semana pasada.
 
 Ya están construidos **Módulo 1, Módulo 2 y los Apéndices A/B**, las bitácoras
 semanales (dentro del expediente del alumno), Estado de Entregas, el Panel de
-Administrador y Alumnos Registrados (`0031`, alta de alumnos sin 1.0).
+Administrador, Alumnos Registrados (`0031`, alta de alumnos sin 1.0) y Grupos
+(`0032`).
 
-**Fuera de alcance mientras no se pida:** Grupos y la hoja `fechas_entrega`.
-Grupos aparece deshabilitado en el rail a propósito: comunica el alcance
-completo sin prometer que funciona. No construirlo sin pedirlo.
+**Fuera de alcance mientras no se pida:** la hoja `fechas_entrega`.
 
 ## Stack
 

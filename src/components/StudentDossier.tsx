@@ -14,11 +14,13 @@ import {
   formatDateTime,
   formatGender,
   formatSemester,
+  formatGroupLabel,
   formatSessionDay,
   formatWeekRange,
   toHref,
 } from '../lib/format'
 import { HOLLAND_LABELS } from '../lib/catalog'
+import { useGroups } from '../layouts/GroupProvider'
 import { Badge, Dash } from './Badge'
 import { HollandRadar } from './HollandRadar'
 import {
@@ -223,6 +225,9 @@ function Identity({
   const semester = fallback?.semester ?? dossier?.semester ?? null
   const periodCode = fallback?.periodCode ?? dossier?.periodCode ?? null
   const sessionDay = fallback?.sessionDay ?? dossier?.sessionDay ?? null
+  // Solo en el panel del profesor: el portal del alumno no tiene la lista de
+  // grupos (ni la necesita para verse a sí mismo).
+  const group = useGroups()?.groups.find((candidate) => candidate.id === dossier?.groupId)
 
   return (
     <section>
@@ -234,6 +239,7 @@ function Identity({
         {institutionalEmail && <span>{institutionalEmail}</span>}
         {dossier?.personalEmail && <span>{dossier.personalEmail}</span>}
         {dossier?.studentNumber && <span>Matrícula {dossier.studentNumber}</span>}
+        {group && <span>Grupo {formatGroupLabel(group)}</span>}
         {linkedin && (
           <a
             href={linkedin}

@@ -10,6 +10,8 @@
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
 - **Última migración aplicada:** `0031_student_registration.sql` (2026-10-07).
+  `0032_groups.sql` y `0033_views_group.sql` (grupos) están escritas y
+  documentadas aquí pero **todavía no se pegan en Supabase**.
   `0019_student_dossier_read.sql` está escrita y documentada aquí pero
   **todavía no se pega en Supabase**.
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
@@ -27,13 +29,14 @@
 8. [Módulo 2 — Actúa](#módulo-2--actúa)
 9. [Bitácoras semanales](#bitácoras-semanales)
 10. [Registro de alumnos](#registro-de-alumnos)
-11. [Semanas del semestre](#semanas-del-semestre)
-12. [Fechas de entrega y estado de las entregas](#fechas-de-entrega-y-estado-de-las-entregas)
-13. [Sincronización con el Sheets](#sincronización-con-el-sheets)
-14. [Vistas](#vistas)
-15. [Índices](#índices)
-16. [Seguridad](#seguridad)
-17. [Correspondencia migración → contenido](#correspondencia-migración--contenido)
+11. [Grupos](#grupos)
+12. [Semanas del semestre](#semanas-del-semestre)
+13. [Fechas de entrega y estado de las entregas](#fechas-de-entrega-y-estado-de-las-entregas)
+14. [Sincronización con el Sheets](#sincronización-con-el-sheets)
+15. [Vistas](#vistas)
+16. [Índices](#índices)
+17. [Seguridad](#seguridad)
+18. [Correspondencia migración → contenido](#correspondencia-migración--contenido)
 
 ---
 
@@ -129,17 +132,24 @@ erDiagram
     FORMS ||--o{ SHEET_ROWS : "staging del Sheets"
     FORMS ||--o{ FORM_DEADLINES : "fecha límite"
     STUDENTS ||--o{ STUDENT_ENROLLMENTS : "se inscribe"
-    PERIODS ||--o{ STUDENT_ENROLLMENTS : "en un periodo"
+    GROUPS ||--o{ STUDENT_ENROLLMENTS : "tiene alumnos"
+    PERIODS ||--o{ GROUPS : "en un periodo"
+    PROFILES ||--o{ GROUPS : "imparte (maestro)"
 
     PERIODS {
         text code PK "PR-26"
     }
-    STUDENT_ENROLLMENTS {
+    GROUPS {
         uuid id PK
-        uuid student_id FK
         text period_code FK
         session_day session_day
         language language
+        uuid teacher_id FK "profiles.id"
+    }
+    STUDENT_ENROLLMENTS {
+        uuid student_id PK "FK students"
+        uuid group_id PK "FK groups"
+        timestamptz created_at
     }
 
     AUTH_USERS {
@@ -751,6 +761,10 @@ registrar alumnos con él.
 
 ### `student_enrollments`
 
+> **Reemplazada en `0032`**: ahora es `(student_id, group_id)` y periodo,
+> frecuencia e idioma viven en el grupo. Ver [Grupos](#grupos). Abajo, la forma
+> que tuvo en `0031`, como historial.
+
 | Columna | Tipo | Notas |
 |---|---|---|
 | `id` | `uuid` PK DEFAULT `gen_random_uuid()` | |
@@ -774,6 +788,91 @@ idioma español/inglés), hace upsert de `students` y de la inscripción, y al
 final llama una vez a `create_student_accounts()`. Una fila inválida no aborta
 las demás. Una matrícula que ya es de otro alumno, o que contradice la del
 1.0 del mismo alumno, es error de fila. La matrícula nunca se devuelve.
+
+## Grupos
+
+> `0032_groups.sql` y `0033_views_group.sql` — ⏳ **pendientes de ejecutar**.
+> Fase 1 de «varios maestros, coordinadores y administradores»: cada alumno
+> pertenece al grupo de un maestro. Todavía **no** cambia quién ve qué (todo
+> sigue siendo `is_admin()`); eso llega con los roles.
+
+Un **grupo** es una clase concreta: periodo + frecuencia + idioma + maestro. Un
+alumno está en **un grupo por periodo**; un grupo es de **un** maestro; un
+maestro tiene **N** grupos.
+
+### Normalización (hasta 4FN)
+
+- `groups(id, period_code, session_day, language, teacher_id)`: llaves
+  candidatas `id` y `(period_code, session_day, language, teacher_id)`. Todo
+  determinante es llave → BCNF; sin atributos multivaluados → 4FN. El nombre
+  del grupo (`OT-26 · Lunes · Español`) **no se guarda**: se deriva.
+- `student_enrollments(student_id, group_id)`: en `0031` llevaba periodo,
+  frecuencia e idioma. Con grupos, esos tres dependen de `group_id`, que no es
+  llave de la inscripción (dependencia transitiva, viola 3FN): se eliminaron.
+- «Un grupo por periodo» lo garantiza un trigger, **no** una copia del periodo
+  en la inscripción: con `period_code` ahí, `group_id → period_code` tendría
+  un determinante que no es superllave (viola BCNF).
+
+### `groups`
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | `uuid` PK DEFAULT `gen_random_uuid()` | |
+| `period_code` | `text` NOT NULL FK `periods(code)` | |
+| `session_day` | `session_day` NOT NULL | frecuencia |
+| `language` | `language` NOT NULL | |
+| `teacher_id` | `uuid` NOT NULL FK `profiles(id)` | el maestro. Mientras no haya roles de maestro (fase 2), un perfil admin activo |
+| `created_at` | `timestamptz` NOT NULL DEFAULT `now()` | |
+
+`UNIQUE (period_code, session_day, language, teacher_id)`; índice en
+`teacher_id`. RLS: `select`, `delete` y `update` con `is_admin()`; además el
+`GRANT` de `update` es **solo de la columna `teacher_id`** —cambiar periodo,
+frecuencia o idioma sería otro grupo—. No hay política de `INSERT`: el alta pasa
+por `admin_create_group()`. Borrar un grupo con alumnos lo impide la FK de
+`student_enrollments`. El alumno lee **su** grupo (`groups_select_own`).
+
+### `student_enrollments` (desde `0032`)
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `student_id` | `uuid` NOT NULL FK `students(id)` ON DELETE CASCADE | PK compuesta |
+| `group_id` | `uuid` NOT NULL FK `groups(id)` | PK compuesta; índice propio |
+| `created_at` | `timestamptz` NOT NULL DEFAULT `now()` | el grupo vigente es el más reciente |
+
+Trigger `student_enrollments_one_group_per_period` (`enforce_one_group_per_period()`):
+rechaza una segunda inscripción del alumno en otro grupo del mismo periodo. RLS:
+`select` con `is_admin()` y la propia del alumno
+(`student_enrollments_select_own`); **sin políticas de escritura**: solo las
+funciones de abajo escriben.
+
+### Clasificación de los datos existentes (en `0032`)
+
+1. El maestro inicial es el **único admin activo** (o el correo de
+   `set_config('ppm.maestro_inicial', …)`, descomentado al pegar, si hay varios
+   admins). Si no hay exactamente uno, la migración aborta sin escribir nada.
+2. Se toma periodo/frecuencia/idioma de cada alumno de `v_students_directory`
+   **tal como estaba** (el 1.0 manda, la inscripción es el respaldo), se crean
+   los grupos de todas las combinaciones y se inscribe a cada alumno.
+3. Quien no tenga los tres datos queda **sin grupo** y se asigna a mano en la
+   pantalla Grupos.
+
+### Funciones
+
+| Función | Qué hace |
+|---|---|
+| `assign_students_to_groups()` | Inscribe a todo alumno **sin grupo** cuyo periodo/frecuencia/idioma coincide con **exactamente un** grupo. Ninguno o varios → se queda sin grupo (no se adivina el maestro). Idempotente; `EXECUTE` revocado a todos |
+| trigger `demographics_assign_groups` | `AFTER INSERT ... FOR EACH STATEMENT` sobre `demographics`: la sincronización horaria clasifica sola a los alumnos que llegan por el 1.0, sin reescribir `import_sheet_rows()` |
+| `admin_create_group(period, session_day, language, teacher_id)` | Admin-only. Valida el periodo, lo da de alta en `periods`, crea el grupo y corre `assign_students_to_groups()`. Duplicado → «Ese grupo ya existe» |
+| `admin_move_student(student_id, group_id)` | Admin-only. Reemplaza el grupo del alumno en ese mismo periodo (o lo inscribe); los de otros periodos no se tocan |
+| `admin_register_students(p_rows)` | Redefinida: misma firma y formato. Periodo + frecuencia + idioma se resuelven a **un** grupo existente; si no hay ninguno o hay varios, la fila es error («créalo en Grupos»). Ya no da de alta periodos |
+
+### Vistas nuevas
+
+- **`v_current_enrollments`** — una fila por alumno con su grupo vigente
+  (`student_id, group_id, teacher_id, period_code, session_day, language`).
+  Único lugar que decide «el grupo del alumno».
+- **`v_groups`** — cada grupo con `teacher_name`, `teacher_email` y
+  `student_count`. Alimenta la pantalla Grupos y el selector del encabezado.
 
 ## Semanas del semestre
 
@@ -1189,6 +1288,12 @@ si el alumno no contestó el 1.0, de su inscripción más reciente en
 entrega del 1.0 o de esa misma inscripción. Es una preferencia al leer: no se
 copia ni se pisa ningún dato.
 
+Desde `0032` **el grupo manda**: periodo, frecuencia e idioma salen del grupo
+vigente (`v_current_enrollments`) y caen al 1.0 solo si el alumno no tiene
+grupo. Si el profesor mueve a un alumno de grupo, sus filtros lo siguen; lo que
+contestó en el 1.0 queda intacto en `demographics`. Columnas nuevas al final:
+`group_id`, `teacher_id`.
+
 > Ambas vistas llevan `security_invoker = on`. Sin eso se ejecutarían con los
 > permisos de su propietario y **serían una puerta trasera que se salta RLS**.
 
@@ -1197,6 +1302,11 @@ copia ni se pisa ningún dato.
 Una por pantalla. Cada una entrega **una fila por alumno con su respuesta
 vigente**, ya unida con los datos del alumno, para que el frontend haga un
 `select` plano con filtros.
+
+Desde `0033` todas exponen `group_id` al final (también `v_submission_status`
+y `v_student_dossier`), para el filtro por grupo del encabezado.
+`v_panel_demographics` lo toma de `v_current_enrollments`, porque no se apoya
+en `v_students_directory`.
 
 | Vista | Pantalla | Formulario |
 |---|---|---|
@@ -1333,7 +1443,7 @@ RLS habilitado en **las 20 tablas**.
 |---|---|
 | `anon` | ninguno |
 | `authenticated` con rol `pendiente` | solo su propio `profiles` |
-| `authenticated` con rol `alumno` | su propio `profiles`; sus propias `submissions`, `job_search_logs` e `internship_logs`; lectura de las `semester_weeks` de su propio periodo; su propio `students` y su propio expediente (`demographics`, `holland_results`, `mbti_results`, `disc_results`, `values_results`, `company_profiles`); lectura de `form_deadlines` completa —no tiene datos personales, es la misma regla para todos— para poder calcular su propio estado de entregas. Ninguna fila de otro alumno, ninguna otra tabla |
+| `authenticated` con rol `alumno` | su propio `profiles`; su propia inscripción y su propio grupo (`0032`); sus propias `submissions`, `job_search_logs` e `internship_logs`; lectura de las `semester_weeks` de su propio periodo; su propio `students` y su propio expediente (`demographics`, `holland_results`, `mbti_results`, `disc_results`, `values_results`, `company_profiles`); lectura de `form_deadlines` completa —no tiene datos personales, es la misma regla para todos— para poder calcular su propio estado de entregas. Ninguna fila de otro alumno, ninguna otra tabla |
 | `authenticated` con rol `admin` | lectura de todo; escritura directa de `form_deadlines` y `semester_weeks` |
 | `service_role` | escritura (importación y sincronización); se salta RLS por definición |
 
@@ -1442,6 +1552,8 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0030_weekly_log_monterrey_today.sql` | `today_monterrey()`; `new_weekly_submission()` y las políticas de corrección de `0020` comparan contra la fecha de Monterrey en vez de `current_date` (UTC), que cerraba la semana a las ~7–8 pm del último día | ✅ 2026-10-04 |
 
 | `0031_student_registration.sql` | `periods`, `students.student_number`, `student_enrollments`, `v_students_directory` (matrícula/periodo/frecuencia con respaldo en la inscripción, más `language`), `admin_register_students()` | ✅ 2026-10-07 |
+| `0032_groups.sql` | `groups`, `student_enrollments` → `(student_id, group_id)`, clasificación de los alumnos actuales, `v_current_enrollments`, `v_groups`, `v_students_directory` (el grupo manda, más `group_id`/`teacher_id`), `enforce_one_group_per_period()`, `assign_students_to_groups()` + trigger en `demographics`, `admin_create_group()`, `admin_move_student()`, `admin_register_students()` redefinida | ⏳ **pendiente** |
+| `0033_views_group.sql` | `group_id` al final de las 10 `v_panel_*`, `v_submission_status` y `v_student_dossier` | ⏳ **pendiente** |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.

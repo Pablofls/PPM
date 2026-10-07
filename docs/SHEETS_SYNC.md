@@ -15,6 +15,8 @@ Sheets ──(disparador horario)──> ingest_sheet_rows() ──> sheet_rows 
                                   students · submissions · tablas de respuestas
                                                                 │
                                                   create_student_accounts()
+                                                                │
+                              (trigger en demographics) assign_students_to_groups()
 ```
 
 | Pieza | Dónde vive |
@@ -22,6 +24,7 @@ Sheets ──(disparador horario)──> ingest_sheet_rows() ──> sheet_rows 
 | El que lee y manda | [`scripts/apps_script/Sincronizar.gs`](../scripts/apps_script/Sincronizar.gs) — se pega en el Apps Script del Sheets |
 | El que normaliza y escribe | `supabase/migrations/0015_sheet_sync.sql` |
 | El que da de alta las cuentas de alumno nuevas | `supabase/migrations/0021_sync_creates_student_accounts.sql`, llamado desde `import_sheet_rows()`; ver [AUTH.md](AUTH.md#cómo-se-crean-las-cuentas-de-los-alumnos) |
+| El que mete en su grupo a los alumnos nuevos | trigger `demographics_assign_groups` de `supabase/migrations/0032_groups.sql`: si el periodo, frecuencia e idioma del 1.0 coinciden con **un solo** grupo, el alumno queda inscrito; si no, aparece como «sin grupo» en la pantalla Grupos. Ver [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#grupos) |
 | Qué transformación se le aplica a cada columna | [DATA_MAPPING.md](DATA_MAPPING.md) |
 | Las tablas y funciones | [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#sincronización-con-el-sheets) |
 

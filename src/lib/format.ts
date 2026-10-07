@@ -113,3 +113,20 @@ export function toHref(value: string | null): string | null {
   if (/^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(trimmed)) return `https://${trimmed}`
   return null
 }
+
+export function formatLanguage(value: string | null): string {
+  if (!value) return ''
+  return value === 'en' ? 'Inglés' : 'Español'
+}
+
+/**
+ * `OT-26 · Lunes · Español`. El nombre de un grupo no se guarda en la base
+ * (`0032`): se arma siempre de sus tres columnas, así que nunca se desfasa.
+ */
+export function formatGroupLabel(group: {
+  periodCode: string
+  sessionDay: string
+  language: string
+}): string {
+  return `${group.periodCode} · ${formatSessionDay(group.sessionDay)} · ${formatLanguage(group.language)}`
+}

@@ -34,10 +34,9 @@ PPM
 │   └── B.1 Formulario de Inicio
 ├── ENTREGAS
 │   └── Estado de Entregas
-├── ADMINISTRADOR
-│   ├── Panel de Administrador
-│   └── Alumnos Registrados
-└── PRÓXIMAMENTE  (visible pero deshabilitado)
+└── ADMINISTRADOR
+    ├── Panel de Administrador
+    ├── Alumnos Registrados
     └── Grupos
 ```
 
@@ -46,7 +45,21 @@ al profesor el alcance completo del proyecto sin prometer que ya funcionan.
 «Estado de Entregas» salió de esa lista junto con «Panel de Administrador»
 (`0017`, ver [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#fechas-de-entrega-y-estado-de-las-entregas)):
 son las dos pantallas nuevas, y a diferencia del resto de «Próximamente» sí
-funcionan.
+funcionan. «Grupos» fue la última en salir (`0032`); con la lista vacía, el
+rail ya no muestra la sección «Próximamente».
+
+### Selector de grupo
+
+En el encabezado de todas las pantallas del panel, junto al nombre del
+profesor: *Todos los grupos* o un grupo (`OT-26 · Lunes · Español (12)`; con
+varios maestros, también el nombre del maestro). Filtra **todas** las pantallas
+a la vez —tablas, contadores, Estado de Entregas y Alumnos Registrados— por la
+columna `group_id` de sus vistas (`0033`).
+
+No es un parámetro de la URL como los filtros de la barra: el rail navega a la
+ruta limpia de cada pantalla y el grupo tiene que sobrevivir a ese cambio. Vive
+en `GroupProvider` y se recuerda en el navegador (`localStorage`, solo como
+comodidad). *Limpiar* de la barra de filtros no lo toca.
 
 ## Estructura común de una pantalla
 
@@ -357,6 +370,29 @@ frecuencia e idioma. Tres bloques:
 Tras registrar se muestra el resultado por fila (`creado`, `actualizado`,
 `sin cambios` o el error) y qué pasó con la cuenta. La validación del navegador
 es solo retroalimentación; la autoridad es `admin_register_students()`.
+
+Desde `0032` periodo + frecuencia + idioma tienen que corresponder a **un grupo
+que ya exista**; si no, la fila sale con el error «no existe un grupo …: créalo
+en Grupos». La tabla agrega la columna **Grupo** (o *Sin grupo*, en rojo) y
+respeta el selector de grupo del encabezado.
+
+## Grupos
+
+> `0032_groups.sql`. Ruta `/administrador/grupos`.
+
+- **Nuevo grupo:** periodo (texto con sugerencias de los periodos existentes,
+  formato `OT-26`), frecuencia, idioma y maestro. Con un solo maestro ya viene
+  elegido. Crear un grupo inscribe de una vez a los alumnos sin grupo cuyo 1.0
+  coincide solo con él.
+- **Tabla de grupos:** grupo, maestro, número de alumnos, *Ver en el panel*
+  (lo pone en el selector del encabezado) y *Borrar* (solo si no tiene alumnos).
+- **Alumnos:** todo el directorio con lo que contestó (periodo · frecuencia ·
+  idioma) y un selector de grupo por fila para asignarlo o moverlo. Por
+  omisión muestra **solo los alumnos sin grupo** (en rojo), si hay alguno.
+  Mover a un grupo del mismo periodo reemplaza el anterior; a uno de otro
+  periodo, lo agrega como nueva inscripción.
+
+El expediente del alumno muestra su grupo junto a la matrícula.
 
 ## Estado de Entregas y Panel de Administrador
 

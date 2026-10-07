@@ -11,7 +11,8 @@ import type {
   StudentRegistrationInput,
 } from '../../data/types'
 import { LANGUAGE_OPTIONS, PERIOD_OPTIONS, SESSION_DAY_OPTIONS } from '../../lib/catalog'
-import { formatSessionDay } from '../../lib/format'
+import { formatGroupLabel, formatSessionDay } from '../../lib/format'
+import { useGroups } from '../../layouts/GroupProvider'
 import {
   downloadRegistrationTemplate,
   parseRegistrationFile,
@@ -33,7 +34,7 @@ const EMPTY_FORM: StudentRegistrationInput = {
   language: '',
 }
 
-const COLUMNS: Column<RegisteredStudent>[] = [
+const BASE_COLUMNS: Column<RegisteredStudent>[] = [
   { key: 'email', header: 'Correo', width: 'min-w-64', sticky: true, render: (row) => row.email },
   { key: 'name', header: 'Nombre', width: 'min-w-48', render: (row) => row.fullName ?? <Dash /> },
   { key: 'number', header: 'Matrícula', render: (row) => row.studentNumber ?? <Dash /> },
@@ -60,14 +61,36 @@ export function RegisteredStudentsPage() {
   const [refreshKey, setRefreshKey] = useState(0)
   const fileInput = useRef<HTMLInputElement>(null)
 
+  const groupContext = useGroups()
+  const groups = groupContext?.groups
+
   const {
-    data: students,
+    data: allStudents,
     loading,
     isConnected,
     error,
   } = useRepositoryQuery(() => repository.getRegisteredStudents(), [] as RegisteredStudent[], [
     refreshKey,
   ])
+
+  // El selector de grupo del encabezado también filtra esta lista.
+  const selectedGroupId = groupContext?.selectedGroupId ?? ''
+  const students = selectedGroupId
+    ? allStudents.filter((student) => student.groupId === selectedGroupId)
+    : allStudents
+
+  const columns: Column<RegisteredStudent>[] = [
+    ...BASE_COLUMNS,
+    {
+      key: 'group',
+      header: 'Grupo',
+      width: 'min-w-48',
+      render: (row) => {
+        const group = groups?.find((candidate) => candidate.id === row.groupId)
+        return group ? formatGroupLabel(group) : <Badge tone="red">Sin grupo</Badge>
+      },
+    },
+  ]
 
   function setField(key: keyof StudentRegistrationInput, value: string) {
     setForm((current) => ({ ...current, [key]: value }))
@@ -82,6 +105,8 @@ export function RegisteredStudentsPage() {
     try {
       setResults(await repository.registerStudents(rows))
       setRefreshKey((key) => key + 1)
+      // Los conteos de alumnos por grupo cambiaron.
+      groupContext?.refetch()
       return true
     } catch (cause) {
       setMessage(cause instanceof Error ? cause.message : 'No se pudo registrar a los alumnos.')
@@ -122,7 +147,8 @@ export function RegisteredStudentsPage() {
         <h1 className="text-2xl font-semibold tracking-tight text-ink-950">Alumnos Registrados</h1>
         <p className="mt-1.5 text-sm text-ink-500">
           Da de alta alumnos para que tengan cuenta sin contestar los Datos Demográficos. Su
-          usuario es el correo y su contraseña inicial es la matrícula.
+          usuario es el correo y su contraseña inicial es la matrícula. Periodo, frecuencia e
+          idioma deben corresponder a un grupo que ya exista (ver Grupos).
         </p>
       </header>
 
@@ -226,7 +252,7 @@ export function RegisteredStudentsPage() {
         Las filas en rojo son alumnos que todavía no contestan los Datos Demográficos.
       </p>
       <DataTable
-        columns={COLUMNS}
+        columns={columns}
         rows={students}
         rowKey={(row) => row.studentId}
         // El nombre solo llega con el formulario 1.0: sin él, el alumno no lo ha contestado.
