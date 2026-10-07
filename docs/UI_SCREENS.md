@@ -63,7 +63,7 @@ frecuencia · idioma y el maestro. Arriba, un buscador y el selector de
 
 La primera tarjeta es **Todos mis grupos**: entra al panel sin filtro de grupo.
 Arriba a la derecha, solo un **engrane** (`SettingsMenu`): al abrirlo muestra
-el nombre y correo de la sesión, la sección **Configuración** (*Alumnos
+arriba la cuenta —iniciales, nombre y apellido— que lleva a **Mi perfil**, la sección **Configuración** (*Alumnos
 registrados* y *Administrar grupos*) y *Cerrar sesión*. La barra no muestra el
 correo ni otros botones, para que quede limpia; el panel usa el mismo engrane
 en su barra clara. Las dos pantallas de Configuración usan la barra de Mis
@@ -79,6 +79,14 @@ esa ruta (un enlace guardado sigue sirviendo).
 El grupo elegido vive en `GroupProvider` y en `sessionStorage`, no en la URL
 como los filtros de la barra: el rail navega a la ruta limpia de cada pantalla
 y el grupo tiene que sobrevivir a ese cambio. *Limpiar* de la barra no lo toca.
+
+### Mi perfil · `/mi-perfil`
+
+> `0034_profile_names.sql`. Desde el engrane, en la barra de Mis grupos.
+
+Nombre y apellido editables (por separado; son los que salen en las tarjetas
+de Mis grupos como maestro del grupo), correo y rol de solo lectura, y el
+cambio de contraseña (pide la actual). Ver [AUTH.md](AUTH.md#mi-perfil-0034).
 
 ### Grupo actual en el rail
 

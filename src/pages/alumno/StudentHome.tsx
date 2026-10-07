@@ -24,10 +24,12 @@ import { formatRelativeTime, formatWeekRange } from '../../lib/format'
  */
 export function StudentHome() {
   const { profile, session } = useAuth()
-  const nombre = profile?.full_name?.trim()
   const correo = profile?.email ?? session?.user?.email
   const [toast, dismissToast] = useHandoffToast()
   const { dossier } = useStudentDossier(profile?.student_id ?? null)
+  // El nombre del alumno vive en su 1.0 (`demographics`), no en su cuenta
+  // (`0034`): sin 1.0 contestado, el saludo usa el correo.
+  const nombre = dossier?.fullName?.trim()
   const { statuses, error: statusError } = useSubmissionStatus(profile?.student_id ?? null)
   const { weeks, error: weeksError } = useWeeklyLogStatus(profile?.student_id ?? null)
 

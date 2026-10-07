@@ -22,6 +22,7 @@ import { IndeedPage } from './pages/modulo2/IndeedPage'
 import { ReflectionPage } from './pages/modulo2/ReflectionPage'
 import { DeadlinesPage } from './pages/admin/DeadlinesPage'
 import { GroupPickerPage } from './pages/GroupPickerPage'
+import { MyProfilePage } from './pages/MyProfilePage'
 import { GroupsPage } from './pages/admin/GroupsPage'
 import { RegisteredStudentsPage } from './pages/admin/RegisteredStudentsPage'
 import { SubmissionStatusPage } from './pages/admin/SubmissionStatusPage'
@@ -88,6 +89,7 @@ export default function App() {
             {/* Afuera de un grupo: Mis grupos y el menú Configuración. */}
             <Route element={<HomeShell />}>
               <Route path="mis-grupos" element={<GroupPickerPage />} />
+              <Route path="mi-perfil" element={<MyProfilePage />} />
               <Route path="configuracion">
                 <Route path="alumnos-registrados" element={<RegisteredStudentsPage />} />
                 <Route path="grupos" element={<GroupsPage />} />

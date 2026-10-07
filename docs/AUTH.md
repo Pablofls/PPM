@@ -212,6 +212,19 @@ en claro; solo llama a `signInWithPassword()` y recibe una sesión.
 
 Tampoco se guarda nada de contraseñas en `profiles`.
 
+### Mi perfil (`0034`)
+
+Quien usa el panel tiene **Mi perfil** (`/mi-perfil`, desde el engrane de la
+barra): edita su **nombre** y **apellido**, ve su **correo** y su **rol** (de
+solo lectura) y cambia su contraseña. El cambio de contraseña es el mismo
+componente que el del alumno (`PasswordChangeForm`): pide la contraseña actual
+antes de aceptar la nueva.
+
+Desde el navegador, de `profiles` solo se pueden escribir `first_name` y
+`last_name` (permiso por columna). El correo es el usuario de la cuenta y el
+rol lo asigna un administrador; ninguno de los dos se cambia desde esta
+pantalla.
+
 ## Cómo se crea el primer admin
 
 Es el problema del huevo y la gallina: para promover a alguien a `admin` hay que

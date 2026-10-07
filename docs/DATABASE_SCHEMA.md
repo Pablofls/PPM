@@ -10,6 +10,8 @@
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
 - **Última migración aplicada:** `0033_views_group.sql` (2026-10-07).
+  `0034_profile_names.sql` (nombre y apellido del perfil) está escrita y
+  documentada aquí pero **todavía no se pega en Supabase**.
   `0019_student_dossier_read.sql` está escrita y documentada aquí pero
   **todavía no se pega en Supabase**.
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
@@ -157,7 +159,8 @@ erDiagram
     PROFILES {
         uuid id PK "= auth.users.id"
         citext email UK
-        text full_name
+        text first_name "desde 0034"
+        text last_name "desde 0034"
         app_role role "admin | pendiente"
         boolean is_active
     }
@@ -317,12 +320,29 @@ Detalle completo en [AUTH.md](AUTH.md). Resumen del modelo:
 | Columna | Tipo | Notas |
 |---|---|---|
 | `id` | `uuid` PK → `auth.users(id)` ON DELETE CASCADE | mismo id que Supabase Auth |
-| `email` | `citext` NOT NULL UNIQUE | |
-| `full_name` | `text` | |
+| `email` | `citext` NOT NULL UNIQUE | el usuario de la cuenta |
+| `first_name` | `text` NULL, CHECK no vacío | desde `0034`. Vacío en las cuentas de alumno |
+| `last_name` | `text` NULL, CHECK no vacío | desde `0034`. Vacío en las cuentas de alumno |
 | `role` | `app_role` NOT NULL DEFAULT `'pendiente'` | |
 | `is_active` | `boolean` NOT NULL DEFAULT `true` | |
 | `student_id` | `uuid` → `students(id)` ON DELETE SET NULL | el alumno de la cuenta; `NULL` en el profesor. Único entre los no nulos |
 | `created_at` / `updated_at` | `timestamptz` NOT NULL DEFAULT `now()` | |
+
+**Nombre y apellido (`0034`).** Hasta `0033` había un solo `full_name`. Se
+reemplazó por `first_name` + `last_name` y `full_name` **se eliminó**: el
+nombre completo es derivado de los otros dos (dependencia transitiva), así que
+se arma al leer (`v_groups.teacher_name`, la interfaz) y nunca se guarda. El
+nombre de un **alumno** no va en su perfil: vive en `demographics`, y copiarlo
+—como hacía `create_student_accounts()` desde `0014`— lo duplicaba. Los
+`full_name` que había en cuentas que no son de alumno se partieron en primera
+palabra / resto; cada quien lo corrige en Mi perfil.
+
+**Qué se escribe desde el navegador.** Desde `0034` el `GRANT UPDATE` de
+`authenticated` sobre `profiles` es **solo de `first_name` y `last_name`**: la
+política `profiles_update` deja editar la fila propia, pero sin el permiso por
+columna también dejaba cambiar `email`, `is_active` o `student_id`. Lo demás lo
+escriben funciones `SECURITY DEFINER`. `handle_new_user()` lee `first_name` y
+`last_name` de los metadatos del alta.
 
 ### `app_role`
 
@@ -1553,6 +1573,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0031_student_registration.sql` | `periods`, `students.student_number`, `student_enrollments`, `v_students_directory` (matrícula/periodo/frecuencia con respaldo en la inscripción, más `language`), `admin_register_students()` | ✅ 2026-10-07 |
 | `0032_groups.sql` | `groups`, `student_enrollments` → `(student_id, group_id)`, clasificación de los alumnos actuales, `v_current_enrollments`, `v_groups`, `v_students_directory` (el grupo manda, más `group_id`/`teacher_id`), `enforce_one_group_per_period()`, `assign_students_to_groups()` + trigger en `demographics`, `admin_create_group()`, `admin_move_student()`, `admin_register_students()` redefinida | ✅ 2026-10-07 |
 | `0033_views_group.sql` | `group_id` al final de las 10 `v_panel_*`, `v_submission_status` y `v_student_dossier` | ✅ 2026-10-07 |
+| `0034_profile_names.sql` | `profiles.first_name`/`last_name` (con CHECK), se elimina `full_name`, `v_groups` recreada con `teacher_name` derivado, `UPDATE` de `profiles` acotado por columna, `handle_new_user()` y `create_student_accounts()` sin `full_name` | ⏳ **pendiente** |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.

@@ -14,7 +14,9 @@ import { supabase } from '../data/supabaseClient'
 export interface Profile {
   id: string
   email: string
-  full_name: string | null
+  /** Desde `0034`. En los alumnos va vacío: su nombre vive en `demographics`. */
+  first_name: string | null
+  last_name: string | null
   role: 'admin' | 'alumno' | 'pendiente'
   is_active: boolean
   /** El alumno al que corresponde la cuenta. `null` en el profesor. */
@@ -32,6 +34,12 @@ interface AuthState {
   isStudent: boolean
   signIn: (email: string, password: string) => Promise<string | null>
   signOut: () => Promise<void>
+  /**
+   * Guarda nombre y apellido de la cuenta de la sesión. Es lo único del
+   * perfil que se escribe desde el navegador (permiso por columna, `0034`).
+   * Devuelve el mensaje de error, o `null` si se guardó.
+   */
+  updateName: (firstName: string, lastName: string) => Promise<string | null>
 }
 
 const AuthContext = createContext<AuthState | null>(null)
@@ -75,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     supabase
       .from('profiles')
-      .select('id, email, full_name, role, is_active, student_id')
+      .select('id, email, first_name, last_name, role, is_active, student_id')
       .eq('id', userId)
       .maybeSingle()
       .then(({ data }) => {
@@ -102,6 +110,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null)
   }, [])
 
+  const updateName = useCallback(
+    async (firstName: string, lastName: string) => {
+      if (!userId) return 'No hay sesión. Vuelve a iniciar sesión.'
+      const names = { first_name: firstName.trim() || null, last_name: lastName.trim() || null }
+      const { error } = await supabase.from('profiles').update(names).eq('id', userId)
+      if (error) return `No se pudo guardar: ${error.message}`
+      // Se actualiza en memoria en vez de volver a leer el perfil: releerlo
+      // pondría `loading` en true y ProtectedRoute desmontaría la pantalla.
+      setProfile((current) => (current ? { ...current, ...names } : current))
+      return null
+    },
+    [userId],
+  )
+
   const value = useMemo<AuthState>(
     () => ({
       session,
@@ -111,8 +133,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isStudent: profile?.role === 'alumno' && profile.is_active,
       signIn,
       signOut,
+      updateName,
     }),
-    [session, profile, loadingSession, loadingProfile, signIn, signOut],
+    [session, profile, loadingSession, loadingProfile, signIn, signOut, updateName],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
@@ -124,6 +147,21 @@ export function useAuth(): AuthState {
     throw new Error('useAuth debe usarse dentro de <AuthProvider>')
   }
   return context
+}
+
+/** «René Heredia», o `null` si la cuenta todavía no tiene nombre. */
+export function profileDisplayName(
+  profile: Pick<Profile, 'first_name' | 'last_name'> | null,
+): string | null {
+  if (!profile) return null
+  return [profile.first_name, profile.last_name].filter(Boolean).join(' ') || null
+}
+
+/** Cómo se llama cada rol en la interfaz. */
+export const ROLE_LABELS: Record<Profile['role'], string> = {
+  admin: 'Administrador',
+  alumno: 'Alumno',
+  pendiente: 'Pendiente de autorización',
 }
 
 /**

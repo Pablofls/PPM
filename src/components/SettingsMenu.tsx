@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 
-import { useAuth } from '../auth/AuthProvider'
+import { profileDisplayName, useAuth } from '../auth/AuthProvider'
 
 /** Las pantallas de Configuración. Viven aquí, no en el rail del panel. */
 const SETTINGS_ITEMS = [
@@ -10,14 +10,21 @@ const SETTINGS_ITEMS = [
 ]
 
 /**
- * El engrane de la barra de arriba: Configuración y la sesión en un solo
- * lugar, para que la barra quede limpia. Lo usan Mis grupos (barra oscura) y
+ * El engrane de la barra de arriba: Mi perfil, Configuración y la sesión en
+ * un solo lugar, para que la barra quede limpia. Lo usan Mis grupos (barra oscura) y
  * el panel (barra clara).
  */
 export function SettingsMenu({ tone }: { tone: 'dark' | 'light' }) {
   const { profile, session, signOut } = useAuth()
   const [open, setOpen] = useState(false)
   const menu = useRef<HTMLDivElement>(null)
+  const name = profileDisplayName(profile)
+  const email = profile?.email ?? session?.user?.email ?? ''
+  const initials =
+    [profile?.first_name, profile?.last_name]
+      .map((part) => part?.trim().charAt(0) ?? '')
+      .join('')
+      .toUpperCase() || email.charAt(0).toUpperCase()
 
   // Se cierra al elegir una opción, al hacer clic afuera y con Escape.
   useEffect(() => {
@@ -63,12 +70,25 @@ export function SettingsMenu({ tone }: { tone: 'dark' | 'light' }) {
           role="menu"
           className="absolute right-0 z-30 mt-2 w-64 overflow-hidden rounded-lg border border-ink-200 bg-white py-1 shadow-lg"
         >
-          <div className="border-b border-ink-100 px-4 py-2.5">
-            {profile?.full_name && (
-              <p className="truncate text-sm font-medium text-ink-900">{profile.full_name}</p>
-            )}
-            <p className="truncate text-xs text-ink-500">{profile?.email ?? session?.user?.email}</p>
-          </div>
+          {/* Arriba, la cuenta: lleva a Mi perfil (nombre, rol y contraseña). */}
+          <NavLink
+            to="/mi-perfil"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-3 border-b border-ink-100 px-4 py-3 hover:bg-ink-50"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink-900 text-sm font-semibold text-white">
+              {initials}
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-medium text-ink-900">
+                {name ?? 'Mi perfil'}
+              </span>
+              <span className="block truncate text-xs text-ink-500">
+                {name ? 'Ver mi perfil' : email}
+              </span>
+            </span>
+          </NavLink>
 
           <p className="px-4 pt-2.5 pb-1 text-[11px] font-semibold tracking-widest text-ink-400 uppercase">
             Configuración

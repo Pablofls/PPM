@@ -731,16 +731,17 @@ export const supabaseRepository: PanelRepository = {
   async getTeachers(): Promise<Teacher[]> {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, full_name, email')
+      .select('id, first_name, last_name, email')
       .eq('role', 'admin')
       .eq('is_active', true)
-      .order('full_name')
+      .order('first_name')
 
     if (error) throw new Error(`No se pudieron cargar los maestros: ${error.message}`)
 
     return ((data ?? []) as PanelRecord[]).map((record) => ({
       id: str(record.id) ?? '',
-      name: str(record.full_name),
+      // Nombre y apellido por separado desde `0034`; se unen solo para mostrar.
+      name: [str(record.first_name), str(record.last_name)].filter(Boolean).join(' ') || null,
       email: str(record.email) ?? '',
     }))
   },
