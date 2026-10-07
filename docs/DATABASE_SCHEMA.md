@@ -847,9 +847,10 @@ funciones de abajo escriben.
 
 ### Clasificación de los datos existentes (en `0032`)
 
-1. El maestro inicial es el **único admin activo** (o el correo de
-   `set_config('ppm.maestro_inicial', …)`, descomentado al pegar, si hay varios
-   admins). Si no hay exactamente uno, la migración aborta sin escribir nada.
+1. El maestro inicial es el profesor actual, nombrado por correo en
+   `set_config('ppm.maestro_inicial', …)` al inicio del archivo: hay más de un
+   admin activo, así que «el único admin» no alcanza. Si el correo no coincide
+   con exactamente un perfil activo, la migración aborta sin escribir nada.
 2. Se toma periodo/frecuencia/idioma de cada alumno de `v_students_directory`
    **tal como estaba** (el 1.0 manda, la inscripción es el respaldo), se crean
    los grupos de todas las combinaciones y se inscribe a cada alumno.

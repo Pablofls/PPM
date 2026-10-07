@@ -30,12 +30,12 @@
 -- inscribe a cada uno en el suyo. Quien no tenga los tres datos queda SIN
 -- GRUPO y aparece en la pantalla Grupos para asignarlo a mano.
 --
--- ┌─────────────────────────────────────────────────────────────────────────┐
--- │ ANTES DE PEGAR: el maestro de los grupos actuales es el único admin     │
--- │ activo. Si hay MÁS de un admin, descomenta la línea de abajo y pon el   │
--- │ correo del maestro (no se commitea con el correo puesto).               │
--- └─────────────────────────────────────────────────────────────────────────┘
--- select set_config('ppm.maestro_inicial', 'correo.del.maestro@udem.edu', false);
+-- El maestro de los grupos actuales es René, el profesor que usa el panel
+-- desde la Iteración 1. Hay más de un admin activo (el de desarrollo también
+-- lo es), así que no basta con «el único admin»: se nombra por correo. Si el
+-- correo no coincide con exactamente un perfil activo, la migración aborta
+-- sin escribir nada.
+select set_config('ppm.maestro_inicial', 'rene.heredia@udem.edu', false);
 
 -- ---------------------------------------------------------------------------
 -- groups
@@ -95,9 +95,9 @@ begin
   select count(*) into n from tmp_maestro_inicial;
   if n <> 1 then
     raise exception
-      'Se esperaba exactamente un maestro inicial y hay %. Si hay varios admins, '
-      'descomenta la línea set_config(''ppm.maestro_inicial'', …) al inicio de '
-      '0032_groups.sql con el correo del maestro y vuelve a pegar el archivo.', n;
+      'Se esperaba exactamente un maestro inicial y hay %. Revisa el correo de '
+      'set_config(''ppm.maestro_inicial'', …) al inicio de 0032_groups.sql: debe '
+      'ser el de un perfil activo.', n;
   end if;
 end $$;
 
