@@ -30,7 +30,7 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
 - Los apéndices ya tienen tabla y pantalla. Su estructura es distinta a la del
   Módulo 1 y 2 (buscador por empresa, paginación, sin filtros académicos), como
   en la plataforma anterior.
-- **Alumnos Registrados** (`0031`, **escrita, aún no ejecutada**): el profesor da
+- **Alumnos Registrados** (`0031`, ejecutada el 2026-10-07): el profesor da
   de alta alumnos (correo, matrícula, periodo, frecuencia, idioma) a mano o con
   un Excel, y se les crea la cuenta sin que contesten el 1.0.
 - El **rol `alumno`** existe: las cuentas se crean desde `demographics` (usuario =

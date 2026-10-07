@@ -9,9 +9,9 @@
 
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
-- **Última migración aplicada:** `0030_weekly_log_monterrey_today.sql` (2026-10-04).
-  `0019_student_dossier_read.sql` y `0031_student_registration.sql` están
-  escritas y documentadas aquí pero **todavía no se pegan en Supabase**.
+- **Última migración aplicada:** `0031_student_registration.sql` (2026-10-07).
+  `0019_student_dossier_read.sql` está escrita y documentada aquí pero
+  **todavía no se pega en Supabase**.
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
   bitácoras semanales.
 
@@ -1441,7 +1441,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0029_weekly_log_manual_week_override.sql` | `week_number_override` en `job_search_logs`/`internship_logs`; `resolved_week_number()`; `admin_set_weekly_log_week_number()` para que el profesor corrija a mano lo que `best_matching_week_number()` no calza o calza mal | ✅ 2026-09-28 |
 | `0030_weekly_log_monterrey_today.sql` | `today_monterrey()`; `new_weekly_submission()` y las políticas de corrección de `0020` comparan contra la fecha de Monterrey en vez de `current_date` (UTC), que cerraba la semana a las ~7–8 pm del último día | ✅ 2026-10-04 |
 
-| `0031_student_registration.sql` | `periods`, `students.student_number`, `student_enrollments`, `v_students_directory` (matrícula/periodo/frecuencia con respaldo en la inscripción, más `language`), `admin_register_students()` | ⏳ **pendiente** |
+| `0031_student_registration.sql` | `periods`, `students.student_number`, `student_enrollments`, `v_students_directory` (matrícula/periodo/frecuencia con respaldo en la inscripción, más `language`), `admin_register_students()` | ✅ 2026-10-07 |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.
