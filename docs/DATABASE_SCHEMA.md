@@ -9,9 +9,7 @@
 
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
-- **Última migración aplicada:** `0033_views_group.sql` (2026-10-07).
-  `0034_profile_names.sql` (nombre y apellido del perfil) está escrita y
-  documentada aquí pero **todavía no se pega en Supabase**.
+- **Última migración aplicada:** `0034_profile_names.sql` (2026-10-07).
   `0019_student_dossier_read.sql` está escrita y documentada aquí pero
   **todavía no se pega en Supabase**.
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
@@ -1573,7 +1571,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0031_student_registration.sql` | `periods`, `students.student_number`, `student_enrollments`, `v_students_directory` (matrícula/periodo/frecuencia con respaldo en la inscripción, más `language`), `admin_register_students()` | ✅ 2026-10-07 |
 | `0032_groups.sql` | `groups`, `student_enrollments` → `(student_id, group_id)`, clasificación de los alumnos actuales, `v_current_enrollments`, `v_groups`, `v_students_directory` (el grupo manda, más `group_id`/`teacher_id`), `enforce_one_group_per_period()`, `assign_students_to_groups()` + trigger en `demographics`, `admin_create_group()`, `admin_move_student()`, `admin_register_students()` redefinida | ✅ 2026-10-07 |
 | `0033_views_group.sql` | `group_id` al final de las 10 `v_panel_*`, `v_submission_status` y `v_student_dossier` | ✅ 2026-10-07 |
-| `0034_profile_names.sql` | `profiles.first_name`/`last_name` (con CHECK), se elimina `full_name`, `v_groups` recreada con `teacher_name` derivado, `UPDATE` de `profiles` acotado por columna, `handle_new_user()` y `create_student_accounts()` sin `full_name` | ⏳ **pendiente** |
+| `0034_profile_names.sql` | `profiles.first_name`/`last_name` (con CHECK), se elimina `full_name`, `v_groups` recreada con `teacher_name` derivado, `UPDATE` de `profiles` acotado por columna, `handle_new_user()` y `create_student_accounts()` sin `full_name` | ✅ 2026-10-07 |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.
