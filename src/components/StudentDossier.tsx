@@ -435,7 +435,7 @@ function JobSearchLogs({
           'Entrevistas',
           'Aprendizajes',
           'Siguientes pasos',
-          'Marca Temporal',
+          'Fecha de entrega',
         ]}
         rows={rows.map((log) => ({
           key: log.submissionId,
@@ -477,7 +477,7 @@ function InternshipLogs({
           'Acumulado',
           'Habilidades',
           'Propuesta',
-          'Marca Temporal',
+          'Fecha de entrega',
         ]}
         rows={rows.map((log) => ({
           key: log.submissionId,
