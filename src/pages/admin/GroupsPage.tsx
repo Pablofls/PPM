@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router-dom'
 
 import { Badge, Dash } from '../../components/Badge'
 import { DataTable, type Column } from '../../components/DataTable'
-import { Select } from '../../components/FilterBar'
+import { Modal } from '../../components/Modal'
 import { useRepositoryQuery } from '../../data/hooks'
 import { repository } from '../../data/repository'
 import type { Group, Language, RegisteredStudent, SessionDay, Teacher } from '../../data/types'
 import { ALL_GROUPS, useGroups } from '../../layouts/GroupProvider'
-import { LANGUAGE_OPTIONS, SESSION_DAY_OPTIONS } from '../../lib/catalog'
+import { LANGUAGE_OPTIONS, SESSION_DAY_OPTIONS, type FilterOption } from '../../lib/catalog'
 import { formatGroupLabel, formatLanguage, formatSessionDay } from '../../lib/format'
 
 const FIELD_INPUT =
@@ -16,6 +16,11 @@ const FIELD_INPUT =
 
 const PRIMARY_BUTTON =
   'rounded-lg bg-ink-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-ink-800 disabled:cursor-not-allowed disabled:bg-ink-200 disabled:text-ink-400'
+
+const SECONDARY_BUTTON =
+  'rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm font-medium text-ink-700 shadow-sm hover:bg-ink-50 disabled:cursor-not-allowed disabled:text-ink-400'
+
+const LABEL = 'text-[11px] font-semibold tracking-wider text-ink-500 uppercase'
 
 const LINK_BUTTON =
   'rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-900 disabled:cursor-not-allowed disabled:text-ink-300 disabled:hover:bg-transparent'
@@ -47,6 +52,9 @@ export function GroupsPage() {
   const [message, setMessage] = useState<{ tone: 'red' | 'green'; text: string } | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
   const [onlyUnassigned, setOnlyUnassigned] = useState(true)
+  const [creating, setCreating] = useState(false)
+  const [touched, setTouched] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
 
   const { data: teachers } = useRepositoryQuery(() => repository.getTeachers(), [] as Teacher[], [])
@@ -114,19 +122,38 @@ export function GroupsPage() {
     }
   }
 
+  function closeCreate() {
+    setCreating(false)
+    setForm(EMPTY_FORM)
+    setTouched(false)
+    setCreateError(null)
+  }
+
+  // El error de crear se muestra dentro de la ventana (que sigue abierta),
+  // no en el aviso de la página.
   async function handleCreate() {
+    setTouched(true)
     if (formError) return
-    const created = await run(
-      () =>
-        repository.createGroup({
-          periodCode,
-          sessionDay: form.sessionDay as SessionDay,
-          language: form.language as Language,
-          teacherId,
-        }),
-      `Grupo ${periodCode} · ${formatSessionDay(form.sessionDay)} · ${formatLanguage(form.language)} creado.`,
-    )
-    if (created) setForm(EMPTY_FORM)
+    setSending(true)
+    setCreateError(null)
+    try {
+      await repository.createGroup({
+        periodCode,
+        sessionDay: form.sessionDay as SessionDay,
+        language: form.language as Language,
+        teacherId,
+      })
+      closeCreate()
+      setMessage({
+        tone: 'green',
+        text: `Grupo ${periodCode} · ${formatSessionDay(form.sessionDay)} · ${formatLanguage(form.language)} creado.`,
+      })
+      refresh()
+    } catch (cause) {
+      setCreateError(cause instanceof Error ? cause.message : 'No se pudo crear el grupo.')
+    } finally {
+      setSending(false)
+    }
   }
 
   async function handleDelete(group: Group) {
@@ -263,68 +290,122 @@ export function GroupsPage() {
 
   return (
     <>
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight text-ink-950">Administrar grupos</h1>
-        <p className="mt-1.5 text-sm text-ink-500">
-          Un grupo es un periodo, una frecuencia y un idioma con su maestro. Para trabajar con un
-          grupo, elígelo en Mis grupos.
-        </p>
+      <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-ink-950">Administrar grupos</h1>
+          <p className="mt-1.5 text-sm text-ink-500">
+            Un grupo es un periodo, una frecuencia y un idioma con su maestro. Para trabajar con un
+            grupo, elígelo en Mis grupos.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setMessage(null)
+            setCreating(true)
+          }}
+          className="rounded-lg bg-accent-400 px-4 py-2.5 text-sm font-semibold text-ink-900 shadow-sm transition-colors hover:bg-accent-500"
+        >
+          + Nuevo grupo
+        </button>
       </header>
 
       {message && (
-        <p className={`mb-4 text-sm ${message.tone === 'red' ? 'text-red-700' : 'text-emerald-700'}`}>
+        <p
+          role="status"
+          className={`mb-4 rounded-lg px-3 py-2 text-sm ${
+            message.tone === 'red' ? 'bg-red-50 text-red-800' : 'bg-emerald-50 text-emerald-800'
+          }`}
+        >
           {message.text}
         </p>
       )}
 
-      <section className="mb-6 rounded-xl border border-ink-200 bg-white p-5 shadow-sm">
-        <h2 className="text-sm font-semibold text-ink-900">Nuevo grupo</h2>
-        <div className="mt-4 flex flex-wrap items-end gap-3">
-          <input
-            aria-label="Periodo"
-            placeholder="Periodo (OT-26)"
-            list="periodos-conocidos"
-            value={form.periodCode}
-            onChange={(event) => setForm({ ...form, periodCode: event.target.value })}
-            className={`${FIELD_INPUT} w-40`}
-          />
-          <datalist id="periodos-conocidos">
-            {knownPeriods.map((period) => (
-              <option key={period} value={period} />
-            ))}
-          </datalist>
-          <Select
-            label="Frecuencia"
-            value={form.sessionDay}
-            options={SESSION_DAY_OPTIONS}
-            onChange={(value) => setForm({ ...form, sessionDay: value })}
-          />
-          <Select
-            label="Idioma"
-            value={form.language}
-            options={LANGUAGE_OPTIONS}
-            onChange={(value) => setForm({ ...form, language: value })}
-          />
-          <Select
-            label="Maestro"
-            value={teacherId}
-            options={teachers.map((teacher) => ({
-              value: teacher.id,
-              label: teacher.name ?? teacher.email,
-            }))}
-            onChange={(value) => setForm({ ...form, teacherId: value })}
-          />
-          <button
-            type="button"
-            disabled={!!formError || sending}
-            onClick={() => void handleCreate()}
-            className={PRIMARY_BUTTON}
+      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+        <Stat value={groups.length} label="Grupos" tone="text-ink-950" />
+        <Stat value={students.length - unassignedCount} label="Alumnos con grupo" tone="text-emerald-700" />
+        <Stat value={unassignedCount} label="Sin grupo" tone="text-red-700" />
+      </div>
+
+      {creating && (
+        <Modal
+          title="Nuevo grupo"
+          onClose={closeCreate}
+          footer={
+            <>
+              <button type="button" onClick={closeCreate} className={SECONDARY_BUTTON}>
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={sending || (touched && !!formError)}
+                onClick={() => void handleCreate()}
+                className={PRIMARY_BUTTON}
+              >
+                {sending ? 'Creando…' : 'Crear grupo'}
+              </button>
+            </>
+          }
+        >
+          <form
+            onSubmit={(event) => {
+              event.preventDefault()
+              void handleCreate()
+            }}
+            className="space-y-5"
           >
-            {sending ? 'Guardando…' : 'Crear grupo'}
-          </button>
-        </div>
-        {form.periodCode && formError && <p className="mt-3 text-sm text-ink-500">{formError}</p>}
-      </section>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className={LABEL}>Periodo</span>
+                <input
+                  placeholder="OT-26"
+                  list="periodos-conocidos"
+                  value={form.periodCode}
+                  onChange={(event) => setForm({ ...form, periodCode: event.target.value })}
+                  autoComplete="off"
+                  className={`${FIELD_INPUT} mt-1.5 w-full`}
+                />
+                <datalist id="periodos-conocidos">
+                  {knownPeriods.map((period) => (
+                    <option key={period} value={period} />
+                  ))}
+                </datalist>
+              </label>
+              <FieldSelect
+                label="Maestro"
+                value={teacherId}
+                options={teachers.map((teacher) => ({
+                  value: teacher.id,
+                  label: teacher.name ?? teacher.email,
+                }))}
+                onChange={(value) => setForm({ ...form, teacherId: value })}
+              />
+              <FieldSelect
+                label="Frecuencia"
+                value={form.sessionDay}
+                options={SESSION_DAY_OPTIONS}
+                onChange={(value) => setForm({ ...form, sessionDay: value })}
+              />
+              <FieldSelect
+                label="Idioma"
+                value={form.language}
+                options={LANGUAGE_OPTIONS}
+                onChange={(value) => setForm({ ...form, language: value })}
+              />
+            </div>
+            <p className="text-xs text-ink-500">
+              Un periodo nuevo se da de alta solo. Si hay alumnos sin grupo que contestaron
+              exactamente este periodo, frecuencia e idioma, quedan inscritos al crearlo.
+            </p>
+            {(createError || (touched && formError)) && (
+              <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">
+                {createError ?? formError}
+              </p>
+            )}
+            <button type="submit" hidden />
+          </form>
+        </Modal>
+      )}
 
       <section className="mb-8">
         <DataTable
@@ -381,5 +462,44 @@ export function GroupsPage() {
         />
       </section>
     </>
+  )
+}
+
+function Stat({ value, label, tone }: { value: number; label: string; tone: string }) {
+  return (
+    <div className="rounded-xl border border-ink-200 bg-white px-5 py-4 shadow-sm">
+      <p className={`tnum text-3xl font-semibold ${tone}`}>{value}</p>
+      <p className="mt-1 text-sm text-ink-500">{label}</p>
+    </div>
+  )
+}
+
+function FieldSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string
+  value: string
+  options: FilterOption[]
+  onChange: (value: string) => void
+}) {
+  return (
+    <label className="block">
+      <span className={LABEL}>{label}</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className={`${FIELD_INPUT} mt-1.5 w-full`}
+      >
+        <option value="">Elige…</option>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
   )
 }

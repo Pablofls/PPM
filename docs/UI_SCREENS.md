@@ -444,13 +444,19 @@ de horas: así viene del formulario.
 > (menú Configuración de Mis grupos).
 
 Da de alta alumnos sin que contesten el 1.0: correo UDEM, matrícula, periodo,
-frecuencia e idioma. Tres bloques:
+frecuencia e idioma. Como en Usuarios, la pantalla es la lista y las altas se
+hacen en **ventanas emergentes**:
 
-- **Registrar un alumno:** formulario de una fila.
-- **Importar desde Excel:** botón *Descargar plantilla* (hoja «Alumnos» con los
-  encabezados y hoja «Instrucciones»); al subir el `.xlsx` se muestra una vista
-  previa con el error de cada fila y solo se registran las válidas.
-- **Tabla de alumnos** (el directorio) con matrícula, periodo, frecuencia e idioma.
+- Arriba a la derecha, **Importar Excel** y **+ Registrar alumno**; debajo,
+  contadores de alumnos, sin Datos Demográficos y sin grupo.
+- **+ Registrar alumno:** correo UDEM, matrícula, periodo (los que tienen
+  grupo), frecuencia e idioma. Si la base rechaza la fila (sin grupo,
+  matrícula repetida), el motivo sale dentro de la ventana, que sigue abierta.
+- **Importar Excel:** *Descargar plantilla* (hoja «Alumnos» con los
+  encabezados y hoja «Instrucciones»), el archivo `.xlsx`, la vista previa con
+  el error de cada fila y *Registrar N alumnos* (solo las válidas).
+- **Tabla de alumnos** (el directorio) con matrícula, periodo, frecuencia,
+  idioma y grupo, con buscador por correo, nombre o matrícula.
 
 Tras registrar se muestra el resultado por fila (`creado`, `actualizado`,
 `sin cambios` o el error) y qué pasó con la cuenta. La validación del navegador
@@ -467,10 +473,13 @@ muestra a todos los alumnos.
 > grupos). Elegir con qué grupo
 > trabajar es otra pantalla: [Mis grupos](#mis-grupos--mis-grupos).
 
-- **Nuevo grupo:** periodo (texto con sugerencias de los periodos existentes,
-  formato `OT-26`), frecuencia, idioma y maestro. Con un solo maestro ya viene
-  elegido. Crear un grupo inscribe de una vez a los alumnos sin grupo cuyo 1.0
-  coincide solo con él.
+- Arriba a la derecha, **+ Nuevo grupo**; debajo, contadores de grupos,
+  alumnos con grupo y sin grupo.
+- **+ Nuevo grupo** abre una ventana: periodo (texto con sugerencias de los
+  periodos existentes, formato `OT-26`), maestro, frecuencia e idioma. Con un
+  solo maestro ya viene elegido. Crear un grupo inscribe de una vez a los
+  alumnos sin grupo cuyo 1.0 coincide solo con él. Un error («Ese grupo ya
+  existe») sale dentro de la ventana.
 - **Tabla de grupos:** grupo, maestro, número de alumnos, *Ver en el panel*
   (*Entrar al grupo*: lo vuelve el grupo actual y abre el panel) y *Borrar* (solo si no tiene alumnos).
 - **Alumnos:** todo el directorio con lo que contestó (periodo · frecuencia ·
