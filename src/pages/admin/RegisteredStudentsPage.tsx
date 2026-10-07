@@ -222,10 +222,15 @@ export function RegisteredStudentsPage() {
 
       {results && <ResultsSection results={results} />}
 
+      <p className="mb-2 text-xs text-ink-500">
+        Las filas en rojo son alumnos que todavía no contestan los Datos Demográficos.
+      </p>
       <DataTable
         columns={COLUMNS}
         rows={students}
         rowKey={(row) => row.studentId}
+        // El nombre solo llega con el formulario 1.0: sin él, el alumno no lo ha contestado.
+        rowAlert={(row) => row.fullName === null}
         loading={loading}
         isConnected={isConnected}
         error={error}

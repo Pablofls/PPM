@@ -31,6 +31,8 @@ interface DataTableProps<T> {
   /** Filas por página. `0` desactiva la paginación y muestra todo. */
   pageSize?: number
   onRowClick?: (row: T) => void
+  /** Marca la fila en rojo (un pendiente que el profesor debe notar). */
+  rowAlert?: (row: T) => boolean
 }
 
 /**
@@ -48,6 +50,7 @@ export function DataTable<T>({
   error = null,
   pageSize = DEFAULT_PAGE_SIZE,
   onRowClick,
+  rowAlert,
 }: DataTableProps<T>) {
   const [page, setPage] = useState(1)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -113,8 +116,8 @@ export function DataTable<T>({
                 key={rowKey(row)}
                 onClick={() => onRowClick?.(row)}
                 className={`group border-b border-ink-100 last:border-0 ${
-                  onRowClick ? 'cursor-pointer hover:bg-ink-50' : ''
-                }`}
+                  rowAlert?.(row) ? 'bg-red-50' : ''
+                } ${onRowClick ? 'cursor-pointer hover:bg-ink-50' : ''}`}
               >
                 {columns.map((column) => (
                   <td
@@ -124,7 +127,7 @@ export function DataTable<T>({
                       // La columna fija repite el fondo de la fila: si no, el
                       // hover se le ve por debajo.
                       column.sticky
-                        ? 'sticky left-0 z-10 bg-white group-hover:bg-ink-50 after:absolute after:top-0 after:right-0 after:h-full after:w-px after:bg-ink-100'
+                        ? `sticky left-0 z-10 ${rowAlert?.(row) ? 'bg-red-50' : 'bg-white'} group-hover:bg-ink-50 after:absolute after:top-0 after:right-0 after:h-full after:w-px after:bg-ink-100`
                         : '',
                     ].join(' ')}
                   >
