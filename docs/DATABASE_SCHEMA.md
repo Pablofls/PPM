@@ -10,6 +10,8 @@
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
 - **Última migración aplicada:** `0036_scoped_rls.sql` (2026-10-07).
+  `0037_user_admin.sql` (gestión de usuarios) está escrita y documentada aquí
+  pero **todavía no se pega en Supabase**.
   `0019_student_dossier_read.sql` está escrita y documentada aquí pero
   **todavía no se pega en Supabase**.
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
@@ -425,6 +427,27 @@ funciones `SECURITY DEFINER`).
 
 **`v_users`** (`security_invoker`): cada cuenta con `roles text[]`, armado al
 leer desde `user_roles`. El frontend carga de aquí el perfil de la sesión.
+
+### Gestión de usuarios
+
+> `0037_user_admin.sql` — ⏳ **pendiente de ejecutar**. Sin tablas nuevas: las
+> funciones escriben sobre `profiles`, `user_roles` y `coordinator_teachers`,
+> que no tienen política de escritura para el navegador. Todas son `SECURITY
+> DEFINER` y empiezan comprobando `is_admin()`; las reglas de roles las siguen
+> haciendo cumplir los triggers de `0035`.
+
+| Función | Qué hace |
+|---|---|
+| `admin_create_staff_account(email, first_name, last_name, password, roles)` | Crea la cuenta de un maestro, coordinador o admin: escribe en `auth.users` y `auth.identities` (mismo mecanismo que `create_student_accounts()`, bcrypt), el perfil nace con nombre y apellido (`handle_new_user()`, `0034`) y se le dan los roles. Correo único, contraseña ≥ 8, al menos un rol, solo roles del panel |
+| `admin_set_user_roles(user_id, roles)` | Deja la cuenta exactamente con esos roles del panel (quita primero, luego agrega). No toca cuentas de alumno |
+| `admin_set_user_active(user_id, active)` | Activa o desactiva. Desactivar no borra; `has_role()` exige `is_active`. Nadie se desactiva a sí mismo |
+| `admin_set_coordinator_teachers(coordinator_id, teacher_ids)` | Deja al coordinador exactamente con esos maestros |
+| `admin_set_user_password(user_id, password)` | Contraseña nueva (bcrypt) para una cuenta del panel; no para alumnos |
+
+El nombre de otra cuenta se edita directo (`profiles_update` deja al admin
+editar cualquier fila; el permiso por columna de `0034` lo limita a nombre y
+apellido). El maestro de un grupo, igual: `groups_update_admin` con permiso
+solo sobre `teacher_id` (`0032`), y `guard_groups_teacher()` exige el rol.
 
 ### Funciones y triggers
 
@@ -1651,6 +1674,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0034_profile_names.sql` | `profiles.first_name`/`last_name` (con CHECK), se elimina `full_name`, `v_groups` recreada con `teacher_name` derivado, `UPDATE` de `profiles` acotado por columna, `handle_new_user()` y `create_student_accounts()` sin `full_name` | ✅ 2026-10-07 |
 | `0035_roles.sql` | `roles`, `user_roles`, `coordinator_teachers`, se eliminan `profiles.role` y `app_role`; `has_role()`, `is_admin()` y `current_student_id()` sobre `user_roles`, `is_staff()`, `visible_*_ids()`, `guard_user_roles()`, `guard_groups_teacher()`, `guard_coordinator_teachers()`, `touch_profile()`, `v_users`, `admin_create_group()` y `create_student_accounts()` con roles; corrige `enforce_one_group_per_period()` en `UPDATE` | ✅ 2026-10-07 |
 | `0036_scoped_rls.sql` | políticas `*_select_scope` (maestro y coordinador leen a sus alumnos, sus grupos y sus maestros) y `*_select_staff` de los catálogos | ✅ 2026-10-07 |
+| `0037_user_admin.sql` | `admin_create_staff_account()`, `admin_set_user_roles()`, `admin_set_user_active()`, `admin_set_coordinator_teachers()`, `admin_set_user_password()` | ⏳ **pendiente** |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.

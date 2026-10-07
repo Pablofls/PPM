@@ -12,6 +12,8 @@ export type Language = 'es' | 'en'
 export type SessionDay = 'lunes' | 'miercoles'
 export type Gender = 'femenino' | 'masculino' | 'otro' | 'no_especificado'
 export type SubmissionState = 'a_tiempo' | 'tarde' | 'pendiente' | 'sin_fecha'
+/** Los roles de `roles` (`0035`). Una persona puede tener varios, salvo el alumno. */
+export type RoleCode = 'admin' | 'coordinador' | 'maestro' | 'alumno'
 
 /** Columnas del alumno presentes en todas las pantallas. */
 export interface StudentColumns {
@@ -506,4 +508,27 @@ export interface Teacher {
   id: string
   name: string | null
   email: string
+}
+
+/**
+ * Una cuenta, para Configuración → Usuarios (`v_users`, `0035`). Nombre y
+ * apellido por separado (`0034`); los roles se arman al leer.
+ */
+export interface UserAccount {
+  id: string
+  email: string
+  firstName: string | null
+  lastName: string | null
+  isActive: boolean
+  roles: RoleCode[]
+}
+
+/** Lo que el admin captura al crear la cuenta de un maestro, coordinador o admin (`0037`). */
+export interface StaffAccountInput {
+  email: string
+  firstName: string
+  lastName: string
+  /** Contraseña inicial; el usuario la cambia en Mi perfil. */
+  password: string
+  roles: RoleCode[]
 }

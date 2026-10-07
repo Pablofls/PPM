@@ -156,7 +156,31 @@ export function GroupsPage() {
       key: 'teacher',
       header: 'Maestro',
       width: 'min-w-48',
-      render: (group) => group.teacherName ?? group.teacherEmail,
+      // Reasignar el maestro: con uno solo no hay a quién, y se muestra el nombre.
+      render: (group) =>
+        teachers.length > 1 ? (
+          <select
+            aria-label={`Maestro de ${formatGroupLabel(group)}`}
+            value={group.teacherId}
+            disabled={sending}
+            onChange={(event) => {
+              const teacher = teachers.find((candidate) => candidate.id === event.target.value)
+              void run(
+                () => repository.setGroupTeacher(group.id, event.target.value),
+                `${formatGroupLabel(group)} ahora es de ${teacher?.name ?? teacher?.email ?? 'otro maestro'}.`,
+              )
+            }}
+            className={`${FIELD_INPUT} py-1.5`}
+          >
+            {teachers.map((teacher) => (
+              <option key={teacher.id} value={teacher.id}>
+                {teacher.name ?? teacher.email}
+              </option>
+            ))}
+          </select>
+        ) : (
+          (group.teacherName ?? group.teacherEmail)
+        ),
     },
     { key: 'count', header: 'Alumnos', render: (group) => <span className="tnum">{group.studentCount}</span> },
     {

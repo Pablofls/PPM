@@ -103,6 +103,26 @@ lectura» arriba. Se recuerda en el navegador. Cambia:
   *Corregir semana* en el expediente. Sus rutas mandan a Mis grupos
   (`AdminRoute`).
 
+### Usuarios · `/configuracion/usuarios`
+
+> `0037_user_admin.sql`. Menú Configuración (engrane), solo en la vista de
+> administrador.
+
+- **Nuevo usuario:** nombre, apellido, correo, contraseña inicial y roles
+  (Administrador, Coordinador, Maestro). El usuario cambia la contraseña en Mi
+  perfil.
+- **Cuentas:** las del panel y las pendientes (sin roles); los alumnos están en
+  Alumnos registrados. Nombre, correo, roles (o *Pendiente*), estado. En rojo,
+  las desactivadas y las pendientes. Buscador por nombre o correo.
+- **Editar** abre un recuadro con: nombre y apellido; roles; si es
+  coordinador, los **maestros que supervisa** (casillas); contraseña nueva
+  (para quien olvidó la suya); y desactivar / reactivar. Los errores de las
+  reglas de la base (no quitarse el propio admin, no quitar un rol en uso) se
+  muestran tal cual.
+
+En **Administrar grupos**, con más de un maestro, la columna Maestro es un
+selector para reasignar el grupo.
+
 ### Mi perfil · `/mi-perfil`
 
 > `0034_profile_names.sql`. Desde el engrane, en la barra de Mis grupos.

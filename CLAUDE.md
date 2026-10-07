@@ -52,6 +52,11 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   **Ver como** abajo del rail: el admin ve como cualquier rol y persona
   (alumno en solo lectura) sin tener esos roles; los demás, entre sus propios
   roles. La escritura sigue siendo solo del admin.
+- **Usuarios** (`0037`, **pendiente de ejecutar**): fase 3. En el menú
+  Configuración: crear cuentas de maestros, coordinadores y admins (nombre,
+  apellido, correo, contraseña inicial, roles), cambiar roles, asignar
+  maestros a coordinadores, contraseña nueva y desactivar. En Administrar
+  grupos se reasigna el maestro de un grupo.
 - **Mi perfil** (`0034`, ejecutada el 2026-10-07): nombre y apellido por
   separado en `profiles` (se elimina `full_name`), correo y rol de solo
   lectura, y cambio de contraseña. Las tarjetas muestran el nombre del maestro.
@@ -196,8 +201,8 @@ completo»), porque ya no se puede: la semana pasada.
 Ya están construidos **Módulo 1, Módulo 2 y los Apéndices A/B**, las bitácoras
 semanales (dentro del expediente del alumno), Estado de Entregas, Fechas de
 entrega (antes «Panel de Administrador»), Mis grupos y, en su menú
-Configuración, Alumnos Registrados (`0031`, alta de alumnos sin 1.0) y
-Administrar grupos (`0032`).
+Configuración, Alumnos Registrados (`0031`, alta de alumnos sin 1.0),
+Administrar grupos (`0032`) y Usuarios (`0037`).
 
 **Fuera de alcance mientras no se pida:** la hoja `fechas_entrega`.
 

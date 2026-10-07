@@ -11,8 +11,9 @@ import {
 
 import { supabase } from '../data/supabaseClient'
 
-/** Los roles de `roles` (`0035`). Una persona puede tener varios, salvo el alumno. */
-export type RoleCode = 'admin' | 'coordinador' | 'maestro' | 'alumno'
+import type { RoleCode } from '../data/types'
+
+export type { RoleCode }
 
 /** Los roles del panel, del de más alcance al de menos. */
 export const STAFF_ROLES: RoleCode[] = ['admin', 'coordinador', 'maestro']

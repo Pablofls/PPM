@@ -25,6 +25,7 @@ import { DeadlinesPage } from './pages/admin/DeadlinesPage'
 import { GroupPickerPage } from './pages/GroupPickerPage'
 import { MyProfilePage } from './pages/MyProfilePage'
 import { GroupsPage } from './pages/admin/GroupsPage'
+import { UsersPage } from './pages/admin/UsersPage'
 import { RegisteredStudentsPage } from './pages/admin/RegisteredStudentsPage'
 import { SubmissionStatusPage } from './pages/admin/SubmissionStatusPage'
 import { weeklyFormByCode } from './lib/catalog'
@@ -105,6 +106,14 @@ export default function App() {
                   element={
                     <AdminRoute>
                       <GroupsPage />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="usuarios"
+                  element={
+                    <AdminRoute>
+                      <UsersPage />
                     </AdminRoute>
                   }
                 />

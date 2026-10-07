@@ -13,12 +13,17 @@ export function PasswordInput({
   autoComplete,
   required,
   minLength,
+  placeholder,
+  ariaLabel,
 }: {
   value: string
   onChange: (value: string) => void
   autoComplete?: string
   required?: boolean
   minLength?: number
+  placeholder?: string
+  /** Para cuando el campo no va dentro de un `<label>` (formularios en una fila). */
+  ariaLabel?: string
 }) {
   const [visible, setVisible] = useState(false)
   const inputId = useId()
@@ -33,6 +38,8 @@ export function PasswordInput({
         required={required}
         minLength={minLength}
         autoComplete={autoComplete}
+        placeholder={placeholder}
+        aria-label={ariaLabel}
         className="w-full rounded-lg border border-ink-200 px-3 py-2 pr-10 text-sm focus:border-ink-400 focus:ring-2 focus:ring-ink-900/5 focus:outline-none"
       />
       <button

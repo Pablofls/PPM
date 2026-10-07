@@ -24,6 +24,9 @@ import type {
   Group,
   GroupInput,
   RegisteredStudent,
+  RoleCode,
+  StaffAccountInput,
+  UserAccount,
   RegistrationResult,
   StudentRegistrationInput,
   FormSummary,
@@ -189,6 +192,33 @@ export interface PanelRepository {
   /** Quién puede impartir un grupo: las cuentas con el rol de maestro (`0035`). */
   getTeachers(): Promise<Teacher[]>
 
+  /**
+   * Las cuentas que no son de alumno (staff y pendientes), para
+   * Configuración → Usuarios. Admin-only por RLS.
+   */
+  getUsers(): Promise<UserAccount[]>
+
+  /** Crea la cuenta de un maestro, coordinador o admin (`admin_create_staff_account()`, `0037`). */
+  createStaffAccount(input: StaffAccountInput): Promise<void>
+
+  /** Nombre y apellido de cualquier cuenta (el admin puede editar cualquier perfil). */
+  updateUserName(userId: string, firstName: string, lastName: string): Promise<void>
+
+  /** Deja a la cuenta exactamente con esos roles del panel (`0037`). */
+  setUserRoles(userId: string, roles: RoleCode[]): Promise<void>
+
+  /** Activa o desactiva una cuenta. Desactivar no borra nada. */
+  setUserActive(userId: string, active: boolean): Promise<void>
+
+  /** Deja al coordinador exactamente con esos maestros (`0037`). */
+  setCoordinatorTeachers(coordinatorId: string, teacherIds: string[]): Promise<void>
+
+  /** Pone una contraseña nueva a una cuenta del panel, para quien olvidó la suya. */
+  setUserPassword(userId: string, password: string): Promise<void>
+
+  /** Cambia el maestro de un grupo. */
+  setGroupTeacher(groupId: string, teacherId: string): Promise<void>
+
   /** Las cuentas con el rol de coordinador. Para «Ver como» del admin. */
   getCoordinators(): Promise<Teacher[]>
 
@@ -350,6 +380,30 @@ export const emptyRepository: PanelRepository = {
   },
   async getCoordinators() {
     return []
+  },
+  async getUsers() {
+    return []
+  },
+  async createStaffAccount() {
+    throw new Error('No hay conexión con la base de datos. La cuenta no se creó.')
+  },
+  async updateUserName() {
+    throw new Error('No hay conexión con la base de datos. No se guardó.')
+  },
+  async setUserRoles() {
+    throw new Error('No hay conexión con la base de datos. No se guardó.')
+  },
+  async setUserActive() {
+    throw new Error('No hay conexión con la base de datos. No se guardó.')
+  },
+  async setCoordinatorTeachers() {
+    throw new Error('No hay conexión con la base de datos. No se guardó.')
+  },
+  async setUserPassword() {
+    throw new Error('No hay conexión con la base de datos. No se guardó.')
+  },
+  async setGroupTeacher() {
+    throw new Error('No hay conexión con la base de datos. No se guardó.')
   },
   async getCoordinatedTeacherIds() {
     return []

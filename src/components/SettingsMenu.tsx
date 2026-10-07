@@ -7,6 +7,7 @@ import { profileDisplayName, useAuth } from '../auth/AuthProvider'
 const SETTINGS_ITEMS = [
   { to: '/configuracion/alumnos-registrados', label: 'Alumnos registrados' },
   { to: '/configuracion/grupos', label: 'Administrar grupos' },
+  { to: '/configuracion/usuarios', label: 'Usuarios' },
 ]
 
 /**

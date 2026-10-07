@@ -238,6 +238,16 @@ en claro; solo llama a `signInWithPassword()` y recibe una sesión.
 
 Tampoco se guarda nada de contraseñas en `profiles`.
 
+### Cuentas de maestros, coordinadores y administradores (`0037`)
+
+Las crea un administrador en **Configuración → Usuarios**: nombre, apellido,
+correo, contraseña inicial y roles. `admin_create_staff_account()` escribe en
+`auth.users` igual que el alta de alumnos (bcrypt, sin la llave
+`service_role`). Ahí mismo se cambian roles, se asignan maestros a un
+coordinador, se pone una contraseña nueva a quien olvidó la suya y se
+desactiva una cuenta (no se borra). Ninguna de esas tablas acepta escrituras
+directas desde el navegador: todo pasa por funciones que exigen `is_admin()`.
+
 ### Mi perfil (`0034`)
 
 Quien usa el panel tiene **Mi perfil** (`/mi-perfil`, desde el engrane de la

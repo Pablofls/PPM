@@ -24,6 +24,9 @@ import type {
   Group,
   GroupInput,
   RegisteredStudent,
+  RoleCode,
+  StaffAccountInput,
+  UserAccount,
   RegistrationResult,
   StudentRegistrationInput,
   FormSummary,
@@ -763,6 +766,82 @@ export const supabaseRepository: PanelRepository = {
 
   async getCoordinators(): Promise<Teacher[]> {
     return fetchUsersWithRole('coordinador')
+  },
+
+  async getUsers(): Promise<UserAccount[]> {
+    const { data, error } = await supabase
+      .from('v_users')
+      .select('id, email, first_name, last_name, is_active, roles')
+      // Los alumnos se gestionan en Alumnos registrados, no aquí.
+      .not('roles', 'cs', '{alumno}')
+      .order('first_name', { nullsFirst: false })
+
+    if (error) throw new Error(`No se pudieron cargar los usuarios: ${error.message}`)
+
+    return ((data ?? []) as PanelRecord[]).map((record) => ({
+      id: str(record.id) ?? '',
+      email: str(record.email) ?? '',
+      firstName: str(record.first_name),
+      lastName: str(record.last_name),
+      isActive: bool(record.is_active) ?? false,
+      roles: (Array.isArray(record.roles) ? record.roles : []) as RoleCode[],
+    }))
+  },
+
+  async createStaffAccount(input: StaffAccountInput): Promise<void> {
+    const { error } = await supabase.rpc('admin_create_staff_account', {
+      p_email: input.email,
+      p_first_name: input.firstName,
+      p_last_name: input.lastName,
+      p_password: input.password,
+      p_roles: input.roles,
+    })
+    if (error) throw new Error(`No se pudo crear la cuenta: ${error.message}`)
+  },
+
+  async updateUserName(userId: string, firstName: string, lastName: string): Promise<void> {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ first_name: firstName.trim() || null, last_name: lastName.trim() || null })
+      .eq('id', userId)
+    if (error) throw new Error(`No se pudo guardar el nombre: ${error.message}`)
+  },
+
+  async setUserRoles(userId: string, roles: RoleCode[]): Promise<void> {
+    const { error } = await supabase.rpc('admin_set_user_roles', {
+      p_user_id: userId,
+      p_roles: roles,
+    })
+    if (error) throw new Error(`No se pudieron guardar los roles: ${error.message}`)
+  },
+
+  async setUserActive(userId: string, active: boolean): Promise<void> {
+    const { error } = await supabase.rpc('admin_set_user_active', {
+      p_user_id: userId,
+      p_active: active,
+    })
+    if (error) throw new Error(`No se pudo cambiar el estado: ${error.message}`)
+  },
+
+  async setCoordinatorTeachers(coordinatorId: string, teacherIds: string[]): Promise<void> {
+    const { error } = await supabase.rpc('admin_set_coordinator_teachers', {
+      p_coordinator_id: coordinatorId,
+      p_teacher_ids: teacherIds,
+    })
+    if (error) throw new Error(`No se pudieron guardar los maestros: ${error.message}`)
+  },
+
+  async setUserPassword(userId: string, password: string): Promise<void> {
+    const { error } = await supabase.rpc('admin_set_user_password', {
+      p_user_id: userId,
+      p_password: password,
+    })
+    if (error) throw new Error(`No se pudo cambiar la contraseña: ${error.message}`)
+  },
+
+  async setGroupTeacher(groupId: string, teacherId: string): Promise<void> {
+    const { error } = await supabase.from('groups').update({ teacher_id: teacherId }).eq('id', groupId)
+    if (error) throw new Error(`No se pudo cambiar el maestro: ${error.message}`)
   },
 
   async getCoordinatedTeacherIds(coordinatorId: string): Promise<string[]> {
