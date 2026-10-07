@@ -9,9 +9,9 @@ formularios de Google. Reemplaza la implementación actual en Google Apps Script
 El profesor autorizó el proyecto el 10 de septiembre de 2026.
 
 - Supabase configurado (ref `sovinakodrmgxytgapry`) y Vercel desplegado.
-- Las migraciones `0001`–`0037` **ya se ejecutaron** (salvo `0019`, ver
+- Las migraciones `0001`–`0038` **ya se ejecutaron** (salvo `0019`, ver
   `docs/DATABASE_SCHEMA.md`). Un archivo ejecutado no se vuelve a editar: el
-  siguiente cambio es `0038_…`.
+  siguiente cambio es `0039_…`.
 - Alcance del esquema: **autenticación + los 11 formularios de Módulo 1 y 2 +
   los dos apéndices + las dos bitácoras semanales**. Las hojas `alumnos` y
   `fechas_entrega` quedan para después.
@@ -57,7 +57,7 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   apellido, correo, contraseña inicial, roles), cambiar roles, asignar
   maestros a coordinadores, contraseña nueva y desactivar. En Administrar
   grupos se reasigna el maestro de un grupo.
-- **Permisos** (`0038`, **pendiente de ejecutar**): fase 4. Configuración →
+- **Permisos** (`0038`, ejecutada el 2026-10-07): fase 4. Configuración →
   **Usuarios y permisos**: matriz por rol (Sin acceso / Solo lectura / Puede
   editar por pantalla, incluido el alumno) y excepciones por persona. Se
   aplica en la base (restrictivas de lectura, escrituras con «Puede editar»

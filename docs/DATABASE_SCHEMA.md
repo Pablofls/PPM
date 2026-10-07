@@ -9,9 +9,7 @@
 
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
-- **Última migración aplicada:** `0037_user_admin.sql` (2026-10-07).
-  `0038_permissions.sql` (permisos por rol y por persona) está escrita y
-  documentada aquí pero **todavía no se pega en Supabase**.
+- **Última migración aplicada:** `0038_permissions.sql` (2026-10-07).
   `0019_student_dossier_read.sql` está escrita y documentada aquí pero
   **todavía no se pega en Supabase**.
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
@@ -477,7 +475,7 @@ solo sobre `teacher_id` (`0032`), y `guard_groups_teacher()` exige el rol.
 
 ### Permisos
 
-> `0038_permissions.sql` — ⏳ **pendiente de ejecutar**. Qué ve y qué edita
+> `0038_permissions.sql` — ✅ ejecutada en Supabase (2026-10-07). Qué ve y qué edita
 > cada rol en cada pantalla, con excepciones por persona. Se administra en
 > Configuración → Usuarios y permisos.
 
@@ -1782,7 +1780,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0035_roles.sql` | `roles`, `user_roles`, `coordinator_teachers`, se eliminan `profiles.role` y `app_role`; `has_role()`, `is_admin()` y `current_student_id()` sobre `user_roles`, `is_staff()`, `visible_*_ids()`, `guard_user_roles()`, `guard_groups_teacher()`, `guard_coordinator_teachers()`, `touch_profile()`, `v_users`, `admin_create_group()` y `create_student_accounts()` con roles; corrige `enforce_one_group_per_period()` en `UPDATE` | ✅ 2026-10-07 |
 | `0036_scoped_rls.sql` | políticas `*_select_scope` (maestro y coordinador leen a sus alumnos, sus grupos y sus maestros) y `*_select_staff` de los catálogos | ✅ 2026-10-07 |
 | `0037_user_admin.sql` | `admin_create_staff_account()`, `admin_set_user_roles()`, `admin_set_user_active()`, `admin_set_coordinator_teachers()`, `admin_set_user_password()` | ✅ 2026-10-07 |
-| `0038_permissions.sql` | `access_level`, `app_screens`, `app_screen_forms`, `role_screen_access`, `user_screen_access`, `guard_screen_access()`, `screen_access()`, `can_edit_screen()`, `readable_forms()`, `writable_forms()`; restrictivas de lectura y de escritura del alumno; escrituras del staff con «Puede editar» (fechas, grupos, registro, semana) | ⏳ **pendiente** |
+| `0038_permissions.sql` | `access_level`, `app_screens`, `app_screen_forms`, `role_screen_access`, `user_screen_access`, `guard_screen_access()`, `screen_access()`, `can_edit_screen()`, `readable_forms()`, `writable_forms()`; restrictivas de lectura y de escritura del alumno; escrituras del staff con «Puede editar» (fechas, grupos, registro, semana) | ✅ 2026-10-07 |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.
