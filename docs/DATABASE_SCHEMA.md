@@ -9,9 +9,9 @@
 
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
-- **Última migración aplicada:** `0018_semester_weeks.sql` (2026-09-25).
-  `0019_student_dossier_read.sql` está escrita y documentada aquí pero
-  **todavía no se pega en Supabase**.
+- **Última migración aplicada:** `0030_weekly_log_monterrey_today.sql` (2026-10-04).
+  `0019_student_dossier_read.sql` y `0031_student_registration.sql` están
+  escritas y documentadas aquí pero **todavía no se pegan en Supabase**.
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
   bitácoras semanales.
 
@@ -26,13 +26,14 @@
 7. [Módulo 1 — Conócete](#módulo-1--conócete)
 8. [Módulo 2 — Actúa](#módulo-2--actúa)
 9. [Bitácoras semanales](#bitácoras-semanales)
-10. [Semanas del semestre](#semanas-del-semestre)
-11. [Fechas de entrega y estado de las entregas](#fechas-de-entrega-y-estado-de-las-entregas)
-12. [Sincronización con el Sheets](#sincronización-con-el-sheets)
-13. [Vistas](#vistas)
-14. [Índices](#índices)
-15. [Seguridad](#seguridad)
-16. [Correspondencia migración → contenido](#correspondencia-migración--contenido)
+10. [Registro de alumnos](#registro-de-alumnos)
+11. [Semanas del semestre](#semanas-del-semestre)
+12. [Fechas de entrega y estado de las entregas](#fechas-de-entrega-y-estado-de-las-entregas)
+13. [Sincronización con el Sheets](#sincronización-con-el-sheets)
+14. [Vistas](#vistas)
+15. [Índices](#índices)
+16. [Seguridad](#seguridad)
+17. [Correspondencia migración → contenido](#correspondencia-migración--contenido)
 
 ---
 
@@ -127,6 +128,19 @@ erDiagram
 
     FORMS ||--o{ SHEET_ROWS : "staging del Sheets"
     FORMS ||--o{ FORM_DEADLINES : "fecha límite"
+    STUDENTS ||--o{ STUDENT_ENROLLMENTS : "se inscribe"
+    PERIODS ||--o{ STUDENT_ENROLLMENTS : "en un periodo"
+
+    PERIODS {
+        text code PK "PR-26"
+    }
+    STUDENT_ENROLLMENTS {
+        uuid id PK
+        uuid student_id FK
+        text period_code FK
+        session_day session_day
+        language language
+    }
 
     AUTH_USERS {
         uuid id PK "lo administra Supabase"
@@ -371,6 +385,7 @@ editar su propio perfil podría ascenderse a `admin`.
 |---|---|---|
 | `id` | `uuid` PK DEFAULT `gen_random_uuid()` | |
 | `institutional_email` | `citext` NOT NULL **UNIQUE** | llave natural, `@udem.edu` |
+| `student_number` | `text` NULL, único donde exista | matrícula registrada por el profesor (`0031`); si hay 1.0, manda `demographics.student_number` |
 | `created_at` / `updated_at` | `timestamptz` NOT NULL DEFAULT `now()` | |
 
 Tabla mínima a propósito. El nombre, matrícula, carrera, semestre, periodo y
@@ -700,6 +715,65 @@ regla «Historial completo» de CLAUDE.md: una semana cerrada se sigue sin poder
 editar ni borrar, igual que antes.
 
 ---
+
+## Registro de alumnos
+
+> `0031_student_registration.sql`. El profesor da de alta alumnos con correo
+> UDEM, matrícula, periodo, frecuencia e idioma, sin que contesten el 1.0. Cada
+> alta crea también la cuenta de acceso (ver [AUTH.md](AUTH.md)).
+
+### Normalización (hasta 4FN)
+
+- **Correo y matrícula** identifican al alumno y no cambian por periodo: viven
+  en `students` y son dos llaves candidatas (todo determinante es llave: BCNF).
+- **Periodo, frecuencia e idioma** describen la *inscripción* de un alumno en un
+  periodo, no al alumno: otro periodo puede traer otra frecuencia o idioma.
+  Viven en `student_enrollments`, con llave `(student_id, period_code)`.
+- Frecuencia e idioma son hechos de un solo valor por inscripción, no hechos
+  multivaluados independientes, así que no hay dependencias multivaluadas y se
+  cumple 4FN.
+- El periodo es un dominio con identidad propia: catálogo `periods` con FK.
+- `demographics.period_code/session_day` y `submissions.language` **no** se
+  tocan: son lo que el alumno respondió en una entrega concreta (historial),
+  no el hecho vigente. `semester_weeks` y `form_deadlines` conservan su
+  `period_code` como texto; ponerles FK a `periods` queda como seguimiento.
+
+### `periods`
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `code` | `text` PK | CHECK `^[A-Z]{2}-[0-9]{2}$` (`PR-26`) |
+| `created_at` | `timestamptz` NOT NULL DEFAULT `now()` | |
+
+Se sembró con los periodos que ya existían en `demographics`, `semester_weeks` y
+`form_deadlines`. Solo lectura para el admin; un periodo nuevo nace al
+registrar alumnos con él.
+
+### `student_enrollments`
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | `uuid` PK DEFAULT `gen_random_uuid()` | |
+| `student_id` | `uuid` NOT NULL FK `students(id)` ON DELETE CASCADE | |
+| `period_code` | `text` NOT NULL FK `periods(code)` | |
+| `session_day` | `session_day` NOT NULL | frecuencia |
+| `language` | `language` NOT NULL | |
+| `created_at` / `updated_at` | `timestamptz` NOT NULL DEFAULT `now()` | |
+
+`UNIQUE (student_id, period_code)`. RLS: `select` solo con `is_admin()`; **no
+hay políticas de escritura ni `DELETE`**: la única vía es la función de abajo.
+
+### `admin_register_students(p_rows jsonb)`
+
+`SECURITY DEFINER`, empieza comprobando `is_admin()` (patrón de
+`admin_run_sheet_sync()`). Recibe un arreglo de
+`{correo, matricula, periodo, frecuencia, idioma}` (máx. 500) y devuelve
+`[{fila, correo, resultado, cuenta}]`. Normaliza y valida cada fila (correo
+`@udem.edu`, matrícula alfanumérica, periodo `XX-NN`, frecuencia lunes/miércoles,
+idioma español/inglés), hace upsert de `students` y de la inscripción, y al
+final llama una vez a `create_student_accounts()`. Una fila inválida no aborta
+las demás. Una matrícula que ya es de otro alumno, o que contradice la del
+1.0 del mismo alumno, es error de fila. La matrícula nunca se devuelve.
 
 ## Semanas del semestre
 
@@ -1109,6 +1183,12 @@ alumno consulta `submissions` directamente para el historial completo.
 `students` + los datos demográficos de la respuesta más reciente al `form1_0`.
 Alimenta el buscador y los filtros compartidos.
 
+Desde `0031` la matrícula, el periodo y la frecuencia salen de `demographics` y,
+si el alumno no contestó el 1.0, de su inscripción más reciente en
+`student_enrollments`; el `language` (columna nueva, al final) sale de la
+entrega del 1.0 o de esa misma inscripción. Es una preferencia al leer: no se
+copia ni se pisa ningún dato.
+
 > Ambas vistas llevan `security_invoker = on`. Sin eso se ejecutarían con los
 > permisos de su propietario y **serían una puerta trasera que se salta RLS**.
 
@@ -1360,6 +1440,8 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0028_weekly_log_match_by_overlap.sql` | `best_matching_week_number()`: reemplaza el anclaje por `week_start` de `0026`/`0027` con la semana de mayor traslape, corrigiendo entregas viejas mal clasificadas por un rango corrido un día | ✅ 2026-09-28 |
 | `0029_weekly_log_manual_week_override.sql` | `week_number_override` en `job_search_logs`/`internship_logs`; `resolved_week_number()`; `admin_set_weekly_log_week_number()` para que el profesor corrija a mano lo que `best_matching_week_number()` no calza o calza mal | ✅ 2026-09-28 |
 | `0030_weekly_log_monterrey_today.sql` | `today_monterrey()`; `new_weekly_submission()` y las políticas de corrección de `0020` comparan contra la fecha de Monterrey en vez de `current_date` (UTC), que cerraba la semana a las ~7–8 pm del último día | ✅ 2026-10-04 |
+
+| `0031_student_registration.sql` | `periods`, `students.student_number`, `student_enrollments`, `v_students_directory` (matrícula/periodo/frecuencia con respaldo en la inscripción, más `language`), `admin_register_students()` | ⏳ **pendiente** |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.

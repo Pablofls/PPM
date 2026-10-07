@@ -47,6 +47,7 @@ export function AppShell() {
 
           <NavGroup title="Administrador">
             <NavItem to="/administrador/panel" label="" name="Panel de Administrador" />
+            <NavItem to="/administrador/alumnos-registrados" label="" name="Alumnos Registrados" />
           </NavGroup>
 
           {/*

@@ -109,6 +109,15 @@ El alumno **no se registra**: la cuenta se la crea el sistema, sola.
   Demográficos**, porque es de ahí de donde sale la matrícula. Un alumno sin 1.0
   no tiene contraseña posible y la función lo reporta como omitido.
 
+### También las puede dar de alta el profesor, sin 1.0
+
+Desde `0031`, la pantalla **Alumnos Registrados** (a mano o con un Excel) llama
+a `admin_register_students()`, que guarda correo, matrícula, periodo,
+frecuencia e idioma y ejecuta `create_student_accounts()`. Mismo esquema:
+usuario = correo, contraseña inicial = matrícula. Si el alumno después
+contesta el 1.0, su matrícula del 1.0 manda y la contraseña de una cuenta ya
+creada no se toca.
+
 ### Se crean solas, en la sincronización horaria
 
 Desde `0021_sync_creates_student_accounts.sql`, `import_sheet_rows()` —la

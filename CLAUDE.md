@@ -30,6 +30,9 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
 - Los apéndices ya tienen tabla y pantalla. Su estructura es distinta a la del
   Módulo 1 y 2 (buscador por empresa, paginación, sin filtros académicos), como
   en la plataforma anterior.
+- **Alumnos Registrados** (`0031`, **escrita, aún no ejecutada**): el profesor da
+  de alta alumnos (correo, matrícula, periodo, frecuencia, idioma) a mano o con
+  un Excel, y se les crea la cuenta sin que contesten el 1.0.
 - El **rol `alumno`** existe: las cuentas se crean desde `demographics` (usuario =
   correo institucional, contraseña = matrícula) con
   `create_student_accounts()`, y el alumno entra a `/alumno`. Las cuentas ya se
@@ -167,13 +170,13 @@ completo»), porque ya no se puede: la semana pasada.
 
 ### 9. Alcance de las pantallas
 
-Ya están construidos **Módulo 1, Módulo 2 y los Apéndices A/B**, y las bitácoras
-semanales viven dentro del expediente del alumno.
+Ya están construidos **Módulo 1, Módulo 2 y los Apéndices A/B**, las bitácoras
+semanales (dentro del expediente del alumno), Estado de Entregas, el Panel de
+Administrador y Alumnos Registrados (`0031`, alta de alumnos sin 1.0).
 
-**Fuera de alcance mientras no se pida:** Grupos, Estado de Entregas, Alumnos
-Registrados, Panel de Administrador y la hoja `fechas_entrega`. Aparecen
-deshabilitados en el rail a propósito: comunican el alcance completo sin
-prometer que funcionan. No construirlos sin pedirlo.
+**Fuera de alcance mientras no se pida:** Grupos y la hoja `fechas_entrega`.
+Grupos aparece deshabilitado en el rail a propósito: comunica el alcance
+completo sin prometer que funciona. No construirlo sin pedirlo.
 
 ## Stack
 

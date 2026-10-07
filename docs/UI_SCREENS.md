@@ -35,10 +35,10 @@ PPM
 ├── ENTREGAS
 │   └── Estado de Entregas
 ├── ADMINISTRADOR
-│   └── Panel de Administrador
+│   ├── Panel de Administrador
+│   └── Alumnos Registrados
 └── PRÓXIMAMENTE  (visible pero deshabilitado)
-    ├── Grupos
-    └── Alumnos Registrados
+    └── Grupos
 ```
 
 Las secciones de «Próximamente» se muestran deshabilitadas a propósito: le comunican
@@ -340,6 +340,23 @@ de horas: así viene del formulario.
 > Los datos de contacto del jefe (nombre, correo, teléfono) **solo aparecen en el
 > expediente**, no en la tabla. Son datos de terceros y no tienen por qué estar
 > a la vista en una pantalla que alguien puede proyectar.
+
+## Alumnos Registrados
+
+> `0031_student_registration.sql`. Ruta `/administrador/alumnos-registrados`.
+
+Da de alta alumnos sin que contesten el 1.0: correo UDEM, matrícula, periodo,
+frecuencia e idioma. Tres bloques:
+
+- **Registrar un alumno:** formulario de una fila.
+- **Importar desde Excel:** botón *Descargar plantilla* (hoja «Alumnos» con los
+  encabezados y hoja «Instrucciones»); al subir el `.xlsx` se muestra una vista
+  previa con el error de cada fila y solo se registran las válidas.
+- **Tabla de alumnos** (el directorio) con matrícula, periodo, frecuencia e idioma.
+
+Tras registrar se muestra el resultado por fila (`creado`, `actualizado`,
+`sin cambios` o el error) y qué pasó con la cuenta. La validación del navegador
+es solo retroalimentación; la autoridad es `admin_register_students()`.
 
 ## Estado de Entregas y Panel de Administrador
 

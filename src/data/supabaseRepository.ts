@@ -21,6 +21,9 @@ import type {
   DiscRow,
   FormDeadline,
   FormDeadlineInput,
+  RegisteredStudent,
+  RegistrationResult,
+  StudentRegistrationInput,
   FormSummary,
   HollandRow,
   IndeedRow,
@@ -627,6 +630,46 @@ export const supabaseRepository: PanelRepository = {
   async deleteFormDeadline(id: string): Promise<void> {
     const { error } = await supabase.from('form_deadlines').delete().eq('id', id)
     if (error) throw new Error(`No se pudo borrar la fecha límite: ${error.message}`)
+  },
+
+  async registerStudents(rows: StudentRegistrationInput[]): Promise<RegistrationResult[]> {
+    const { data, error } = await supabase.rpc('admin_register_students', {
+      p_rows: rows.map((row) => ({
+        correo: row.email,
+        matricula: row.studentNumber,
+        periodo: row.periodCode,
+        frecuencia: row.sessionDay,
+        idioma: row.language,
+      })),
+    })
+
+    if (error) throw new Error(`No se pudo registrar a los alumnos: ${error.message}`)
+
+    return ((data ?? []) as PanelRecord[]).map((record) => ({
+      row: Number(record.fila),
+      email: str(record.correo) ?? '',
+      outcome: str(record.resultado) ?? '',
+      account: str(record.cuenta),
+    }))
+  },
+
+  async getRegisteredStudents(): Promise<RegisteredStudent[]> {
+    const { data, error } = await supabase
+      .from('v_students_directory')
+      .select('student_id, institutional_email, full_name, student_number, period_code, session_day, language')
+      .order('institutional_email')
+
+    if (error) throw new Error(`No se pudieron cargar los alumnos: ${error.message}`)
+
+    return ((data ?? []) as PanelRecord[]).map((record) => ({
+      studentId: str(record.student_id) ?? '',
+      email: str(record.institutional_email) ?? '',
+      fullName: str(record.full_name),
+      studentNumber: str(record.student_number),
+      periodCode: str(record.period_code),
+      sessionDay: (str(record.session_day) as 'lunes' | 'miercoles' | null) ?? null,
+      language: (str(record.language) as 'es' | 'en' | null) ?? null,
+    }))
   },
 
   /**

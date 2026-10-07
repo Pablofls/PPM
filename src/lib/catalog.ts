@@ -309,7 +309,6 @@ export const UPCOMING_SECTIONS = [
   // expediente del alumno, no como pantalla propia del rail. Estado de
   // Entregas salió con el Panel de Administrador: ver AppShell.tsx.
   'Grupos',
-  'Alumnos Registrados',
 ]
 
 // ---------------------------------------------------------------------------

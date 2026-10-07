@@ -19,6 +19,7 @@ import { WeeklyLogPage } from './pages/alumno/WeeklyLogPage'
 import { IndeedPage } from './pages/modulo2/IndeedPage'
 import { ReflectionPage } from './pages/modulo2/ReflectionPage'
 import { DeadlinesPage } from './pages/admin/DeadlinesPage'
+import { RegisteredStudentsPage } from './pages/admin/RegisteredStudentsPage'
 import { SubmissionStatusPage } from './pages/admin/SubmissionStatusPage'
 import { weeklyFormByCode } from './lib/catalog'
 
@@ -107,6 +108,7 @@ export default function App() {
 
             <Route path="administrador">
               <Route path="panel" element={<DeadlinesPage />} />
+              <Route path="alumnos-registrados" element={<RegisteredStudentsPage />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/modulo1/datos-demograficos" replace />} />

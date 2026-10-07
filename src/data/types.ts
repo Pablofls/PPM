@@ -419,3 +419,38 @@ export interface SyncRunResult {
   recordsSynced: number
   accountsCreated: number
 }
+
+/**
+ * Una fila para registrar a un alumno (`admin_register_students()`, `0031`).
+ * Son los textos tal como los capturó el profesor o venían en el Excel: la
+ * función de la base los normaliza y valida, y es la autoridad.
+ */
+export interface StudentRegistrationInput {
+  email: string
+  studentNumber: string
+  periodCode: string
+  sessionDay: string
+  language: string
+}
+
+/** Lo que pasó con una fila. La matrícula no se devuelve: es la contraseña inicial. */
+export interface RegistrationResult {
+  /** Posición de la fila en lo que se mandó, desde 1. */
+  row: number
+  email: string
+  /** `creado`, `actualizado`, `sin cambios` o `error: motivo`. */
+  outcome: string
+  /** Qué pasó con la cuenta de acceso; `null` si la fila falló. */
+  account: string | null
+}
+
+/** Un alumno del directorio, con lo que se sabe de su inscripción. */
+export interface RegisteredStudent {
+  studentId: string
+  email: string
+  fullName: string | null
+  studentNumber: string | null
+  periodCode: string | null
+  sessionDay: SessionDay | null
+  language: Language | null
+}

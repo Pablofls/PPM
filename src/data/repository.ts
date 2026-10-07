@@ -21,6 +21,9 @@ import type {
   DiscRow,
   FormDeadline,
   FormDeadlineInput,
+  RegisteredStudent,
+  RegistrationResult,
+  StudentRegistrationInput,
   FormSummary,
   HollandRow,
   IndeedRow,
@@ -159,6 +162,16 @@ export interface PanelRepository {
   deleteFormDeadline(id: string): Promise<void>
 
   /**
+   * Da de alta alumnos sin que contesten el 1.0 (`admin_register_students()`,
+   * `0031`): correo, matrícula, periodo, frecuencia e idioma. Devuelve una fila
+   * por alumno; una fila inválida no impide las demás.
+   */
+  registerStudents(rows: StudentRegistrationInput[]): Promise<RegistrationResult[]>
+
+  /** Directorio de alumnos con su inscripción, por correo. */
+  getRegisteredStudents(): Promise<RegisteredStudent[]>
+
+  /**
    * La matriz de "Estado de Entregas": un alumno por fila, con su estado en
    * cada formulario que puede llevar fecha límite.
    */
@@ -286,6 +299,12 @@ export const emptyRepository: PanelRepository = {
   },
   async deleteFormDeadline() {
     throw new Error('No hay conexión con la base de datos. La fecha no se borró.')
+  },
+  async registerStudents() {
+    throw new Error('No hay conexión con la base de datos. No se registró a nadie.')
+  },
+  async getRegisteredStudents() {
+    return []
   },
   async getSubmissionStatus() {
     return []
