@@ -3,6 +3,7 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { ROLE_LABELS, STAFF_ROLES, useAuth } from '../../auth/AuthProvider'
 import { Badge, Dash } from '../../components/Badge'
 import { DataTable, type Column } from '../../components/DataTable'
+import { Modal } from '../../components/Modal'
 import { PasswordInput } from '../../components/PasswordInput'
 import { useRepositoryQuery } from '../../data/hooks'
 import { repository } from '../../data/repository'
@@ -16,6 +17,8 @@ const PRIMARY_BUTTON =
 
 const SECONDARY_BUTTON =
   'rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm font-medium text-ink-700 shadow-sm hover:bg-ink-50 disabled:cursor-not-allowed disabled:text-ink-400'
+
+const LABEL = 'text-[11px] font-semibold tracking-wider text-ink-500 uppercase'
 
 const MIN_PASSWORD = 8
 
@@ -34,20 +37,32 @@ function fullName(user: Pick<UserAccount, 'firstName' | 'lastName'>): string | n
 }
 
 /**
+ * Una contraseña temporal legible: 12 caracteres sin los que se confunden al
+ * dictarlos (0/O, 1/l/I). `crypto.getRandomValues`, no `Math.random`.
+ */
+function generatePassword(): string {
+  const alphabet = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const values = crypto.getRandomValues(new Uint32Array(12))
+  return Array.from(values, (value) => alphabet[value % alphabet.length]).join('')
+}
+
+/**
  * Configuración → Usuarios: las cuentas del panel (maestros, coordinadores y
  * administradores) y las pendientes de autorización. Los alumnos tienen su
  * propia pantalla, Alumnos registrados.
+ *
+ * Crear y editar se hacen en ventanas emergentes (botón «Nuevo usuario» y
+ * «Editar»): la pantalla es la lista, no un formulario siempre abierto.
  *
  * Todo pasa por funciones admin-only (`0037`); las reglas —un alumno no tiene
  * otro rol, nadie se quita su propio admin, no se quita un rol en uso— las
  * hace cumplir la base, y aquí solo se muestra su mensaje.
  */
 export function UsersPage() {
-  const [form, setForm] = useState<StaffAccountInput>(EMPTY_FORM)
-  const [creating, setCreating] = useState(false)
   const [message, setMessage] = useState<Message>(null)
   const [refreshKey, setRefreshKey] = useState(0)
   const [search, setSearch] = useState('')
+  const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
 
   const {
@@ -69,36 +84,7 @@ export function UsersPage() {
 
   const editing = users.find((user) => user.id === editingId) ?? null
   const teachers = users.filter((user) => user.isActive && user.roles.includes('maestro'))
-
-  const formError = !form.firstName.trim() || !form.lastName.trim()
-    ? 'Escribe el nombre y el apellido.'
-    : !/^\S+@\S+\.\S+$/.test(form.email.trim())
-      ? 'Escribe un correo válido.'
-      : form.password.length < MIN_PASSWORD
-        ? `La contraseña inicial debe tener al menos ${MIN_PASSWORD} caracteres.`
-        : form.roles.length === 0
-          ? 'Elige al menos un rol.'
-          : null
-
-  async function handleCreate(event: FormEvent) {
-    event.preventDefault()
-    if (formError) return
-    setCreating(true)
-    setMessage(null)
-    try {
-      await repository.createStaffAccount({ ...form, email: form.email.trim() })
-      setMessage({
-        tone: 'green',
-        text: `Cuenta de ${form.firstName.trim()} ${form.lastName.trim()} creada. Pásale su correo y la contraseña inicial; la puede cambiar en Mi perfil.`,
-      })
-      setForm(EMPTY_FORM)
-      refresh()
-    } catch (cause) {
-      setMessage({ tone: 'red', text: cause instanceof Error ? cause.message : 'No se pudo crear la cuenta.' })
-    } finally {
-      setCreating(false)
-    }
-  }
+  const activeCount = users.filter((user) => user.isActive).length
 
   const columns: Column<UserAccount>[] = [
     {
@@ -141,11 +127,11 @@ export function UsersPage() {
           type="button"
           onClick={() => {
             setMessage(null)
-            setEditingId(user.id === editingId ? null : user.id)
+            setEditingId(user.id)
           }}
-          className="rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-500 hover:bg-ink-100 hover:text-ink-900"
+          className={SECONDARY_BUTTON}
         >
-          {user.id === editingId ? 'Cerrar' : 'Editar'}
+          Editar
         </button>
       ),
     },
@@ -153,72 +139,74 @@ export function UsersPage() {
 
   return (
     <>
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight text-ink-950">Usuarios</h1>
-        <p className="mt-1.5 text-sm text-ink-500">
-          Maestros, coordinadores y administradores: crea sus cuentas, asigna sus roles y, a cada
-          coordinador, los maestros que supervisa. Los alumnos están en Alumnos registrados.
-        </p>
+      <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-ink-950">Usuarios</h1>
+          <p className="mt-1.5 text-sm text-ink-500">
+            Maestros, coordinadores y administradores: sus cuentas, sus roles y, a cada
+            coordinador, los maestros que supervisa. Los alumnos están en Alumnos registrados.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setMessage(null)
+            setCreating(true)
+          }}
+          className="rounded-lg bg-accent-400 px-4 py-2.5 text-sm font-semibold text-ink-900 shadow-sm transition-colors hover:bg-accent-500"
+        >
+          + Nuevo usuario
+        </button>
       </header>
 
+      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+        <Stat value={users.length} label="Usuarios" tone="text-ink-950" />
+        <Stat value={activeCount} label="Activos" tone="text-emerald-700" />
+        <Stat value={users.length - activeCount} label="Desactivados" tone="text-red-700" />
+      </div>
+
       {message && (
-        <p className={`mb-4 text-sm ${message.tone === 'red' ? 'text-red-700' : 'text-emerald-700'}`}>
+        <p
+          role="status"
+          className={`mb-4 rounded-lg px-3 py-2 text-sm ${
+            message.tone === 'red' ? 'bg-red-50 text-red-800' : 'bg-emerald-50 text-emerald-800'
+          }`}
+        >
           {message.text}
         </p>
       )}
 
-      <form
-        onSubmit={handleCreate}
-        className="mb-6 rounded-xl border border-ink-200 bg-white p-5 shadow-sm"
-      >
-        <h2 className="text-sm font-semibold text-ink-900">Nuevo usuario</h2>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <input
-            aria-label="Nombre"
-            placeholder="Nombre"
-            value={form.firstName}
-            onChange={(event) => setForm({ ...form, firstName: event.target.value })}
-            className={FIELD_INPUT}
-          />
-          <input
-            aria-label="Apellido"
-            placeholder="Apellido"
-            value={form.lastName}
-            onChange={(event) => setForm({ ...form, lastName: event.target.value })}
-            className={FIELD_INPUT}
-          />
-          <input
-            aria-label="Correo"
-            type="email"
-            placeholder="Correo"
-            value={form.email}
-            onChange={(event) => setForm({ ...form, email: event.target.value })}
-            className={FIELD_INPUT}
-          />
-          <div className="[&>div]:mt-0">
-            <PasswordInput
-              value={form.password}
-              onChange={(password) => setForm({ ...form, password })}
-              minLength={MIN_PASSWORD}
-              autoComplete="new-password"
-              placeholder="Contraseña inicial"
-              ariaLabel="Contraseña inicial"
-            />
-          </div>
-        </div>
-        <RoleCheckboxes
-          value={form.roles}
-          onChange={(roles) => setForm({ ...form, roles })}
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <input
+          type="search"
+          aria-label="Buscar usuario"
+          placeholder="Buscar por nombre o correo…"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          className={`${FIELD_INPUT} w-72`}
         />
-        <div className="mt-4 flex items-center gap-3">
-          <button type="submit" disabled={!!formError || creating} className={PRIMARY_BUTTON}>
-            {creating ? 'Creando…' : 'Crear usuario'}
-          </button>
-          {(form.firstName || form.email) && formError && (
-            <p className="text-sm text-ink-500">{formError}</p>
-          )}
-        </div>
-      </form>
+        <p className="text-sm text-ink-500">{visible.length}</p>
+      </div>
+      <DataTable
+        columns={columns}
+        rows={visible}
+        rowKey={(user) => user.id}
+        rowAlert={(user) => !user.isActive || user.roles.length === 0}
+        loading={loading}
+        isConnected={isConnected}
+        error={error}
+      />
+
+      {creating && (
+        <NewUserModal
+          onClose={() => setCreating(false)}
+          onCreated={(text) => {
+            setCreating(false)
+            setMessage({ tone: 'green', text })
+            refresh()
+          }}
+        />
+      )}
 
       {editing && (
         <UserEditor
@@ -230,28 +218,158 @@ export function UsersPage() {
           onClose={() => setEditingId(null)}
         />
       )}
-
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold tracking-tight text-ink-950">Cuentas</h2>
-        <input
-          type="search"
-          aria-label="Buscar usuario"
-          placeholder="Buscar por nombre o correo…"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          className={`${FIELD_INPUT} w-72`}
-        />
-      </div>
-      <DataTable
-        columns={columns}
-        rows={visible}
-        rowKey={(user) => user.id}
-        rowAlert={(user) => !user.isActive || user.roles.length === 0}
-        loading={loading}
-        isConnected={isConnected}
-        error={error}
-      />
     </>
+  )
+}
+
+function Stat({ value, label, tone }: { value: number; label: string; tone: string }) {
+  return (
+    <div className="rounded-xl border border-ink-200 bg-white px-5 py-4 shadow-sm">
+      <p className={`tnum text-3xl font-semibold ${tone}`}>{value}</p>
+      <p className="mt-1 text-sm text-ink-500">{label}</p>
+    </div>
+  )
+}
+
+/** «+ Nuevo usuario»: la ventana emergente para crear una cuenta del panel. */
+function NewUserModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void
+  onCreated: (message: string) => void
+}) {
+  const [form, setForm] = useState<StaffAccountInput>(EMPTY_FORM)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [touched, setTouched] = useState(false)
+
+  const formError = !form.firstName.trim() || !form.lastName.trim()
+    ? 'Escribe el nombre y el apellido.'
+    : !/^\S+@\S+\.\S+$/.test(form.email.trim())
+      ? 'Escribe un correo válido.'
+      : form.password.length < MIN_PASSWORD
+        ? `La contraseña temporal debe tener al menos ${MIN_PASSWORD} caracteres.`
+        : form.roles.length === 0
+          ? 'Elige al menos un rol.'
+          : null
+
+  async function handleSubmit(event?: FormEvent) {
+    event?.preventDefault()
+    setTouched(true)
+    if (formError) return
+    setSaving(true)
+    setError(null)
+    try {
+      await repository.createStaffAccount({ ...form, email: form.email.trim() })
+      // La contraseña va en el aviso porque la ventana se cierra: el admin
+      // la necesita para pasársela a la persona.
+      onCreated(
+        `Cuenta de ${form.firstName.trim()} ${form.lastName.trim()} creada. Pásale su correo (${form.email.trim()}) y la contraseña temporal: ${form.password} — la puede cambiar en Mi perfil.`,
+      )
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No se pudo crear la cuenta.')
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Modal
+      title="Nuevo usuario"
+      onClose={onClose}
+      footer={
+        <>
+          <button type="button" onClick={onClose} className={SECONDARY_BUTTON}>
+            Cancelar
+          </button>
+          <button
+            type="button"
+            disabled={saving || (touched && !!formError)}
+            onClick={() => void handleSubmit()}
+            className={PRIMARY_BUTTON}
+          >
+            {saving ? 'Creando…' : 'Crear usuario'}
+          </button>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block">
+            <span className={LABEL}>Nombre</span>
+            <input
+              value={form.firstName}
+              onChange={(event) => setForm({ ...form, firstName: event.target.value })}
+              placeholder="Ej: Juan"
+              autoComplete="off"
+              className={`${FIELD_INPUT} mt-1.5 w-full`}
+            />
+          </label>
+          <label className="block">
+            <span className={LABEL}>Apellido</span>
+            <input
+              value={form.lastName}
+              onChange={(event) => setForm({ ...form, lastName: event.target.value })}
+              placeholder="Ej: Pérez"
+              autoComplete="off"
+              className={`${FIELD_INPUT} mt-1.5 w-full`}
+            />
+          </label>
+        </div>
+
+        <label className="block">
+          <span className={LABEL}>Correo electrónico</span>
+          <input
+            type="email"
+            value={form.email}
+            onChange={(event) => setForm({ ...form, email: event.target.value })}
+            placeholder="nombre.apellido@udem.edu"
+            autoComplete="off"
+            className={`${FIELD_INPUT} mt-1.5 w-full`}
+          />
+        </label>
+
+        <div>
+          <span className={LABEL}>Contraseña temporal</span>
+          <div className="mt-1.5 flex gap-2">
+            {/* Texto visible a propósito: es temporal y el admin tiene que pasarla. */}
+            <input
+              value={form.password}
+              onChange={(event) => setForm({ ...form, password: event.target.value })}
+              placeholder={`Mínimo ${MIN_PASSWORD} caracteres`}
+              autoComplete="off"
+              spellCheck={false}
+              className={`${FIELD_INPUT} w-full font-mono`}
+            />
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, password: generatePassword() })}
+              className={SECONDARY_BUTTON}
+            >
+              Generar
+            </button>
+          </div>
+          <p className="mt-1 text-xs text-ink-500">La persona la cambia en Mi perfil.</p>
+        </div>
+
+        <div>
+          <span className={LABEL}>Roles</span>
+          <RoleCheckboxes value={form.roles} onChange={(roles) => setForm({ ...form, roles })} />
+          <p className="mt-2 text-xs text-ink-500">
+            Puede tener varios: un coordinador que también da clase es Coordinador y Maestro.
+          </p>
+        </div>
+
+        {(error || (touched && formError)) && (
+          <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">
+            {error ?? formError}
+          </p>
+        )}
+
+        {/* Enter en cualquier campo crea la cuenta. */}
+        <button type="submit" hidden />
+      </form>
+    </Modal>
   )
 }
 
@@ -263,13 +381,21 @@ function RoleCheckboxes({
   onChange: (roles: RoleCode[]) => void
 }) {
   return (
-    <fieldset className="mt-4">
-      <legend className="text-sm text-ink-700">Roles</legend>
-      <div className="mt-2 flex flex-wrap gap-4">
+    <fieldset className="mt-2">
+      <legend className="sr-only">Roles</legend>
+      <div className="flex flex-wrap gap-2">
         {STAFF_ROLES.map((role) => (
-          <label key={role} className="flex items-center gap-2 text-sm text-ink-800">
+          <label
+            key={role}
+            className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors ${
+              value.includes(role)
+                ? 'border-ink-900 bg-ink-900 text-white'
+                : 'border-ink-200 bg-white text-ink-700 hover:bg-ink-50'
+            }`}
+          >
             <input
               type="checkbox"
+              className="sr-only"
               checked={value.includes(role)}
               onChange={(event) =>
                 onChange(
@@ -287,7 +413,11 @@ function RoleCheckboxes({
   )
 }
 
-/** Edición de una cuenta: nombre, roles, maestros (si coordina), contraseña y estado. */
+/**
+ * «Editar», en ventana emergente: nombre, roles, maestros (si coordina),
+ * contraseña nueva y estado. Cada parte se guarda por separado: un error de
+ * roles no debe perder un cambio de nombre ya guardado.
+ */
 function UserEditor({
   user,
   teachers,
@@ -336,18 +466,18 @@ function UserEditor({
   const rolesChanged = [...roles].sort().join() !== [...user.roles].sort().join()
 
   return (
-    <section className="mb-6 rounded-xl border border-ink-300 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-base font-semibold text-ink-950">{name}</h2>
-          <p className="text-sm text-ink-500">{user.email}</p>
-        </div>
+    <Modal
+      title={`Editar · ${name}`}
+      onClose={onClose}
+      width="max-w-2xl"
+      footer={
         <button type="button" onClick={onClose} className={SECONDARY_BUTTON}>
-          Cerrar
+          Listo
         </button>
-      </div>
-
-      <div className="mt-5 grid gap-6 lg:grid-cols-2">
+      }
+    >
+      <p className="-mt-1 mb-5 text-sm text-ink-500">{user.email}</p>
+      <div className="grid gap-6 sm:grid-cols-2">
         <div>
           <h3 className="text-sm font-semibold text-ink-900">Nombre</h3>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -381,9 +511,7 @@ function UserEditor({
 
         <div>
           <h3 className="text-sm font-semibold text-ink-900">Roles</h3>
-          <div className="-mt-2">
-            <RoleCheckboxes value={roles} onChange={setRoles} />
-          </div>
+          <RoleCheckboxes value={roles} onChange={setRoles} />
           <button
             type="button"
             disabled={busy || !rolesChanged}
@@ -397,7 +525,7 @@ function UserEditor({
         </div>
 
         {isCoordinator && (
-          <div className="lg:col-span-2">
+          <div className="sm:col-span-2">
             <h3 className="text-sm font-semibold text-ink-900">Maestros que supervisa</h3>
             {teachers.filter((teacher) => teacher.id !== user.id).length === 0 ? (
               <p className="mt-2 text-sm text-ink-500">Todavía no hay cuentas con el rol de maestro.</p>
@@ -491,6 +619,6 @@ function UserEditor({
           </button>
         </div>
       </div>
-    </section>
+    </Modal>
   )
 }

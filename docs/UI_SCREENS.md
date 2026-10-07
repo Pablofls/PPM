@@ -108,13 +108,20 @@ lectura» arriba. Se recuerda en el navegador. Cambia:
 > `0037_user_admin.sql`. Menú Configuración (engrane), solo en la vista de
 > administrador.
 
-- **Nuevo usuario:** nombre, apellido, correo, contraseña inicial y roles
-  (Administrador, Coordinador, Maestro). El usuario cambia la contraseña en Mi
-  perfil.
+La pantalla es la lista; crear y editar se hacen en **ventanas emergentes**
+(`Modal`), no en un formulario siempre abierto.
+
+- Arriba, el botón **+ Nuevo usuario** y tres contadores: usuarios, activos y
+  desactivados.
+- **+ Nuevo usuario** abre la ventana: nombre, apellido, correo, contraseña
+  temporal (visible, con botón **Generar**: 12 caracteres sin 0/O ni 1/l/I) y
+  roles como chips (Administrador, Coordinador, Maestro; puede tener varios).
+  Al crear, el aviso repite el correo y la contraseña temporal para pasárselos
+  a la persona, que la cambia en Mi perfil.
 - **Cuentas:** las del panel y las pendientes (sin roles); los alumnos están en
   Alumnos registrados. Nombre, correo, roles (o *Pendiente*), estado. En rojo,
   las desactivadas y las pendientes. Buscador por nombre o correo.
-- **Editar** abre un recuadro con: nombre y apellido; roles; si es
+- **Editar** abre una ventana con: nombre y apellido; roles; si es
   coordinador, los **maestros que supervisa** (casillas); contraseña nueva
   (para quien olvidó la suya); y desactivar / reactivar. Los errores de las
   reglas de la base (no quitarse el propio admin, no quitar un rol en uso) se
