@@ -82,11 +82,16 @@ y el grupo tiene que sobrevivir a ese cambio. *Limpiar* de la barra no lo toca.
 
 ### Ver como · selector de rol
 
-> `0035_roles.sql`. Solo aparece para quien tiene más de un rol del panel.
+> `0035_roles.sql`. Lo tiene el admin (los cuatro roles, sin tenerlos
+> asignados) y quien tiene más de un rol del panel (solo los suyos).
 
-Abajo del rail (como en la otra plataforma del administrador) y junto al
-engrane en la barra de Mis grupos: **Ver como** Administrador / Coordinador /
-Maestro. Se recuerda en el navegador. Cambia:
+Abajo del rail (como en la otra plataforma del administrador), junto al
+engrane en la barra de Mis grupos y en la franja oscura del portal del alumno:
+**Ver como** Administrador / Coordinador / Maestro / Alumno. Para el admin, al
+elegir Coordinador, Maestro o Alumno aparece un segundo selector con las
+personas de ese rol; se ve exactamente lo que esa persona ve. Alumno abre su
+portal (`/alumno`) en solo lectura, con la franja «Vista de alumno · solo
+lectura» arriba. Se recuerda en el navegador. Cambia:
 
 - **Mis grupos:** administrador → todos los grupos; coordinador → los de sus
   maestros; maestro → los suyos. «Todos mis grupos» es la suma de esos.

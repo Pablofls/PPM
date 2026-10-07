@@ -189,6 +189,9 @@ export interface PanelRepository {
   /** Quién puede impartir un grupo: las cuentas con el rol de maestro (`0035`). */
   getTeachers(): Promise<Teacher[]>
 
+  /** Las cuentas con el rol de coordinador. Para «Ver como» del admin. */
+  getCoordinators(): Promise<Teacher[]>
+
   /** Los maestros que coordina una cuenta (`coordinator_teachers`, `0035`). */
   getCoordinatedTeacherIds(coordinatorId: string): Promise<string[]>
 
@@ -343,6 +346,9 @@ export const emptyRepository: PanelRepository = {
     throw new Error('No hay conexión con la base de datos. El grupo no se borró.')
   },
   async getTeachers() {
+    return []
+  },
+  async getCoordinators() {
     return []
   },
   async getCoordinatedTeacherIds() {

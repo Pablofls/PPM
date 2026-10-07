@@ -8,6 +8,7 @@ import type { InternshipLogRow, JobSearchLogRow, SemesterWeek } from '../../data
 import type { WeeklyField, WeeklyFormCode, WeeklyFormMeta } from '../../lib/catalog'
 import { formatDateTime, formatWeekRange } from '../../lib/format'
 import { Badge } from '../../components/Badge'
+import { useStudentDossier } from '../../components/StudentDossier'
 
 /**
  * Una bitácora semanal, como una tarea de Canvas: instrucciones arriba, el
@@ -26,16 +27,22 @@ import { Badge } from '../../components/Badge'
  * entrega vuelve a ser inmutable para siempre.
  */
 export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
-  const { profile } = useAuth()
-  const studentId = profile?.student_id ?? null
+  const { portalStudentId: studentId, portalReadOnly } = useAuth()
   const navigate = useNavigate()
+  // El admin en «Ver como Alumno» recibe las semanas de TODOS los periodos
+  // (RLS de admin); el alumno, solo las del suyo. Se acotan al periodo del
+  // alumno que se está viendo para calcular la misma semana que él ve.
+  const { dossier } = useStudentDossier(portalReadOnly ? studentId : null)
 
   const { entries, loading, error } = useMyLogs(form.code, studentId)
   const {
-    data: weeks,
+    data: allWeeks,
     loading: weeksLoading,
     error: weeksError,
   } = useRepositoryQuery(() => repository.getSemesterWeeks(), [] as SemesterWeek[], [])
+  const studentWeeks = portalReadOnly
+    ? allWeeks.filter((week) => week.periodCode === dossier?.periodCode)
+    : allWeeks
 
   // Al entregar o corregir se regresa a la lista de tareas, con el aviso de
   // que salió bien. Quedarse aquí dejaría al alumno frente al mismo
@@ -91,7 +98,8 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
       <SubmissionForm
         form={form}
         onSubmitted={onSubmitted}
-        weeks={weeks}
+        readOnly={portalReadOnly}
+        weeks={studentWeeks}
         weeksLoading={weeksLoading}
         weeksError={weeksError}
         entries={entries}
@@ -120,9 +128,12 @@ function SubmissionForm({
   weeksError,
   entries,
   entriesLoading,
+  readOnly,
 }: {
   form: WeeklyFormMeta
   onSubmitted: (updated: boolean) => void
+  /** «Ver como Alumno» del admin: se ve el formulario, pero no se entrega en su nombre. */
+  readOnly: boolean
   weeks: SemesterWeek[]
   weeksLoading: boolean
   weeksError: string | null
@@ -164,7 +175,7 @@ function SubmissionForm({
   const faltantes = form.fields.filter(
     (field) => field.required && !values[field.key]?.trim(),
   )
-  const puedeEnviar = !saving && currentWeek !== undefined && !faltantes.length
+  const puedeEnviar = !readOnly && !saving && currentWeek !== undefined && !faltantes.length
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -226,7 +237,10 @@ function SubmissionForm({
         {existingEntry ? 'Tu entrega de esta semana' : 'Nueva entrega'}
       </h2>
 
-      <fieldset className="mt-5" disabled={saving || weeksLoading || entriesLoading}>
+      <fieldset
+        className="mt-5"
+        disabled={readOnly || saving || weeksLoading || entriesLoading}
+      >
         <legend className="sr-only">Semana que reportas</legend>
         <div className="sm:max-w-xs">
           <Field label="Semana que reportas">
@@ -297,9 +311,11 @@ function SubmissionForm({
               : 'Entregar'}
         </button>
         <p className="text-xs text-ink-500">
-          {existingEntry
-            ? 'Puedes seguir corrigiéndola mientras siga siendo esta semana.'
-            : 'Podrás corregirla mientras siga siendo esta semana.'}
+          {readOnly
+            ? 'Vista de solo lectura: no puedes entregar en nombre del alumno.'
+            : existingEntry
+              ? 'Puedes seguir corrigiéndola mientras siga siendo esta semana.'
+              : 'Podrás corregirla mientras siga siendo esta semana.'}
         </p>
       </div>
     </form>

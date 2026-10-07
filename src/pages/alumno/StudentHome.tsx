@@ -23,15 +23,19 @@ import { formatRelativeTime, formatWeekRange } from '../../lib/format'
  * alumno contesta aquí; los otros trece se siguen contestando en Google Forms.
  */
 export function StudentHome() {
-  const { profile, session } = useAuth()
-  const correo = profile?.email ?? session?.user?.email
+  const { profile, session, portalStudentId, portalReadOnly } = useAuth()
+  const studentId = portalStudentId
   const [toast, dismissToast] = useHandoffToast()
-  const { dossier } = useStudentDossier(profile?.student_id ?? null)
+  const { dossier } = useStudentDossier(studentId)
   // El nombre del alumno vive en su 1.0 (`demographics`), no en su cuenta
   // (`0034`): sin 1.0 contestado, el saludo usa el correo.
   const nombre = dossier?.fullName?.trim()
-  const { statuses, error: statusError } = useSubmissionStatus(profile?.student_id ?? null)
-  const { weeks, error: weeksError } = useWeeklyLogStatus(profile?.student_id ?? null)
+  // En «Ver como Alumno» el correo es el del alumno, no el de la sesión.
+  const correo = portalReadOnly
+    ? dossier?.institutionalEmail
+    : (profile?.email ?? session?.user?.email)
+  const { statuses, error: statusError } = useSubmissionStatus(studentId)
+  const { weeks, error: weeksError } = useWeeklyLogStatus(studentId)
 
   return (
     <>
@@ -141,8 +145,7 @@ interface LastEntry {
  * reciente a la más antigua.
  */
 function useLastEntry(form: WeeklyFormMeta) {
-  const { profile } = useAuth()
-  const studentId = profile?.student_id ?? null
+  const { portalStudentId: studentId } = useAuth()
 
   const [entregas, setEntregas] = useState(0)
   const [ultima, setUltima] = useState<LastEntry | null>(null)

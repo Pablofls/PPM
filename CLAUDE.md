@@ -49,7 +49,9 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   Roles en `user_roles` (admin, coordinador, maestro, alumno; varios por
   persona, salvo el alumno), `coordinator_teachers`, y políticas de alcance:
   el maestro lee sus grupos y el coordinador los de sus maestros. Selector
-  **Ver como** abajo del rail. La escritura sigue siendo solo del admin.
+  **Ver como** abajo del rail: el admin ve como cualquier rol y persona
+  (alumno en solo lectura) sin tener esos roles; los demás, entre sus propios
+  roles. La escritura sigue siendo solo del admin.
 - **Mi perfil** (`0034`, ejecutada el 2026-10-07): nombre y apellido por
   separado en `profiles` (se elimina `full_name`), correo y rol de solo
   lectura, y cambio de contraseña. Las tarjetas muestran el nombre del maestro.

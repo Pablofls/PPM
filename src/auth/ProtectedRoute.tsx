@@ -13,7 +13,7 @@ import { PendingPage } from './PendingPage'
  * admin-only» de CLAUDE.md.
  */
 export function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { session, loading, isStaff, isStudent } = useAuth()
+  const { session, loading, isStaff, isStudent, activeRole } = useAuth()
 
   if (loading) {
     return (
@@ -28,6 +28,8 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   // pantalla. Lo que de verdad lo detiene es RLS, que no le devuelve una fila.
   if (isStudent) return <Navigate to="/alumno" replace />
   if (!isStaff) return <PendingPage />
+  // El admin en «Ver como Alumno»: su vista es el portal, no el panel.
+  if (activeRole === 'alumno') return <Navigate to="/alumno" replace />
 
   return <>{children}</>
 }

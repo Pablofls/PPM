@@ -17,8 +17,26 @@ export type RoleCode = 'admin' | 'coordinador' | 'maestro' | 'alumno'
 /** Los roles del panel, del de más alcance al de menos. */
 export const STAFF_ROLES: RoleCode[] = ['admin', 'coordinador', 'maestro']
 
-/** Dónde se recuerda con qué rol está viendo el panel quien tiene varios. */
-const ACTIVE_ROLE_KEY = 'ppm.rol'
+/** Todos los roles, en el orden del selector «Ver como». */
+export const ALL_ROLES: RoleCode[] = ['admin', 'coordinador', 'maestro', 'alumno']
+
+/** Dónde se recuerda la vista elegida en «Ver como»: `{ role, id }`. */
+const VIEW_KEY = 'ppm.vista'
+
+interface StoredView {
+  role: string
+  /** La persona que se está viendo (admin): un `profiles.id`, o un `students.id` en la vista de alumno. */
+  id: string | null
+}
+
+function readStoredView(): StoredView {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(VIEW_KEY) ?? 'null') as StoredView | null
+    return parsed && typeof parsed.role === 'string' ? parsed : { role: '', id: null }
+  } catch {
+    return { role: '', id: null }
+  }
+}
 
 export interface Profile {
   id: string
@@ -53,12 +71,29 @@ interface AuthState {
   /** Sus roles del panel, del de más alcance al de menos. */
   staffRoles: RoleCode[]
   /**
-   * Con qué rol está viendo el panel («Ver como»). Decide qué grupos ve y qué
-   * secciones aparecen. Quien tiene un solo rol, siempre ese. RLS deja leer la
-   * unión de sus roles; esto solo acota lo que la interfaz muestra.
+   * Los roles que puede elegir en «Ver como». El admin, los cuatro —para ver
+   * la plataforma como cualquier tipo de usuario, sin tener ese rol—; los
+   * demás, solo los suyos (un coordinador que también es maestro, esos dos).
+   */
+  viewRoles: RoleCode[]
+  /**
+   * Con qué rol está viendo («Ver como»). Decide qué grupos ve y qué
+   * secciones aparecen. No da permisos: RLS deja leer lo que la cuenta tiene;
+   * esto solo acota lo que la interfaz muestra.
    */
   activeRole: RoleCode | null
-  setActiveRole: (role: RoleCode) => void
+  /**
+   * La persona que se está viendo. En las vistas de maestro y coordinador es
+   * un `profiles.id` (el propio, salvo que un admin elija a otra persona); en
+   * la de alumno, ver `portalStudentId`. `null` si el admin no ha elegido.
+   */
+  viewUserId: string | null
+  /** El alumno cuyo portal se muestra: el propio, o el que eligió el admin. */
+  portalStudentId: string | null
+  /** El admin está viendo el portal de un alumno: solo lectura, sin entregar ni corregir. */
+  portalReadOnly: boolean
+  /** Cambia la vista. `id` es la persona (solo el admin elige a otra). */
+  setView: (role: RoleCode, id?: string | null) => void
   /** Atajo: la vista activa es la de administrador. */
   viewingAsAdmin: boolean
   signIn: (email: string, password: string) => Promise<string | null>
@@ -79,13 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loadingSession, setLoadingSession] = useState(true)
   const [loadingProfile, setLoadingProfile] = useState(false)
   const [profileError, setProfileError] = useState<string | null>(null)
-  const [storedRole, setStoredRole] = useState<string>(() => {
-    try {
-      return localStorage.getItem(ACTIVE_ROLE_KEY) ?? ''
-    } catch {
-      return ''
-    }
-  })
+  const [storedView, setStoredView] = useState<StoredView>(readStoredView)
 
   // Sesión. El callback de onAuthStateChange se mantiene síncrono a propósito:
   // hacer await de una consulta aquí adentro puede bloquear al cliente de
@@ -164,10 +193,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [userId],
   )
 
-  const setActiveRole = useCallback((role: RoleCode) => {
-    setStoredRole(role)
+  const setView = useCallback((role: RoleCode, id: string | null = null) => {
+    const next = { role, id }
+    setStoredView(next)
     try {
-      localStorage.setItem(ACTIVE_ROLE_KEY, role)
+      localStorage.setItem(VIEW_KEY, JSON.stringify(next))
     } catch {
       // Sin almacenamiento, la vista dura lo que dure la página.
     }
@@ -175,23 +205,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<AuthState>(() => {
     const active = profile?.is_active ? (profile.roles ?? []) : []
+    const isAdmin = active.includes('admin')
+    const isStudent = active.includes('alumno')
     const staffRoles = STAFF_ROLES.filter((role) => active.includes(role))
-    // El rol guardado solo vale si la cuenta lo sigue teniendo; si no, el de
-    // más alcance.
-    const activeRole = staffRoles.includes(storedRole as RoleCode)
-      ? (storedRole as RoleCode)
-      : (staffRoles[0] ?? (active.includes('alumno') ? 'alumno' : null))
+    const viewRoles = isAdmin ? ALL_ROLES : isStudent ? (['alumno'] as RoleCode[]) : staffRoles
+
+    // La vista guardada solo vale si la cuenta todavía la puede elegir; si no,
+    // la de más alcance.
+    const activeRole = viewRoles.includes(storedView.role as RoleCode)
+      ? (storedView.role as RoleCode)
+      : (viewRoles[0] ?? null)
+
+    const selfId = profile?.id ?? null
+    // Solo el admin ve como otra persona. Sin elegir a nadie, se ve a sí mismo
+    // si tiene ese rol (René, admin y maestro, en la vista de maestro).
+    const viewUserId =
+      activeRole === 'maestro' || activeRole === 'coordinador'
+        ? isAdmin
+          ? (storedView.id ?? (active.includes(activeRole) ? selfId : null))
+          : selfId
+        : selfId
+
+    const portalStudentId = isStudent
+      ? (profile?.student_id ?? null)
+      : isAdmin && activeRole === 'alumno'
+        ? storedView.id
+        : null
+
     return {
       session,
       profile,
       loading: loadingSession || loadingProfile,
       profileError,
-      isAdmin: active.includes('admin'),
-      isStudent: active.includes('alumno'),
+      isAdmin,
+      isStudent,
       isStaff: staffRoles.length > 0,
       staffRoles,
+      viewRoles,
       activeRole,
-      setActiveRole,
+      viewUserId,
+      portalStudentId,
+      portalReadOnly: !isStudent && activeRole === 'alumno',
+      setView,
       viewingAsAdmin: activeRole === 'admin',
       signIn,
       signOut,
@@ -203,8 +258,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadingSession,
     loadingProfile,
     profileError,
-    storedRole,
-    setActiveRole,
+    storedView,
+    setView,
     signIn,
     signOut,
     updateName,

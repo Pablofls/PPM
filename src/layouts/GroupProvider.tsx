@@ -66,8 +66,11 @@ export function GroupProvider({ children }: { children: ReactNode }) {
   const [refreshKey, setRefreshKey] = useState(0)
   const [storedId, setStoredId] = useState(readStored)
 
-  const { profile, activeRole } = useAuth()
-  const userId = profile?.id ?? ''
+  // La persona cuya vista se arma: la propia, o la que eligió el admin en
+  // «Ver como». Sin persona elegida (admin en la vista de maestro sin escoger
+  // a nadie), no hay grupos.
+  const { viewUserId, activeRole } = useAuth()
+  const userId = viewUserId ?? ''
 
   const { data: allGroups, loading: loadingGroups, error } = useRepositoryQuery(
     () => repository.getGroups(),
@@ -78,7 +81,7 @@ export function GroupProvider({ children }: { children: ReactNode }) {
   // Solo hace falta en la vista de coordinador.
   const { data: coordinatedTeachers, loading: loadingTeachers } = useRepositoryQuery(
     () =>
-      activeRole === 'coordinador'
+      activeRole === 'coordinador' && userId
         ? repository.getCoordinatedTeacherIds(userId)
         : Promise.resolve([] as string[]),
     [] as string[],
@@ -93,7 +96,8 @@ export function GroupProvider({ children }: { children: ReactNode }) {
     if (activeRole === 'coordinador') {
       return allGroups.filter((group) => coordinatedTeachers.includes(group.teacherId))
     }
-    return allGroups.filter((group) => group.teacherId === userId)
+    if (activeRole === 'maestro') return allGroups.filter((group) => group.teacherId === userId)
+    return []
   }, [allGroups, coordinatedTeachers, activeRole, userId])
 
   const scopeGroupIds = useMemo(

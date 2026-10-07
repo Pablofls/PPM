@@ -34,12 +34,22 @@ Desde `0035` una cuenta puede tener **varios roles** (`user_roles`); René es
 
 ### «Ver como»
 
-Quien tiene varios roles del panel elige con cuál trabaja en el selector
-**Ver como** (abajo del rail, y en la barra de Mis grupos). La vista decide qué
-grupos aparecen y qué secciones se muestran (Configuración y Fechas de entrega
-solo en la vista de administrador). **No da ni quita permisos**: RLS deja leer
-la unión de los roles de la cuenta; la vista solo acota lo que la interfaz
-muestra. «Ver como» a otra persona (cualquier usuario) es una fase posterior.
+Selector **Ver como** (abajo del rail, en la barra de Mis grupos y en la
+franja del portal del alumno):
+
+- El **administrador** elige cualquiera de los cuatro roles **sin tenerlos
+  asignados**, para ver la plataforma como la ve cada tipo de usuario. En
+  maestro y coordinador elige además **a quién**: ve los grupos y alumnos de
+  esa persona, exactamente como ella. En alumno elige un alumno y ve su portal
+  en **solo lectura** (no puede entregar ni corregir en su nombre, y no ve su
+  «Mi perfil» ni «Cerrar sesión»).
+- Quien tiene varios roles sin ser admin (un coordinador que también es
+  maestro) cambia solo entre **los suyos**, y siempre se ve a sí mismo.
+- Con un solo rol, el selector no aparece.
+
+**No da ni quita permisos**: RLS deja leer lo que la cuenta tiene (el admin,
+todo); la vista solo acota lo que la interfaz muestra. Se recuerda en el
+navegador (`ppm.vista`).
 
 Las pantallas **del panel** son para el staff (`ProtectedRoute` exige un rol
 de admin, coordinador o maestro); Configuración y Fechas de entrega además van

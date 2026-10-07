@@ -16,7 +16,7 @@ import { PendingPage } from './PendingPage'
  * de alumno no lee ni una fila de nadie.
  */
 export function StudentRoute({ children }: { children: ReactNode }) {
-  const { session, loading, isStaff, isStudent } = useAuth()
+  const { session, loading, isStaff, isStudent, isAdmin, activeRole } = useAuth()
 
   if (loading) {
     return (
@@ -27,6 +27,8 @@ export function StudentRoute({ children }: { children: ReactNode }) {
   }
 
   if (!session) return <LoginPage />
+  // El admin entra al portal solo desde «Ver como Alumno» (solo lectura).
+  if (isAdmin && activeRole === 'alumno') return <>{children}</>
   if (isStaff) return <Navigate to="/" replace />
   if (!isStudent) return <PendingPage />
 

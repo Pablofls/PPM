@@ -79,6 +79,25 @@ function applyFilters<T extends PostgrestFilterBuilder<any, any, any, any, any>>
   return next
 }
 
+/** Las cuentas activas con un rol (`v_users`, `0035`), por nombre. */
+async function fetchUsersWithRole(role: string): Promise<Teacher[]> {
+  const { data, error } = await supabase
+    .from('v_users')
+    .select('id, first_name, last_name, email')
+    .contains('roles', [role])
+    .eq('is_active', true)
+    .order('first_name')
+
+  if (error) throw new Error(`No se pudo cargar la lista de usuarios: ${error.message}`)
+
+  return ((data ?? []) as PanelRecord[]).map((record) => ({
+    id: str(record.id) ?? '',
+    // Nombre y apellido por separado desde `0034`; se unen solo para mostrar.
+    name: [str(record.first_name), str(record.last_name)].filter(Boolean).join(' ') || null,
+    email: str(record.email) ?? '',
+  }))
+}
+
 /**
  * `in.()` vacío no es un filtro válido para PostgREST. Una vista sin grupos
  * tiene que devolver cero filas, no todas: se filtra por un id que no existe.
@@ -739,21 +758,11 @@ export const supabaseRepository: PanelRepository = {
   },
 
   async getTeachers(): Promise<Teacher[]> {
-    const { data, error } = await supabase
-      .from('v_users')
-      .select('id, first_name, last_name, email')
-      .contains('roles', ['maestro'])
-      .eq('is_active', true)
-      .order('first_name')
+    return fetchUsersWithRole('maestro')
+  },
 
-    if (error) throw new Error(`No se pudieron cargar los maestros: ${error.message}`)
-
-    return ((data ?? []) as PanelRecord[]).map((record) => ({
-      id: str(record.id) ?? '',
-      // Nombre y apellido por separado desde `0034`; se unen solo para mostrar.
-      name: [str(record.first_name), str(record.last_name)].filter(Boolean).join(' ') || null,
-      email: str(record.email) ?? '',
-    }))
+  async getCoordinators(): Promise<Teacher[]> {
+    return fetchUsersWithRole('coordinador')
   },
 
   async getCoordinatedTeacherIds(coordinatorId: string): Promise<string[]> {
