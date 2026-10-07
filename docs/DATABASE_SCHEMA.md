@@ -9,9 +9,7 @@
 
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
-- **Última migración aplicada:** `0038_permissions.sql` (2026-10-07).
-  `0039_user_admin_rules.sql` (reglas de Usuarios y permisos) está escrita y
-  documentada aquí pero **todavía no se pega en Supabase**.
+- **Última migración aplicada:** `0039_user_admin_rules.sql` (2026-10-07).
   `0019_student_dossier_read.sql` está escrita y documentada aquí pero
   **todavía no se pega en Supabase**.
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
@@ -470,7 +468,7 @@ leer desde `user_roles`. El frontend carga de aquí el perfil de la sesión.
 | `admin_set_coordinator_teachers(coordinator_id, teacher_ids)` | Deja al coordinador exactamente con esos maestros |
 | `admin_set_user_password(user_id, password)` | Contraseña nueva (bcrypt) para una cuenta del panel; no para alumnos |
 
-**Desde `0039`** (⏳ pendiente de ejecutar):
+**Desde `0039`** (✅ ejecutada en Supabase, 2026-10-07):
 
 - `admin_create_staff_account(email, first_name, last_name, password, roles,
   teacher_ids default '{}')` devuelve `{id, existia}`. Un coordinador se crea
@@ -1798,7 +1796,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0036_scoped_rls.sql` | políticas `*_select_scope` (maestro y coordinador leen a sus alumnos, sus grupos y sus maestros) y `*_select_staff` de los catálogos | ✅ 2026-10-07 |
 | `0037_user_admin.sql` | `admin_create_staff_account()`, `admin_set_user_roles()`, `admin_set_user_active()`, `admin_set_coordinator_teachers()`, `admin_set_user_password()` | ✅ 2026-10-07 |
 | `0038_permissions.sql` | `access_level`, `app_screens`, `app_screen_forms`, `role_screen_access`, `user_screen_access`, `guard_screen_access()`, `screen_access()`, `can_edit_screen()`, `readable_forms()`, `writable_forms()`; restrictivas de lectura y de escritura del alumno; escrituras del staff con «Puede editar» (fechas, grupos, registro, semana) | ✅ 2026-10-07 |
-| `0039_user_admin_rules.sql` | `admin_create_staff_account()` con maestros del coordinador y cuentas pendientes (devuelve jsonb), `admin_set_user_roles()` que suelta asignaciones al quitar un rol, `admin_register_students()` con el mensaje del grupo de otro maestro | ⏳ **pendiente** |
+| `0039_user_admin_rules.sql` | `admin_create_staff_account()` con maestros del coordinador y cuentas pendientes (devuelve jsonb), `admin_set_user_roles()` que suelta asignaciones al quitar un rol, `admin_register_students()` con el mensaje del grupo de otro maestro | ✅ 2026-10-07 |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.
