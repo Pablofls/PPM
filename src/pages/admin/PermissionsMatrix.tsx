@@ -151,6 +151,7 @@ export function PermissionsMatrix() {
                     {screen.editHint && (
                       <p className="mt-0.5 text-xs text-ink-500">Editar: {screen.editHint}</p>
                     )}
+                    {screen.note && <p className="mt-0.5 text-xs text-ink-500">{screen.note}</p>}
                   </td>
                   <td className="px-4 py-2.5 text-center">
                     {screen.audience === 'portal' ? (

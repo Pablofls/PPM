@@ -69,8 +69,20 @@ export function GroupsPage() {
     [] as Teacher[],
     [viewingAsAdmin],
   )
+  // Un coordinador puede crear grupos para sus maestros aunque todavía no
+  // tengan ninguno: se leen sus cuentas (profiles_select_scope, 0036).
+  const { data: coordinatedTeachers } = useRepositoryQuery(
+    async () =>
+      !viewingAsAdmin && activeRole === 'coordinador' && profile
+        ? repository.getUsersByIds(await repository.getCoordinatedTeacherIds(profile.id))
+        : ([] as Teacher[]),
+    [] as Teacher[],
+    [viewingAsAdmin, activeRole, profile?.id],
+  )
+
   // Fuera de la vista de admin no se leen los roles de los demás: los maestros
-  // posibles son uno mismo (si es maestro) y los de los grupos que ya ve.
+  // posibles son uno mismo (si es maestro), los que coordina y los de los
+  // grupos que ya ve.
   const teachers = useMemo<Teacher[]>(() => {
     if (viewingAsAdmin) return allTeachers
     const byId = new Map<string, Teacher>()
@@ -81,13 +93,14 @@ export function GroupsPage() {
         email: profile.email,
       })
     }
+    for (const teacher of coordinatedTeachers) byId.set(teacher.id, teacher)
     for (const group of groups) {
       if (!byId.has(group.teacherId)) {
         byId.set(group.teacherId, { id: group.teacherId, name: group.teacherName, email: group.teacherEmail })
       }
     }
     return [...byId.values()]
-  }, [viewingAsAdmin, allTeachers, activeRole, profile, groups])
+  }, [viewingAsAdmin, allTeachers, coordinatedTeachers, activeRole, profile, groups])
 
   const {
     data: students,
@@ -229,6 +242,13 @@ export function GroupsPage() {
             }}
             className={`${FIELD_INPUT} py-1.5`}
           >
+            {/* Un maestro desactivado ya no está en la lista: se muestra igual,
+                para no aparentar que el grupo es de otro. */}
+            {!teachers.some((teacher) => teacher.id === group.teacherId) && (
+              <option value={group.teacherId} disabled>
+                {group.teacherName ?? group.teacherEmail} (no disponible)
+              </option>
+            )}
             {teachers.map((teacher) => (
               <option key={teacher.id} value={teacher.id}>
                 {teacher.name ?? teacher.email}
@@ -427,6 +447,13 @@ export function GroupsPage() {
                 onChange={(value) => setForm({ ...form, language: value })}
               />
             </div>
+            {teachers.length === 0 && (
+              <p role="alert" className="rounded-lg bg-accent-100 px-3 py-2 text-sm text-ink-800">
+                {viewingAsAdmin
+                  ? 'No hay cuentas activas con el rol de maestro. Crea una en Usuarios y permisos y vuelve.'
+                  : 'No tienes maestros a quienes asignar un grupo.'}
+              </p>
+            )}
             <p className="text-xs text-ink-500">
               Un periodo nuevo se da de alta solo. Si hay alumnos sin grupo que contestaron
               exactamente este periodo, frecuencia e idioma, quedan inscritos al crearlo.

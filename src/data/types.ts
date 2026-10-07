@@ -531,6 +531,8 @@ export interface StaffAccountInput {
   /** Contraseña inicial; el usuario la cambia en Mi perfil. */
   password: string
   roles: RoleCode[]
+  /** Si es coordinador: los maestros que supervisa desde el alta (`0039`). */
+  teacherIds: string[]
 }
 
 /** Una celda de la matriz de permisos por rol (`role_screen_access`, `0038`). */

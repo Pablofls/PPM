@@ -62,6 +62,10 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   editar por pantalla, incluido el alumno) y excepciones por persona. Se
   aplica en la base (restrictivas de lectura, escrituras con «Puede editar»
   acotadas a los grupos de cada quien) y decide menú, rutas y botones.
+- **Fase 5** (`0039`, **pendiente de ejecutar**): casos borde de Usuarios y
+  permisos — coordinador creado con sus maestros, cuentas pendientes,
+  quitar roles suelta asignaciones, candados en el editor — y «Ver como
+  Alumno» con las excepciones de ese alumno.
 - **Mi perfil** (`0034`, ejecutada el 2026-10-07): nombre y apellido por
   separado en `profiles` (se elimina `full_name`), correo y rol de solo
   lectura, y cambio de contraseña. Las tarjetas muestran el nombre del maestro.

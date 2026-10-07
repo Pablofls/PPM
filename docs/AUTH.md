@@ -47,6 +47,9 @@ franja del portal del alumno):
   maestro) cambia solo entre **los suyos**, y siempre se ve a sí mismo.
 - Con un solo rol, el selector no aparece.
 
+Desde la fase 5, la vista de un alumno también aplica **sus** excepciones de
+permisos (las de su cuenta), no solo la matriz del rol alumno.
+
 **No da ni quita permisos**: RLS deja leer lo que la cuenta tiene (el admin,
 todo); la vista solo acota lo que la interfaz muestra. Se recuerda en el
 navegador (`ppm.vista`).

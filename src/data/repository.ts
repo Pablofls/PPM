@@ -200,8 +200,17 @@ export interface PanelRepository {
    */
   getUsers(): Promise<UserAccount[]>
 
-  /** Crea la cuenta de un maestro, coordinador o admin (`admin_create_staff_account()`, `0037`). */
-  createStaffAccount(input: StaffAccountInput): Promise<void>
+  /**
+   * Crea la cuenta de un maestro, coordinador o admin (`admin_create_staff_account()`,
+   * `0039`). `existed`: era una cuenta pendiente y solo recibió roles y nombre.
+   */
+  createStaffAccount(input: StaffAccountInput): Promise<{ existed: boolean }>
+
+  /** Cuentas por id (nombre y correo), las que RLS deje leer. */
+  getUsersByIds(ids: string[]): Promise<Teacher[]>
+
+  /** La cuenta de un alumno (`profiles.student_id`), para «Ver como Alumno». */
+  getProfileIdForStudent(studentId: string): Promise<string | null>
 
   /** Nombre y apellido de cualquier cuenta (el admin puede editar cualquier perfil). */
   updateUserName(userId: string, firstName: string, lastName: string): Promise<void>
@@ -400,6 +409,12 @@ export const emptyRepository: PanelRepository = {
   },
   async createStaffAccount() {
     throw new Error('No hay conexión con la base de datos. La cuenta no se creó.')
+  },
+  async getUsersByIds() {
+    return []
+  },
+  async getProfileIdForStudent() {
+    return null
   },
   async updateUserName() {
     throw new Error('No hay conexión con la base de datos. No se guardó.')

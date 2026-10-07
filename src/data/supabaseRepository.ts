@@ -790,15 +790,42 @@ export const supabaseRepository: PanelRepository = {
     }))
   },
 
-  async createStaffAccount(input: StaffAccountInput): Promise<void> {
-    const { error } = await supabase.rpc('admin_create_staff_account', {
+  async createStaffAccount(input: StaffAccountInput): Promise<{ existed: boolean }> {
+    const { data, error } = await supabase.rpc('admin_create_staff_account', {
       p_email: input.email,
       p_first_name: input.firstName,
       p_last_name: input.lastName,
       p_password: input.password,
       p_roles: input.roles,
+      p_teacher_ids: input.teacherIds,
     })
     if (error) throw new Error(`No se pudo crear la cuenta: ${error.message}`)
+    return { existed: Boolean((data as { existia?: boolean } | null)?.existia) }
+  },
+
+  async getUsersByIds(ids: string[]): Promise<Teacher[]> {
+    if (ids.length === 0) return []
+    const { data, error } = await supabase
+      .from('v_users')
+      .select('id, first_name, last_name, email')
+      .in('id', ids)
+
+    if (error) throw new Error(`No se pudieron cargar las cuentas: ${error.message}`)
+    return ((data ?? []) as PanelRecord[]).map((record) => ({
+      id: str(record.id) ?? '',
+      name: [str(record.first_name), str(record.last_name)].filter(Boolean).join(' ') || null,
+      email: str(record.email) ?? '',
+    }))
+  },
+
+  async getProfileIdForStudent(studentId: string): Promise<string | null> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('student_id', studentId)
+      .maybeSingle()
+    if (error) throw new Error(`No se pudo leer la cuenta del alumno: ${error.message}`)
+    return str((data as PanelRecord | null)?.id)
   },
 
   async updateUserName(userId: string, firstName: string, lastName: string): Promise<void> {

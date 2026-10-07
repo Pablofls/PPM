@@ -29,8 +29,8 @@ const maxAccessOf = (screen: string): AccessLevel =>
  * - Vista de administrador: todo.
  * - Vista de maestro o coordinador: la excepción de la persona que se está
  *   viendo, si la tiene; si no, lo que da ese rol en la matriz.
- * - Vista de alumno: lo que da el rol alumno (y sus excepciones, si es el
- *   propio alumno).
+ * - Vista de alumno: lo que da el rol alumno, y las excepciones de ese
+ *   alumno (el propio, o el que eligió el admin en «Ver como»).
  *
  * Es lo que decide el menú, las rutas y los botones. Lo que de verdad protege
  * es la base: las mismas reglas están en RLS y en las funciones de escritura.
@@ -38,7 +38,8 @@ const maxAccessOf = (screen: string): AccessLevel =>
  * la interfaz, solo los del rol que eligió en «Ver como».
  */
 export function PermissionsProvider({ children }: { children: ReactNode }) {
-  const { profile, isStudent, activeRole, viewUserId, viewingAsAdmin } = useAuth()
+  const { profile, isStudent, activeRole, viewUserId, viewingAsAdmin, portalStudentId, portalReadOnly } =
+    useAuth()
   const [refreshKey, setRefreshKey] = useState(0)
   const hasRoles = (profile?.roles.length ?? 0) > 0
 
@@ -48,14 +49,26 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
     [hasRoles, refreshKey],
   )
 
+  // En «Ver como Alumno» el admin eligió un `students.id`; las excepciones
+  // cuelgan de la cuenta (`profiles.id`) de ese alumno, si tiene.
+  const { data: studentProfileId, loading: loadingStudentProfile } = useRepositoryQuery(
+    () =>
+      portalReadOnly && portalStudentId
+        ? repository.getProfileIdForStudent(portalStudentId)
+        : Promise.resolve(null),
+    null as string | null,
+    [portalReadOnly, portalStudentId],
+  )
+
   // Las excepciones de la persona que se está viendo: la propia, o la que
-  // eligió el admin. En la vista de alumno del admin no hay persona de
-  // `profiles` a la mano (se elige un `students.id`): vale la matriz del rol.
+  // eligió el admin (maestro, coordinador o alumno).
   const overridesFor = isStudent
     ? (profile?.id ?? null)
     : activeRole === 'maestro' || activeRole === 'coordinador'
       ? viewUserId
-      : null
+      : activeRole === 'alumno'
+        ? studentProfileId
+        : null
 
   const { data: overrides, loading: loadingOverrides } = useRepositoryQuery(
     () =>
@@ -76,13 +89,22 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
       return row?.access ?? 'ninguno'
     }
     return {
-      loading: loadingMatrix || loadingOverrides,
+      loading: loadingMatrix || loadingOverrides || loadingStudentProfile,
       access,
       can: (screen, needed = 'lectura') => hasAccess(access(screen), needed),
       matrix,
       refetch,
     }
-  }, [viewingAsAdmin, overrides, matrix, activeRole, loadingMatrix, loadingOverrides, refetch])
+  }, [
+    viewingAsAdmin,
+    overrides,
+    matrix,
+    activeRole,
+    loadingMatrix,
+    loadingOverrides,
+    loadingStudentProfile,
+    refetch,
+  ])
 
   return <PermissionsContext.Provider value={value}>{children}</PermissionsContext.Provider>
 }

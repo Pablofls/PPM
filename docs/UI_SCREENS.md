@@ -147,6 +147,19 @@ La pantalla es la lista; crear y editar se hacen en **ventanas emergentes**
 - **Cuentas:** las del panel y las pendientes (sin roles); los alumnos están en
   Alumnos registrados. Nombre, correo, roles (o *Pendiente*), estado. En rojo,
   las desactivadas y las pendientes. Buscador por nombre o correo.
+- En **+ Nuevo usuario**, al marcar **Coordinador** aparece **Maestros que
+  supervisa** (chips con los maestros activos; opcional). Si el correo es de
+  una cuenta pendiente, se le asignan los roles y el aviso lo dice (su
+  contraseña no cambia).
+- En **Editar**, roles y maestros que supervisa se guardan juntos («Guardar
+  roles»; los maestros aparecen en cuanto se marca Coordinador). Candados: el
+  propio admin no puede quitarse Administrador, y no se puede quitar Maestro
+  a quien imparte grupos (el chip lo explica al pasar el cursor). Quitar
+  Coordinador avisa que suelta a sus maestros. Desactivar a quien imparte
+  grupos pide confirmación.
+- En **Administrar grupos**, si no hay maestros a quién asignar, la ventana lo
+  dice; un grupo cuyo maestro está desactivado lo muestra «(no disponible)» en
+  vez de aparentar que es de otro.
 - **Editar** abre una ventana con: nombre y apellido; roles; si es
   coordinador, los **maestros que supervisa** (casillas); contraseña nueva
   (para quien olvidó la suya); y desactivar / reactivar. Los errores de las

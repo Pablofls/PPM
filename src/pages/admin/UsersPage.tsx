@@ -5,6 +5,7 @@ import { Badge, Dash } from '../../components/Badge'
 import { DataTable, type Column } from '../../components/DataTable'
 import { Modal } from '../../components/Modal'
 import { ACCESS_TONES, PermissionsMatrix, levelsFor, sectionsOf } from './PermissionsMatrix'
+import { useGroups } from '../../layouts/GroupProvider'
 import { usePermissions } from '../../auth/PermissionsProvider'
 import { ACCESS_LABELS, ACCESS_RANK, SCREENS, type AccessLevel, type ScreenMeta } from '../../lib/screens'
 import { PasswordInput } from '../../components/PasswordInput'
@@ -31,6 +32,7 @@ const EMPTY_FORM: StaffAccountInput = {
   lastName: '',
   password: '',
   roles: [],
+  teacherIds: [],
 }
 
 type Message = { tone: 'red' | 'green'; text: string } | null
@@ -237,6 +239,7 @@ export function UsersPage() {
 
           {creating && (
             <NewUserModal
+              teachers={teachers}
               onClose={() => setCreating(false)}
               onCreated={(text) => {
                 setCreating(false)
@@ -245,7 +248,6 @@ export function UsersPage() {
               }}
             />
           )}
-
         </>
       )}
 
@@ -274,9 +276,12 @@ function Stat({ value, label, tone }: { value: number; label: string; tone: stri
 
 /** «+ Nuevo usuario»: la ventana emergente para crear una cuenta del panel. */
 function NewUserModal({
+  teachers,
   onClose,
   onCreated,
 }: {
+  /** Los maestros activos, para asignarlos si la cuenta es de coordinador. */
+  teachers: UserAccount[]
   onClose: () => void
   onCreated: (message: string) => void
 }) {
@@ -302,11 +307,19 @@ function NewUserModal({
     setSaving(true)
     setError(null)
     try {
-      await repository.createStaffAccount({ ...form, email: form.email.trim() })
+      const { existed } = await repository.createStaffAccount({
+        ...form,
+        email: form.email.trim(),
+        // Solo un coordinador lleva maestros (la base lo exige, 0039).
+        teacherIds: form.roles.includes('coordinador') ? form.teacherIds : [],
+      })
+      const name = `${form.firstName.trim()} ${form.lastName.trim()}`
       // La contraseña va en el aviso porque la ventana se cierra: el admin
       // la necesita para pasársela a la persona.
       onCreated(
-        `Cuenta de ${form.firstName.trim()} ${form.lastName.trim()} creada. Pásale su correo (${form.email.trim()}) y la contraseña temporal: ${form.password} — la puede cambiar en Mi perfil.`,
+        existed
+          ? `${name} ya tenía cuenta (estaba pendiente): ahora tiene sus roles. Su contraseña no cambió.`
+          : `Cuenta de ${name} creada. Pásale su correo (${form.email.trim()}) y la contraseña temporal: ${form.password} — la puede cambiar en Mi perfil.`,
       )
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'No se pudo crear la cuenta.')
@@ -395,11 +408,28 @@ function NewUserModal({
 
         <div>
           <span className={LABEL}>Roles</span>
-          <RoleCheckboxes value={form.roles} onChange={(roles) => setForm({ ...form, roles })} />
+          <RoleCheckboxes
+            value={form.roles}
+            onChange={(roles) =>
+              // Sin el rol de coordinador, los maestros elegidos ya no aplican.
+              setForm({ ...form, roles, teacherIds: roles.includes('coordinador') ? form.teacherIds : [] })
+            }
+          />
           <p className="mt-2 text-xs text-ink-500">
             Puede tener varios: un coordinador que también da clase es Coordinador y Maestro.
           </p>
         </div>
+
+        {form.roles.includes('coordinador') && (
+          <div>
+            <span className={LABEL}>Maestros que supervisa</span>
+            <TeacherPicker
+              teachers={teachers}
+              value={form.teacherIds}
+              onChange={(teacherIds) => setForm({ ...form, teacherIds })}
+            />
+          </div>
+        )}
 
         {(error || (touched && formError)) && (
           <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">
@@ -414,12 +444,73 @@ function NewUserModal({
   )
 }
 
+/**
+ * Los maestros que supervisa un coordinador, como chips. Opcional: se pueden
+ * asignar después en «Editar».
+ */
+function TeacherPicker({
+  teachers,
+  value,
+  onChange,
+  excludeId,
+}: {
+  teachers: UserAccount[]
+  value: string[]
+  onChange: (ids: string[]) => void
+  /** El propio coordinador, si también es maestro: no se supervisa a sí mismo. */
+  excludeId?: string
+}) {
+  const options = teachers.filter((teacher) => teacher.id !== excludeId)
+  if (options.length === 0) {
+    return (
+      <p className="mt-2 text-sm text-ink-500">
+        Todavía no hay cuentas activas con el rol de maestro. Puedes asignarlos después en
+        «Editar».
+      </p>
+    )
+  }
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {options.map((teacher) => {
+        const checked = value.includes(teacher.id)
+        return (
+          <label
+            key={teacher.id}
+            className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors ${
+              checked
+                ? 'border-ink-900 bg-ink-900 text-white'
+                : 'border-ink-200 bg-white text-ink-700 hover:bg-ink-50'
+            }`}
+          >
+            <input
+              type="checkbox"
+              className="sr-only"
+              checked={checked}
+              onChange={(event) =>
+                onChange(
+                  event.target.checked
+                    ? [...value, teacher.id]
+                    : value.filter((id) => id !== teacher.id),
+                )
+              }
+            />
+            {fullName(teacher) ?? teacher.email}
+          </label>
+        )
+      })}
+    </div>
+  )
+}
+
 function RoleCheckboxes({
   value,
   onChange,
+  locked = {},
 }: {
   value: RoleCode[]
   onChange: (roles: RoleCode[]) => void
+  /** Roles que no se pueden cambiar aquí, con el motivo (se muestra al pasar el cursor). */
+  locked?: Partial<Record<RoleCode, string>>
 }) {
   return (
     <fieldset className="mt-2">
@@ -428,7 +519,10 @@ function RoleCheckboxes({
         {STAFF_ROLES.map((role) => (
           <label
             key={role}
-            className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors ${
+            title={locked[role]}
+            className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors ${
+              locked[role] ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+            } ${
               value.includes(role)
                 ? 'border-ink-900 bg-ink-900 text-white'
                 : 'border-ink-200 bg-white text-ink-700 hover:bg-ink-50'
@@ -437,6 +531,7 @@ function RoleCheckboxes({
             <input
               type="checkbox"
               className="sr-only"
+              disabled={Boolean(locked[role])}
               checked={value.includes(role)}
               onChange={(event) =>
                 onChange(
@@ -479,6 +574,20 @@ function UserEditor({
   const [roles, setRoles] = useState<RoleCode[]>(user.roles)
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
+
+  // Los grupos que imparte (la vista de admin ve todos): quitarle «Maestro»
+  // o desactivarlo deja a esos alumnos sin maestro.
+  const groupCount = (useGroups()?.groups ?? []).filter((group) => group.teacherId === user.id).length
+  const lockedRoles: Partial<Record<RoleCode, string>> = {
+    ...(isSelf && user.roles.includes('admin')
+      ? { admin: 'No puedes quitarte tu propio rol de administrador' }
+      : {}),
+    ...(groupCount > 0 && user.roles.includes('maestro')
+      ? {
+          maestro: `Imparte ${groupCount} ${groupCount === 1 ? 'grupo' : 'grupos'}: reasígnalos en Administrar grupos antes de quitarle este rol`,
+        }
+      : {}),
+  }
 
   const isCoordinator = user.roles.includes('coordinador')
   const { data: savedTeachers } = useRepositoryQuery(
@@ -550,63 +659,44 @@ function UserEditor({
           </div>
         </div>
 
-        <div>
+        <div className="sm:col-span-2">
           <h3 className="text-sm font-semibold text-ink-900">Roles</h3>
-          <RoleCheckboxes value={roles} onChange={setRoles} />
+          <RoleCheckboxes value={roles} onChange={setRoles} locked={lockedRoles} />
+          {roles.includes('coordinador') && (
+            <div className="mt-4">
+              <h3 className="text-sm font-semibold text-ink-900">Maestros que supervisa</h3>
+              <TeacherPicker
+                teachers={teachers}
+                value={assignedTeachers}
+                onChange={setAssigned}
+                excludeId={user.id}
+              />
+            </div>
+          )}
+          {!roles.includes('coordinador') && savedTeachers.length > 0 && (
+            <p className="mt-3 text-xs text-ink-500">
+              Al quitarle el rol de coordinador deja de supervisar a sus {savedTeachers.length}{' '}
+              {savedTeachers.length === 1 ? 'maestro' : 'maestros'}.
+            </p>
+          )}
           <button
             type="button"
-            disabled={busy || !rolesChanged}
+            disabled={busy || (!rolesChanged && assigned === null)}
             onClick={() =>
-              void run(() => repository.setUserRoles(user.id, roles), `Roles de ${name} guardados.`)
+              void run(async () => {
+                await repository.setUserRoles(user.id, roles)
+                // Después de los roles: la base exige que ya sea coordinador.
+                if (roles.includes('coordinador')) {
+                  await repository.setCoordinatorTeachers(user.id, assignedTeachers)
+                }
+                setAssigned(null)
+              }, `Roles de ${name} guardados.`)
             }
             className={`${SECONDARY_BUTTON} mt-3`}
           >
             Guardar roles
           </button>
         </div>
-
-        {isCoordinator && (
-          <div className="sm:col-span-2">
-            <h3 className="text-sm font-semibold text-ink-900">Maestros que supervisa</h3>
-            {teachers.filter((teacher) => teacher.id !== user.id).length === 0 ? (
-              <p className="mt-2 text-sm text-ink-500">Todavía no hay cuentas con el rol de maestro.</p>
-            ) : (
-              <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2">
-                {teachers
-                  .filter((teacher) => teacher.id !== user.id)
-                  .map((teacher) => (
-                    <label key={teacher.id} className="flex items-center gap-2 text-sm text-ink-800">
-                      <input
-                        type="checkbox"
-                        checked={assignedTeachers.includes(teacher.id)}
-                        onChange={(event) =>
-                          setAssigned(
-                            event.target.checked
-                              ? [...assignedTeachers, teacher.id]
-                              : assignedTeachers.filter((id) => id !== teacher.id),
-                          )
-                        }
-                      />
-                      {fullName(teacher) ?? teacher.email}
-                    </label>
-                  ))}
-              </div>
-            )}
-            <button
-              type="button"
-              disabled={busy || assigned === null}
-              onClick={() =>
-                void run(
-                  () => repository.setCoordinatorTeachers(user.id, assignedTeachers),
-                  `Maestros de ${name} guardados.`,
-                )
-              }
-              className={`${SECONDARY_BUTTON} mt-3`}
-            >
-              Guardar maestros
-            </button>
-          </div>
-        )}
 
         <div>
           <h3 className="text-sm font-semibold text-ink-900">Contraseña nueva</h3>
@@ -648,12 +738,23 @@ function UserEditor({
             type="button"
             disabled={busy || isSelf}
             title={isSelf ? 'No puedes desactivar tu propia cuenta' : undefined}
-            onClick={() =>
+            onClick={() => {
+              // Desactivar no quita sus grupos: sus alumnos se quedan sin quien
+              // los vea (salvo el admin y su coordinador). Se avisa antes.
+              if (
+                user.isActive &&
+                groupCount > 0 &&
+                !window.confirm(
+                  `${name} imparte ${groupCount} ${groupCount === 1 ? 'grupo' : 'grupos'}. Si la desactivas, nadie más que el administrador y su coordinador verá a esos alumnos hasta que reasignes los grupos. ¿Desactivar de todos modos?`,
+                )
+              ) {
+                return
+              }
               void run(
                 () => repository.setUserActive(user.id, !user.isActive),
                 user.isActive ? `${name} quedó desactivada.` : `${name} quedó activa.`,
               )
-            }
+            }}
             className={`${SECONDARY_BUTTON} mt-2`}
           >
             {user.isActive ? 'Desactivar cuenta' : 'Reactivar cuenta'}

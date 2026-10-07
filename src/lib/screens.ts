@@ -30,6 +30,8 @@ export interface ScreenMeta {
   path?: string
   /** Qué significa «Puede editar» aquí, para la matriz. */
   editHint?: string
+  /** Una consecuencia que no es obvia al quitar el acceso. */
+  note?: string
 }
 
 const weekly = (code: 'form_busqueda' | 'form_practicas') =>
@@ -43,6 +45,11 @@ export const SCREENS: ScreenMeta[] = [
     maxAccess: 'lectura',
     audience: 'panel',
     path: form.path,
+    // El nombre, la carrera y el semestre de cada alumno salen del 1.0.
+    note:
+      form.code === 'form1_0'
+        ? 'Sin acceso, en todas las pantallas verá correos en vez de nombres, carrera y semestre.'
+        : undefined,
   })),
   {
     code: 'form_busqueda',
