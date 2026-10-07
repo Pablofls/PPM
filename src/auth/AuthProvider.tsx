@@ -28,6 +28,12 @@ interface AuthState {
   profile: Profile | null
   /** `true` mientras se resuelve la sesión o el perfil. */
   loading: boolean
+  /**
+   * Por qué no se pudo leer el perfil, si falló la consulta. Sin esto, un
+   * error (red, o una versión vieja de la app pidiendo una columna que ya no
+   * existe) se veía igual que una cuenta pendiente de autorización.
+   */
+  profileError: string | null
   /** Único criterio de acceso al panel del profesor. */
   isAdmin: boolean
   /** Único criterio de acceso a la vista del alumno. */
@@ -49,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loadingSession, setLoadingSession] = useState(true)
   const [loadingProfile, setLoadingProfile] = useState(false)
+  const [profileError, setProfileError] = useState<string | null>(null)
 
   // Sesión. El callback de onAuthStateChange se mantiene síncrono a propósito:
   // hacer await de una consulta aquí adentro puede bloquear al cliente de
@@ -75,20 +82,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!userId) {
       setProfile(null)
+      setProfileError(null)
       return
     }
 
     let cancelled = false
     setLoadingProfile(true)
+    setProfileError(null)
 
     supabase
       .from('profiles')
       .select('id, email, first_name, last_name, role, is_active, student_id')
       .eq('id', userId)
       .maybeSingle()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
         if (cancelled) return
         setProfile((data as Profile | null) ?? null)
+        setProfileError(error ? error.message : null)
         setLoadingProfile(false)
       })
 
@@ -129,13 +139,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       profile,
       loading: loadingSession || loadingProfile,
+      profileError,
       isAdmin: profile?.role === 'admin' && profile.is_active,
       isStudent: profile?.role === 'alumno' && profile.is_active,
       signIn,
       signOut,
       updateName,
     }),
-    [session, profile, loadingSession, loadingProfile, signIn, signOut, updateName],
+    [session, profile, loadingSession, loadingProfile, profileError, signIn, signOut, updateName],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
