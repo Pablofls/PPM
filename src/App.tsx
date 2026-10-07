@@ -5,6 +5,7 @@ import { ProtectedRoute } from './auth/ProtectedRoute'
 import { StudentRoute } from './auth/StudentRoute'
 import { AppShell } from './layouts/AppShell'
 import { GroupProvider } from './layouts/GroupProvider'
+import { HomeShell } from './layouts/HomeShell'
 import { StudentShell } from './layouts/StudentShell'
 import { BehaviorPage } from './pages/modulo1/BehaviorPage'
 import { DemographicsPage } from './pages/modulo1/DemographicsPage'
@@ -84,7 +85,14 @@ export default function App() {
               </ProtectedRoute>
             }
           >
-            <Route path="mis-grupos" element={<GroupPickerPage />} />
+            {/* Afuera de un grupo: Mis grupos y el menú Configuración. */}
+            <Route element={<HomeShell />}>
+              <Route path="mis-grupos" element={<GroupPickerPage />} />
+              <Route path="configuracion">
+                <Route path="alumnos-registrados" element={<RegisteredStudentsPage />} />
+                <Route path="grupos" element={<GroupsPage />} />
+              </Route>
+            </Route>
 
             <Route element={<AppShell />}>
               <Route index element={<Navigate to="/modulo1/datos-demograficos" replace />} />
@@ -117,12 +125,17 @@ export default function App() {
 
               <Route path="entregas">
                 <Route path="estado-de-entregas" element={<SubmissionStatusPage />} />
+                <Route path="fechas-de-entrega" element={<DeadlinesPage />} />
               </Route>
 
+              {/* Rutas viejas: siguen funcionando si alguien las guardó. */}
               <Route path="administrador">
-                <Route path="panel" element={<DeadlinesPage />} />
-                <Route path="alumnos-registrados" element={<RegisteredStudentsPage />} />
-                <Route path="grupos" element={<GroupsPage />} />
+                <Route path="panel" element={<Navigate to="/entregas/fechas-de-entrega" replace />} />
+                <Route
+                  path="alumnos-registrados"
+                  element={<Navigate to="/configuracion/alumnos-registrados" replace />}
+                />
+                <Route path="grupos" element={<Navigate to="/configuracion/grupos" replace />} />
               </Route>
 
               <Route path="*" element={<Navigate to="/modulo1/datos-demograficos" replace />} />

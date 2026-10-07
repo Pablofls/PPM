@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 import { Badge, Dash } from '../../components/Badge'
 import { DataTable, type Column } from '../../components/DataTable'
@@ -39,6 +40,7 @@ const EMPTY_FORM: GroupForm = { periodCode: '', sessionDay: '', language: '', te
  */
 export function GroupsPage() {
   const groupContext = useGroups()
+  const navigate = useNavigate()
   const groups = groupContext?.groups ?? []
   const [form, setForm] = useState<GroupForm>(EMPTY_FORM)
   const [sending, setSending] = useState(false)
@@ -165,10 +167,12 @@ export function GroupsPage() {
           <button
             type="button"
             className={LINK_BUTTON}
-            onClick={() => groupContext?.selectGroup(group.id)}
-            disabled={groupContext?.selectedGroupId === group.id}
+            onClick={() => {
+              groupContext?.selectGroup(group.id)
+              navigate('/modulo1/datos-demograficos')
+            }}
           >
-            {groupContext?.selectedGroupId === group.id ? 'Viendo' : 'Ver en el panel'}
+            Entrar al grupo
           </button>
           <button
             type="button"
@@ -238,8 +242,8 @@ export function GroupsPage() {
       <header className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight text-ink-950">Administrar grupos</h1>
         <p className="mt-1.5 text-sm text-ink-500">
-          Un grupo es un periodo, una frecuencia y un idioma con su maestro. Para ver solo a los
-          alumnos de un grupo, elígelo en «Cambiar de grupo», arriba del menú.
+          Un grupo es un periodo, una frecuencia y un idioma con su maestro. Para trabajar con un
+          grupo, elígelo en Mis grupos.
         </p>
       </header>
 

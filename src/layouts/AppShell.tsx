@@ -57,13 +57,9 @@ export function AppShell() {
 
           <NavGroup title="Entregas">
             <NavItem to="/entregas/estado-de-entregas" label="" name="Estado de Entregas" />
+            <NavItem to="/entregas/fechas-de-entrega" label="" name="Fechas de entrega" />
           </NavGroup>
 
-          <NavGroup title="Administrador">
-            <NavItem to="/administrador/panel" label="" name="Panel de Administrador" />
-            <NavItem to="/administrador/alumnos-registrados" label="" name="Alumnos Registrados" />
-            <NavItem to="/administrador/grupos" label="" name="Administrar grupos" />
-          </NavGroup>
 
           {/*
             Las secciones futuras se muestran deshabilitadas a propósito:

@@ -39,7 +39,8 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   idioma + maestro; un alumno está en un grupo por periodo. Los datos actuales
   se clasifican y se asignan al profesor actual. El profesor entra por
   **Mis grupos** (tarjetas estilo Blackboard), y el grupo elegido filtra todo
-  el panel; *Administrar grupos* los crea y asigna alumnos. Todavía no cambia
+  el panel. El menú **Configuración** de Mis grupos lleva a *Alumnos
+  registrados* y *Administrar grupos* (ya no están en el rail). Todavía no cambia
   quién ve qué: siguen las fases de roles múltiples (con el selector «Ver
   como» de sus propios roles abajo del rail), usuarios y perfiles, permisos y
   «ver como» cualquier usuario.
@@ -182,9 +183,10 @@ completo»), porque ya no se puede: la semana pasada.
 ### 9. Alcance de las pantallas
 
 Ya están construidos **Módulo 1, Módulo 2 y los Apéndices A/B**, las bitácoras
-semanales (dentro del expediente del alumno), Estado de Entregas, el Panel de
-Administrador, Alumnos Registrados (`0031`, alta de alumnos sin 1.0) y Grupos
-(`0032`).
+semanales (dentro del expediente del alumno), Estado de Entregas, Fechas de
+entrega (antes «Panel de Administrador»), Mis grupos y, en su menú
+Configuración, Alumnos Registrados (`0031`, alta de alumnos sin 1.0) y
+Administrar grupos (`0032`).
 
 **Fuera de alcance mientras no se pida:** la hoja `fechas_entrega`.
 

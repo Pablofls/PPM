@@ -19,7 +19,7 @@ const FIELD_INPUT =
   'rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 shadow-sm focus:border-ink-400 focus:ring-2 focus:ring-ink-900/5 focus:outline-none'
 
 /**
- * Panel de Administrador: asignar fechas límite y definir las semanas del
+ * Fechas de entrega (antes «Panel de Administrador»): asignar fechas límite y definir las semanas del
  * semestre. Dos herramientas, una pantalla — ambas son configuración que el
  * profesor hace unas pocas veces por periodo, no algo que consulte seguido.
  */
@@ -90,7 +90,7 @@ export function DeadlinesPage() {
     <>
       <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <h1 className="text-2xl font-semibold tracking-tight text-ink-950">
-          Panel de Administrador
+          Fechas de entrega
         </h1>
         <p className="mt-1.5 text-sm text-ink-500">
           Fechas límite y semanas del semestre

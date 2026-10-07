@@ -655,7 +655,11 @@ export const supabaseRepository: PanelRepository = {
     return ((data ?? []) as PanelRecord[]).map((record) => ({
       row: Number(record.fila),
       email: str(record.correo) ?? '',
-      outcome: str(record.resultado) ?? '',
+      // `0032` escribe «créalo en Grupos»; la pantalla ahora se llama distinto y
+      // la migración ya se ejecutó, así que el texto se ajusta aquí.
+      outcome: (str(record.resultado) ?? '')
+        .replace('créalo en Grupos', 'créalo en Configuración → Administrar grupos')
+        .replace('asígnalo desde Grupos', 'asígnalo desde Configuración → Administrar grupos'),
       account: str(record.cuenta),
     }))
   },

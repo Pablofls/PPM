@@ -32,15 +32,17 @@ PPM
 │   └── A.1 Carta Formal de Aceptación
 ├── APÉNDICE B · REPORTES
 │   └── B.1 Formulario de Inicio
-├── ENTREGAS
-│   └── Estado de Entregas
-└── ADMINISTRADOR
-    ├── Panel de Administrador
-    ├── Alumnos Registrados
-    └── Administrar grupos
+└── ENTREGAS
+    ├── Estado de Entregas
+    └── Fechas de entrega
 ```
 
 Antes del rail está **Mis grupos** (abajo), y arriba del rail el grupo actual.
+Lo que se configura fuera de un grupo —Alumnos registrados y Administrar
+grupos— no está en el rail: vive en el menú **Configuración** de la barra de
+Mis grupos (`HomeShell`). La sección «Administrador» del rail desapareció:
+«Panel de Administrador» pasó a Entregas como **Fechas de entrega**. Las rutas
+viejas (`/administrador/…`) redirigen a las nuevas.
 
 Las secciones de «Próximamente» se muestran deshabilitadas a propósito: le comunican
 al profesor el alcance completo del proyecto sin prometer que ya funcionan.
@@ -60,7 +62,10 @@ frecuencia · idioma y el maestro. Arriba, un buscador y el selector de
 **periodo** (por omisión el más reciente; también *Todos los periodos*).
 
 La primera tarjeta es **Todos mis grupos**: entra al panel sin filtro de grupo.
-El botón *Administrar grupos* lleva a la pantalla de administración.
+Arriba a la derecha, el menú **Configuración**: *Alumnos registrados* y
+*Administrar grupos*. Esas dos pantallas usan la misma barra, con un enlace
+«← Mis grupos», y muestran a **todos** los alumnos, sin importar el grupo
+elegido.
 
 Al elegir una tarjeta se entra al panel ya filtrado: todas las pantallas
 —tablas, contadores, Estado de Entregas y Alumnos Registrados— filtran por la
@@ -373,7 +378,8 @@ de horas: así viene del formulario.
 
 ## Alumnos Registrados
 
-> `0031_student_registration.sql`. Ruta `/administrador/alumnos-registrados`.
+> `0031_student_registration.sql`. Ruta `/configuracion/alumnos-registrados`
+> (menú Configuración de Mis grupos).
 
 Da de alta alumnos sin que contesten el 1.0: correo UDEM, matrícula, periodo,
 frecuencia e idioma. Tres bloques:
@@ -391,11 +397,12 @@ es solo retroalimentación; la autoridad es `admin_register_students()`.
 Desde `0032` periodo + frecuencia + idioma tienen que corresponder a **un grupo
 que ya exista**; si no, la fila sale con el error «no existe un grupo …: créalo
 en Grupos». La tabla agrega la columna **Grupo** (o *Sin grupo*, en rojo) y
-respeta el grupo actual.
+muestra a todos los alumnos.
 
 ## Administrar grupos
 
-> `0032_groups.sql`. Ruta `/administrador/grupos`. Elegir con qué grupo
+> `0032_groups.sql`. Ruta `/configuracion/grupos` (menú Configuración de Mis
+> grupos). Elegir con qué grupo
 > trabajar es otra pantalla: [Mis grupos](#mis-grupos--mis-grupos).
 
 - **Nuevo grupo:** periodo (texto con sugerencias de los periodos existentes,
@@ -403,7 +410,7 @@ respeta el grupo actual.
   elegido. Crear un grupo inscribe de una vez a los alumnos sin grupo cuyo 1.0
   coincide solo con él.
 - **Tabla de grupos:** grupo, maestro, número de alumnos, *Ver en el panel*
-  (lo vuelve el grupo actual) y *Borrar* (solo si no tiene alumnos).
+  (*Entrar al grupo*: lo vuelve el grupo actual y abre el panel) y *Borrar* (solo si no tiene alumnos).
 - **Alumnos:** todo el directorio con lo que contestó (periodo · frecuencia ·
   idioma) y un selector de grupo por fila para asignarlo o moverlo. Por
   omisión muestra **solo los alumnos sin grupo** (en rojo), si hay alguno.
@@ -412,14 +419,17 @@ respeta el grupo actual.
 
 El expediente del alumno muestra su grupo junto a la matrícula.
 
-## Estado de Entregas y Panel de Administrador
+## Estado de Entregas y Fechas de entrega
 
 > `0017_form_deadlines.sql` y `0018_semester_weeks.sql`. Ver
 > [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#fechas-de-entrega-y-estado-de-las-entregas).
 > Las únicas dos pantallas del rail que no cuelgan de un `form_code` fijo ni de
 > `FormPage`: no muestran un formulario, sino **todos** a la vez.
 
-### Panel de Administrador
+### Fechas de entrega
+
+> Ruta `/entregas/fechas-de-entrega`. Hasta la fase 1 de grupos se llamaba
+> «Panel de Administrador» y vivía en su propia sección del rail.
 
 Asigna la fecha límite que "Estado de Entregas" necesita para comparar. No
 existía en la plataforma anterior: ahí la fecha se editaba a mano en la hoja

@@ -65,7 +65,7 @@ export function RegisteredStudentsPage() {
   const groups = groupContext?.groups
 
   const {
-    data: allStudents,
+    data: students,
     loading,
     isConnected,
     error,
@@ -73,12 +73,8 @@ export function RegisteredStudentsPage() {
     refreshKey,
   ])
 
-  // El selector de grupo del encabezado también filtra esta lista.
-  const selectedGroupId = groupContext?.selectedGroupId ?? ''
-  const students = selectedGroupId
-    ? allStudents.filter((student) => student.groupId === selectedGroupId)
-    : allStudents
-
+  // Es una pantalla de Configuración, fuera de un grupo: lista a todos los
+  // alumnos, con la columna Grupo para ubicar a cada uno.
   const columns: Column<RegisteredStudent>[] = [
     ...BASE_COLUMNS,
     {
@@ -148,7 +144,7 @@ export function RegisteredStudentsPage() {
         <p className="mt-1.5 text-sm text-ink-500">
           Da de alta alumnos para que tengan cuenta sin contestar los Datos Demográficos. Su
           usuario es el correo y su contraseña inicial es la matrícula. Periodo, frecuencia e
-          idioma deben corresponder a un grupo que ya exista (ver Grupos).
+          idioma deben corresponder a un grupo que ya exista (ver Administrar grupos).
         </p>
       </header>
 
