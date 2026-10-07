@@ -1,10 +1,10 @@
 import { Link, Navigate, NavLink, Outlet, useLocation } from 'react-router-dom'
 
-import { useAuth } from '../auth/AuthProvider'
 import { repository } from '../data/repository'
 import { FORMS, MODULE_TITLES, UPCOMING_SECTIONS } from '../lib/catalog'
 import { formatGroupLabel } from '../lib/format'
 import { GroupCover } from '../components/GroupCover'
+import { SettingsMenu } from '../components/SettingsMenu'
 import { useGroups } from './GroupProvider'
 
 /**
@@ -16,7 +16,6 @@ import { useGroups } from './GroupProvider'
  * a leer.
  */
 export function AppShell() {
-  const { profile, signOut } = useAuth()
   const location = useLocation()
   const secciones = (['1', '2', 'A', 'B'] as const).map((moduleCode) => ({
     moduleCode,
@@ -37,12 +36,13 @@ export function AppShell() {
   return (
     <div className="flex min-h-full">
       <aside className="sticky top-0 flex h-screen w-72 shrink-0 flex-col bg-ink-950">
-        <div className="px-5 py-5">
-          <p className="text-[15px] leading-tight font-semibold tracking-tight text-white">
+        {/* El nombre de la plataforma regresa a Mis grupos, como el logo de Blackboard. */}
+        <Link to="/mis-grupos" className="group block px-5 py-5">
+          <p className="text-[15px] leading-tight font-semibold tracking-tight text-white group-hover:text-accent-300">
             Prácticas Profesionales
           </p>
           <p className="mt-1 text-xs text-ink-400">Panel del profesor</p>
-        </div>
+        </Link>
 
         <CurrentGroup />
 
@@ -97,18 +97,7 @@ export function AppShell() {
               : 'Panel de Prácticas Profesionales'}
           </p>
 
-          <div className="flex shrink-0 items-center gap-3 text-sm">
-            <span className="max-w-56 truncate text-ink-700" title={profile?.email}>
-              {profile?.full_name || profile?.email}
-            </span>
-            <button
-              type="button"
-              onClick={signOut}
-              className="rounded-lg px-2.5 py-1.5 font-medium text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-900"
-            >
-              Cerrar sesión
-            </button>
-          </div>
+          <SettingsMenu tone="light" />
         </header>
 
         <main className="flex-1 overflow-x-hidden px-8 py-7">
@@ -120,15 +109,19 @@ export function AppShell() {
 }
 
 /**
- * El grupo que se está mirando, arriba del rail, con la salida de vuelta a
- * «Mis grupos». Filtra todas las pantallas a la vez.
+ * El grupo que se está mirando, arriba del rail. Toda la tarjeta es la salida
+ * de vuelta a «Mis grupos». Filtra todas las pantallas a la vez.
  */
 function CurrentGroup() {
   const context = useGroups()
   const group = context?.selectedGroup ?? null
 
   return (
-    <div className="mx-3 mb-5 overflow-hidden rounded-lg border border-white/10 bg-white/5">
+    <Link
+      to="/mis-grupos"
+      title="Cambiar de grupo"
+      className="group mx-3 mb-5 block overflow-hidden rounded-lg border border-white/10 bg-white/5 transition-colors hover:border-white/25 hover:bg-white/10"
+    >
       {group ? (
         <div className="[&>div]:h-14">
           <GroupCover seed={group.id} title={group.periodCode} />
@@ -139,14 +132,11 @@ function CurrentGroup() {
         <p className="mt-0.5 truncate text-sm font-medium text-white">
           {group ? formatGroupLabel(group) : 'Todos mis grupos'}
         </p>
-        <Link
-          to="/mis-grupos"
-          className="mt-1.5 inline-block text-xs font-medium text-accent-400 hover:text-accent-300"
-        >
+        <span className="mt-1.5 inline-block text-xs font-medium text-accent-400 group-hover:text-accent-300">
           Cambiar de grupo
-        </Link>
+        </span>
       </div>
-    </div>
+    </Link>
   )
 }
 

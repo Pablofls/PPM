@@ -39,7 +39,7 @@ PPM
 
 Antes del rail está **Mis grupos** (abajo), y arriba del rail el grupo actual.
 Lo que se configura fuera de un grupo —Alumnos registrados y Administrar
-grupos— no está en el rail: vive en el menú **Configuración** de la barra de
+grupos— no está en el rail: vive en el menú del **engrane** (Configuración) de la barra de
 Mis grupos (`HomeShell`). La sección «Administrador» del rail desapareció:
 «Panel de Administrador» pasó a Entregas como **Fechas de entrega**. Las rutas
 viejas (`/administrador/…`) redirigen a las nuevas.
@@ -62,10 +62,13 @@ frecuencia · idioma y el maestro. Arriba, un buscador y el selector de
 **periodo** (por omisión el más reciente; también *Todos los periodos*).
 
 La primera tarjeta es **Todos mis grupos**: entra al panel sin filtro de grupo.
-Arriba a la derecha, el menú **Configuración**: *Alumnos registrados* y
-*Administrar grupos*. Esas dos pantallas usan la misma barra, con un enlace
-«← Mis grupos», y muestran a **todos** los alumnos, sin importar el grupo
-elegido.
+Arriba a la derecha, solo un **engrane** (`SettingsMenu`): al abrirlo muestra
+el nombre y correo de la sesión, la sección **Configuración** (*Alumnos
+registrados* y *Administrar grupos*) y *Cerrar sesión*. La barra no muestra el
+correo ni otros botones, para que quede limpia; el panel usa el mismo engrane
+en su barra clara. Las dos pantallas de Configuración usan la barra de Mis
+grupos, con un enlace «← Mis grupos», y muestran a **todos** los alumnos, sin
+importar el grupo elegido.
 
 Al elegir una tarjeta se entra al panel ya filtrado: todas las pantallas
 —tablas, contadores, Estado de Entregas y Alumnos Registrados— filtran por la
@@ -80,8 +83,9 @@ y el grupo tiene que sobrevivir a ese cambio. *Limpiar* de la barra no lo toca.
 ### Grupo actual en el rail
 
 Arriba del rail, un recuadro con la portada mini del grupo, su nombre
-(`OT-26 · Lunes · Español` o *Todos mis grupos*) y el enlace **Cambiar de
-grupo**, que vuelve a Mis grupos.
+(`OT-26 · Lunes · Español` o *Todos mis grupos*) y la leyenda **Cambiar de
+grupo**. **Todo el recuadro** es un enlace a Mis grupos, igual que el nombre
+«Prácticas Profesionales» de arriba del rail.
 
 ## Estructura común de una pantalla
 
