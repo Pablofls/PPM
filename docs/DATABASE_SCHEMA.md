@@ -10,6 +10,8 @@
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
 - **Última migración aplicada:** `0037_user_admin.sql` (2026-10-07).
+  `0038_permissions.sql` (permisos por rol y por persona) está escrita y
+  documentada aquí pero **todavía no se pega en Supabase**.
   `0019_student_dossier_read.sql` está escrita y documentada aquí pero
   **todavía no se pega en Supabase**.
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
@@ -144,6 +146,32 @@ erDiagram
     USER_ROLES {
         uuid user_id PK "FK profiles"
         text role_code PK "FK roles"
+    }
+    ROLES ||--o{ ROLE_SCREEN_ACCESS : "puede"
+    APP_SCREENS ||--o{ ROLE_SCREEN_ACCESS : "en"
+    PROFILES ||--o{ USER_SCREEN_ACCESS : "excepción"
+    APP_SCREENS ||--o{ USER_SCREEN_ACCESS : "en"
+    APP_SCREENS ||--o{ APP_SCREEN_FORMS : "muestra"
+    FORMS ||--o{ APP_SCREEN_FORMS : "se ve en"
+
+    APP_SCREENS {
+        text code PK
+        access_level max_access
+        text audience "panel | portal | ambos"
+    }
+    APP_SCREEN_FORMS {
+        text screen_code PK "FK app_screens"
+        text form_code PK "FK forms"
+    }
+    ROLE_SCREEN_ACCESS {
+        text role_code PK "FK roles"
+        text screen_code PK "FK app_screens"
+        access_level access "sin fila = sin acceso"
+    }
+    USER_SCREEN_ACCESS {
+        uuid user_id PK "FK profiles"
+        text screen_code PK "FK app_screens"
+        access_level access
     }
     COORDINATOR_TEACHERS {
         uuid coordinator_id PK "FK profiles"
@@ -446,6 +474,87 @@ El nombre de otra cuenta se edita directo (`profiles_update` deja al admin
 editar cualquier fila; el permiso por columna de `0034` lo limita a nombre y
 apellido). El maestro de un grupo, igual: `groups_update_admin` con permiso
 solo sobre `teacher_id` (`0032`), y `guard_groups_teacher()` exige el rol.
+
+### Permisos
+
+> `0038_permissions.sql` — ⏳ **pendiente de ejecutar**. Qué ve y qué edita
+> cada rol en cada pantalla, con excepciones por persona. Se administra en
+> Configuración → Usuarios y permisos.
+
+**Niveles** (`access_level`, enum ordenado): `ninguno` < `lectura` < `edicion`
+(Sin acceso / Solo lectura / Puede editar).
+
+#### `app_screens`
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `code` | `text` PK | `form1_0` … `formB_1`, `form_busqueda`, `form_practicas`, `estado_entregas`, `fechas_entrega`, `alumnos_registrados`, `grupos`, `alumno_adn`, `alumno_estado` |
+| `max_access` | `access_level` NOT NULL | lo más que se puede dar; las de consulta, `lectura` |
+| `audience` | `text` NOT NULL | `panel` (maestro, coordinador), `portal` (alumno) o `ambos` |
+
+El nombre visible y la sección viven en la interfaz (`src/lib/screens.ts`),
+como los de `roles`.
+
+#### `app_screen_forms`
+
+`(screen_code → app_screens, form_code → forms)`, PK compuesta: qué
+formularios muestra cada pantalla. Los 15 formularios se mapean a sí mismos;
+`alumno_adn` (ADN Profesional del portal) a 1.0, 1.1, 1.2, 1.3, 1.5 y B.1.
+
+#### `role_screen_access`
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `role_code` | `text` FK `roles` | PK compuesta; CHECK `<> 'admin'` (el admin siempre puede todo) |
+| `screen_code` | `text` FK `app_screens` | PK compuesta |
+| `access` | `access_level` NOT NULL | CHECK `<> 'ninguno'`: sin fila = Sin acceso |
+| `updated_at` | `timestamptz` | |
+
+#### `user_screen_access`
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `user_id` | `uuid` FK `profiles` ON DELETE CASCADE | PK compuesta |
+| `screen_code` | `text` FK `app_screens` | PK compuesta; índice propio |
+| `access` | `access_level` NOT NULL | aquí `ninguno` sí existe: quitar algo que su rol da |
+| `updated_at` | `timestamptz` | |
+
+Trigger `guard_screen_access()` en las dos: el acceso no pasa de
+`max_access`, y a un rol solo se le dan pantallas de su lado (panel o portal).
+
+**Normalización (4FN).** Cada tabla guarda un solo hecho por llave:
+(rol, pantalla) → acceso; (persona, pantalla) → acceso; pantalla → máximo y
+lado. «Sin acceso» en la matriz es la **ausencia** de fila (guardarlo sería
+tener dos maneras de decir lo mismo); en las excepciones sí es un valor,
+porque «quitar» es distinto de «como su rol».
+
+**Acceso efectivo** — `screen_access(pantalla)`: admin → el máximo; si no, la
+excepción de la persona; si no, el mayor que den sus roles; si no, `ninguno`.
+`can_edit_screen()`, `readable_forms()` y `writable_forms()` se arman encima.
+Todas `SECURITY DEFINER`.
+
+**Dónde se aplica:**
+
+- **Lectura:** política **restrictiva** `*_screen_read` en las 12 tablas de
+  respuestas: el formulario de la entrega tiene que estar en
+  `readable_forms()`. Se suma (AND) al alcance de `0036`.
+- **Escritura del alumno:** `submissions_screen_write` (insert) y
+  `*_logs_screen_write` (update), restrictivas, exigen «Puede editar» en la
+  bitácora. Solo muerden a una sesión de alumno.
+- **Escritura del staff con «Puede editar»**, siempre dentro de sus grupos y
+  alumnos: `form_deadlines`/`semester_weeks` (insert/delete; las fechas son
+  globales), `groups` (delete/update), y las funciones
+  `admin_register_students()`, `admin_create_group()`, `admin_move_student()`
+  y `admin_set_weekly_log_week_number()` redefinidas con el permiso en vez de
+  `is_admin()`. `guard_user_roles()` deja que quien registra alumnos les dé el
+  rol `alumno`.
+- **Estado de Entregas** se acota solo en la interfaz: son fechas, no
+  respuestas.
+
+**Valores iniciales:** maestro y coordinador, Solo lectura en los 13
+formularios, las dos bitácoras y Estado de Entregas; alumno, ADN y Estado de
+Solo lectura y las dos bitácoras con Puede editar. Es exactamente lo de la
+fase 2: ejecutar la migración no cambia lo que ve nadie.
 
 ### Funciones y triggers
 
@@ -1673,6 +1782,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0035_roles.sql` | `roles`, `user_roles`, `coordinator_teachers`, se eliminan `profiles.role` y `app_role`; `has_role()`, `is_admin()` y `current_student_id()` sobre `user_roles`, `is_staff()`, `visible_*_ids()`, `guard_user_roles()`, `guard_groups_teacher()`, `guard_coordinator_teachers()`, `touch_profile()`, `v_users`, `admin_create_group()` y `create_student_accounts()` con roles; corrige `enforce_one_group_per_period()` en `UPDATE` | ✅ 2026-10-07 |
 | `0036_scoped_rls.sql` | políticas `*_select_scope` (maestro y coordinador leen a sus alumnos, sus grupos y sus maestros) y `*_select_staff` de los catálogos | ✅ 2026-10-07 |
 | `0037_user_admin.sql` | `admin_create_staff_account()`, `admin_set_user_roles()`, `admin_set_user_active()`, `admin_set_coordinator_teachers()`, `admin_set_user_password()` | ✅ 2026-10-07 |
+| `0038_permissions.sql` | `access_level`, `app_screens`, `app_screen_forms`, `role_screen_access`, `user_screen_access`, `guard_screen_access()`, `screen_access()`, `can_edit_screen()`, `readable_forms()`, `writable_forms()`; restrictivas de lectura y de escritura del alumno; escrituras del staff con «Puede editar» (fechas, grupos, registro, semana) | ⏳ **pendiente** |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.

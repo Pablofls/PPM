@@ -8,6 +8,8 @@ import { useRepositoryQuery } from '../../data/hooks'
 import { repository } from '../../data/repository'
 import type { Group, Language, RegisteredStudent, SessionDay, Teacher } from '../../data/types'
 import { ALL_GROUPS, useGroups } from '../../layouts/GroupProvider'
+import { useAuth } from '../../auth/AuthProvider'
+import { usePermissions } from '../../auth/PermissionsProvider'
 import { LANGUAGE_OPTIONS, SESSION_DAY_OPTIONS, type FilterOption } from '../../lib/catalog'
 import { formatGroupLabel, formatLanguage, formatSessionDay } from '../../lib/format'
 
@@ -57,7 +59,35 @@ export function GroupsPage() {
   const [createError, setCreateError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
 
-  const { data: teachers } = useRepositoryQuery(() => repository.getTeachers(), [] as Teacher[], [])
+  const { viewingAsAdmin, profile, activeRole } = useAuth()
+  // Crear, mover, reasignar y borrar exigen «Puede editar» (0038); quien no es
+  // admin lo hace solo con sus grupos y alumnos (la base lo hace cumplir).
+  const canEdit = usePermissions().can('grupos', 'edicion')
+
+  const { data: allTeachers } = useRepositoryQuery(
+    () => (viewingAsAdmin ? repository.getTeachers() : Promise.resolve([] as Teacher[])),
+    [] as Teacher[],
+    [viewingAsAdmin],
+  )
+  // Fuera de la vista de admin no se leen los roles de los demás: los maestros
+  // posibles son uno mismo (si es maestro) y los de los grupos que ya ve.
+  const teachers = useMemo<Teacher[]>(() => {
+    if (viewingAsAdmin) return allTeachers
+    const byId = new Map<string, Teacher>()
+    if (activeRole === 'maestro' && profile) {
+      byId.set(profile.id, {
+        id: profile.id,
+        name: [profile.first_name, profile.last_name].filter(Boolean).join(' ') || null,
+        email: profile.email,
+      })
+    }
+    for (const group of groups) {
+      if (!byId.has(group.teacherId)) {
+        byId.set(group.teacherId, { id: group.teacherId, name: group.teacherName, email: group.teacherEmail })
+      }
+    }
+    return [...byId.values()]
+  }, [viewingAsAdmin, allTeachers, activeRole, profile, groups])
 
   const {
     data: students,
@@ -185,7 +215,7 @@ export function GroupsPage() {
       width: 'min-w-48',
       // Reasignar el maestro: con uno solo no hay a quién, y se muestra el nombre.
       render: (group) =>
-        teachers.length > 1 ? (
+        canEdit && teachers.length > 1 ? (
           <select
             aria-label={`Maestro de ${formatGroupLabel(group)}`}
             value={group.teacherId}
@@ -225,15 +255,17 @@ export function GroupsPage() {
           >
             Entrar al grupo
           </button>
-          <button
-            type="button"
-            className={LINK_BUTTON}
-            onClick={() => void handleDelete(group)}
-            disabled={sending || group.studentCount > 0}
-            title={group.studentCount > 0 ? 'Solo se puede borrar un grupo sin alumnos' : undefined}
-          >
-            Borrar
-          </button>
+          {canEdit && (
+            <button
+              type="button"
+              className={LINK_BUTTON}
+              onClick={() => void handleDelete(group)}
+              disabled={sending || group.studentCount > 0}
+              title={group.studentCount > 0 ? 'Solo se puede borrar un grupo sin alumnos' : undefined}
+            >
+              Borrar
+            </button>
+          )}
         </div>
       ),
     },
@@ -267,7 +299,7 @@ export function GroupsPage() {
           <select
             aria-label={`Grupo de ${row.email}`}
             value={row.groupId ?? ''}
-            disabled={sending || groups.length === 0}
+            disabled={!canEdit || sending || groups.length === 0}
             onChange={(event) => void handleMove(row, event.target.value)}
             className={`${FIELD_INPUT} py-1.5`}
           >
@@ -298,16 +330,18 @@ export function GroupsPage() {
             grupo, elígelo en Mis grupos.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setMessage(null)
-            setCreating(true)
-          }}
-          className="rounded-lg bg-accent-400 px-4 py-2.5 text-sm font-semibold text-ink-900 shadow-sm transition-colors hover:bg-accent-500"
-        >
-          + Nuevo grupo
-        </button>
+        {canEdit && (
+          <button
+            type="button"
+            onClick={() => {
+              setMessage(null)
+              setCreating(true)
+            }}
+            className="rounded-lg bg-accent-400 px-4 py-2.5 text-sm font-semibold text-ink-900 shadow-sm transition-colors hover:bg-accent-500"
+          >
+            + Nuevo grupo
+          </button>
+        )}
       </header>
 
       {message && (

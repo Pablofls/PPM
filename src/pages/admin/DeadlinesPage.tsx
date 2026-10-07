@@ -14,6 +14,7 @@ import {
   type FilterOption,
 } from '../../lib/catalog'
 import { formatDate, formatWeekRange } from '../../lib/format'
+import { usePermissions } from '../../auth/PermissionsProvider'
 
 const FIELD_INPUT =
   'rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 shadow-sm focus:border-ink-400 focus:ring-2 focus:ring-ink-900/5 focus:outline-none'
@@ -24,6 +25,9 @@ const FIELD_INPUT =
  * profesor hace unas pocas veces por periodo, no algo que consulte seguido.
  */
 export function DeadlinesPage() {
+  // Asignar y borrar exige «Puede editar» (0038); con «Solo lectura» se ven
+  // las fechas y las semanas, sin los formularios.
+  const canEdit = usePermissions().can('fechas_entrega', 'edicion')
   const [language, setLanguage] = useState('')
   const [sessionDay, setSessionDay] = useState('')
   const [period, setPeriod] = useState('')
@@ -93,90 +97,92 @@ export function DeadlinesPage() {
           Fechas de entrega
         </h1>
         <p className="mt-1.5 text-sm text-ink-500">
-          Fechas límite y semanas del semestre
+          Fechas límite y semanas del semestre{canEdit ? '' : ' · solo lectura'}
         </p>
       </header>
 
-      <SemesterWeeksSection />
+      <SemesterWeeksSection canEdit={canEdit} />
 
-      <section className="mb-6 rounded-xl border border-ink-200 bg-white p-5 shadow-sm">
-        <h2 className="text-sm font-semibold text-ink-900">Asignar fecha de entrega</h2>
+      {canEdit && (
+        <section className="mb-6 rounded-xl border border-ink-200 bg-white p-5 shadow-sm">
+          <h2 className="text-sm font-semibold text-ink-900">Asignar fecha de entrega</h2>
 
-        <div className="mt-4 flex flex-wrap items-end gap-3">
-          <Select label="Idioma" value={language} options={LANGUAGE_OPTIONS} onChange={setLanguage} />
-          <Select
-            label="Frecuencia"
-            value={sessionDay}
-            options={SESSION_DAY_OPTIONS}
-            onChange={setSessionDay}
-          />
-          <Select label="Período" value={period} options={PERIOD_OPTIONS} onChange={setPeriod} />
-
-          <div>
-            <label htmlFor="fecha-limite" className="mb-1 block text-xs font-medium text-ink-500">
-              Fecha límite
-            </label>
-            <input
-              id="fecha-limite"
-              type="date"
-              value={dueDate}
-              onChange={(event) => setDueDate(event.target.value)}
-              className={FIELD_INPUT}
+          <div className="mt-4 flex flex-wrap items-end gap-3">
+            <Select label="Idioma" value={language} options={LANGUAGE_OPTIONS} onChange={setLanguage} />
+            <Select
+              label="Frecuencia"
+              value={sessionDay}
+              options={SESSION_DAY_OPTIONS}
+              onChange={setSessionDay}
             />
-          </div>
-        </div>
+            <Select label="Período" value={period} options={PERIOD_OPTIONS} onChange={setPeriod} />
 
-        <div className="mt-5">
-          <p className="mb-2 text-xs font-medium text-ink-500">Formularios</p>
-          <div className="flex flex-wrap gap-2">
-            {DEADLINE_FORMS.map((form) => (
-              <label
-                key={form.code}
-                className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
-                  selected.has(form.code)
-                    ? 'border-ink-900 bg-ink-900 font-medium text-white'
-                    : 'border-ink-200 bg-white text-ink-700 hover:bg-ink-50'
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  className="sr-only"
-                  checked={selected.has(form.code)}
-                  onChange={() => toggleForm(form.code)}
-                />
-                {form.label} {form.name}
+            <div>
+              <label htmlFor="fecha-limite" className="mb-1 block text-xs font-medium text-ink-500">
+                Fecha límite
               </label>
-            ))}
+              <input
+                id="fecha-limite"
+                type="date"
+                value={dueDate}
+                onChange={(event) => setDueDate(event.target.value)}
+                className={FIELD_INPUT}
+              />
+            </div>
           </div>
-          <div className="mt-2 flex gap-4 text-sm">
-            <button
-              type="button"
-              className="font-medium text-ink-600 hover:text-ink-900"
-              onClick={() => setSelected(new Set(DEADLINE_FORMS.map((form) => form.code)))}
-            >
-              Seleccionar todos
-            </button>
-            <button
-              type="button"
-              className="font-medium text-ink-600 hover:text-ink-900"
-              onClick={() => setSelected(new Set())}
-            >
-              Limpiar
-            </button>
+
+          <div className="mt-5">
+            <p className="mb-2 text-xs font-medium text-ink-500">Formularios</p>
+            <div className="flex flex-wrap gap-2">
+              {DEADLINE_FORMS.map((form) => (
+                <label
+                  key={form.code}
+                  className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
+                    selected.has(form.code)
+                      ? 'border-ink-900 bg-ink-900 font-medium text-white'
+                      : 'border-ink-200 bg-white text-ink-700 hover:bg-ink-50'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    className="sr-only"
+                    checked={selected.has(form.code)}
+                    onChange={() => toggleForm(form.code)}
+                  />
+                  {form.label} {form.name}
+                </label>
+              ))}
+            </div>
+            <div className="mt-2 flex gap-4 text-sm">
+              <button
+                type="button"
+                className="font-medium text-ink-600 hover:text-ink-900"
+                onClick={() => setSelected(new Set(DEADLINE_FORMS.map((form) => form.code)))}
+              >
+                Seleccionar todos
+              </button>
+              <button
+                type="button"
+                className="font-medium text-ink-600 hover:text-ink-900"
+                onClick={() => setSelected(new Set())}
+              >
+                Limpiar
+              </button>
+            </div>
           </div>
-        </div>
 
-        {message && <p className="mt-4 text-sm text-red-700">{message}</p>}
+          {message && <p className="mt-4 text-sm text-red-700">{message}</p>}
 
-        <button
-          type="button"
-          disabled={!dueDate || selected.size === 0 || saving}
-          onClick={handleSave}
-          className="mt-5 rounded-lg bg-ink-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-ink-800 disabled:cursor-not-allowed disabled:bg-ink-200 disabled:text-ink-400"
-        >
-          {saving ? 'Guardando…' : 'Guardar fechas'}
-        </button>
-      </section>
+          <button
+            type="button"
+            disabled={!dueDate || selected.size === 0 || saving}
+            onClick={handleSave}
+            className="mt-5 rounded-lg bg-ink-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-ink-800 disabled:cursor-not-allowed disabled:bg-ink-200 disabled:text-ink-400"
+          >
+            {saving ? 'Guardando…' : 'Guardar fechas'}
+          </button>
+        </section>
+      )}
 
       <section className="rounded-xl border border-ink-200 bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-ink-200 px-5 py-3">
@@ -223,14 +229,16 @@ export function DeadlinesPage() {
                     </td>
                     <td className="px-4 py-3 text-ink-500">{formatDate(deadline.createdAt)}</td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        title="Borrar esta fecha"
-                        onClick={() => handleDelete(deadline.id)}
-                        className="rounded-lg px-2 py-1 text-ink-400 hover:bg-red-50 hover:text-red-700"
-                      >
-                        Borrar
-                      </button>
+                      {canEdit && (
+                        <button
+                          type="button"
+                          title="Borrar esta fecha"
+                          onClick={() => handleDelete(deadline.id)}
+                          className="rounded-lg px-2 py-1 text-ink-400 hover:bg-red-50 hover:text-red-700"
+                        >
+                          Borrar
+                        </button>
+                      )}
                     </td>
                   </tr>
                 )
@@ -256,7 +264,7 @@ function optionLabel(options: FilterOption[], value: string | null): string | nu
  * de entrega": un periodo nuevo (`PR-27`) se agrega ahí antes de poder
  * configurarle semanas, no se escribe a mano aquí.
  */
-function SemesterWeeksSection() {
+function SemesterWeeksSection({ canEdit }: { canEdit: boolean }) {
   const [periodCode, setPeriodCode] = useState('')
   const [firstWeekStart, setFirstWeekStart] = useState('')
   const [weekCount, setWeekCount] = useState('')
@@ -316,50 +324,54 @@ function SemesterWeeksSection() {
         La semana 1 empieza en lunes; las siguientes salen solas, sumando 7 días.
       </p>
 
-      <div className="mt-4 flex flex-wrap items-end gap-3">
-        <Select label="Período" value={periodCode} options={PERIOD_OPTIONS} onChange={setPeriodCode} />
-        <div>
-          <label htmlFor="semana-1" className="mb-1 block text-xs font-medium text-ink-500">
-            Semana 1 empieza (lunes)
-          </label>
-          <input
-            id="semana-1"
-            type="date"
-            value={firstWeekStart}
-            onChange={(event) => setFirstWeekStart(event.target.value)}
-            className={FIELD_INPUT}
-          />
-        </div>
-        <div>
-          <label htmlFor="num-semanas" className="mb-1 block text-xs font-medium text-ink-500">
-            Número de semanas
-          </label>
-          <input
-            id="num-semanas"
-            type="number"
-            min={1}
-            max={53}
-            value={weekCount}
-            onChange={(event) => setWeekCount(event.target.value)}
-            className={`${FIELD_INPUT} tnum w-24`}
-          />
-        </div>
-      </div>
+      {canEdit && (
+        <>
+          <div className="mt-4 flex flex-wrap items-end gap-3">
+            <Select label="Período" value={periodCode} options={PERIOD_OPTIONS} onChange={setPeriodCode} />
+            <div>
+              <label htmlFor="semana-1" className="mb-1 block text-xs font-medium text-ink-500">
+                Semana 1 empieza (lunes)
+              </label>
+              <input
+                id="semana-1"
+                type="date"
+                value={firstWeekStart}
+                onChange={(event) => setFirstWeekStart(event.target.value)}
+                className={FIELD_INPUT}
+              />
+            </div>
+            <div>
+              <label htmlFor="num-semanas" className="mb-1 block text-xs font-medium text-ink-500">
+                Número de semanas
+              </label>
+              <input
+                id="num-semanas"
+                type="number"
+                min={1}
+                max={53}
+                value={weekCount}
+                onChange={(event) => setWeekCount(event.target.value)}
+                className={`${FIELD_INPUT} tnum w-24`}
+              />
+            </div>
+          </div>
 
-      {firstWeekStart !== '' && !isMonday && (
-        <p className="mt-2 text-xs text-red-700">La semana 1 tiene que empezar en lunes.</p>
+          {firstWeekStart !== '' && !isMonday && (
+            <p className="mt-2 text-xs text-red-700">La semana 1 tiene que empezar en lunes.</p>
+          )}
+
+          {message && <p className="mt-4 text-sm text-red-700">{message}</p>}
+
+          <button
+            type="button"
+            disabled={!puedeGenerar}
+            onClick={handleGenerate}
+            className="mt-5 rounded-lg bg-ink-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-ink-800 disabled:cursor-not-allowed disabled:bg-ink-200 disabled:text-ink-400"
+          >
+            {saving ? 'Generando…' : 'Generar semanas'}
+          </button>
+        </>
       )}
-
-      {message && <p className="mt-4 text-sm text-red-700">{message}</p>}
-
-      <button
-        type="button"
-        disabled={!puedeGenerar}
-        onClick={handleGenerate}
-        className="mt-5 rounded-lg bg-ink-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-ink-800 disabled:cursor-not-allowed disabled:bg-ink-200 disabled:text-ink-400"
-      >
-        {saving ? 'Generando…' : 'Generar semanas'}
-      </button>
 
       <div className="mt-6 border-t border-ink-100 pt-5">
         <p className="mb-2 text-xs font-medium text-ink-500">Periodos configurados</p>
@@ -383,13 +395,15 @@ function SemesterWeeksSection() {
                     {periodo.weekCount} semanas · {formatWeekRange(periodo.firstStart, periodo.lastEnd)}
                   </span>
                 </span>
-                <button
-                  type="button"
-                  onClick={() => handleDeletePeriod(periodo.periodCode)}
-                  className="rounded-lg px-2 py-1 text-ink-400 hover:bg-red-50 hover:text-red-700"
-                >
-                  Borrar
-                </button>
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeletePeriod(periodo.periodCode)}
+                    className="rounded-lg px-2 py-1 text-ink-400 hover:bg-red-50 hover:text-red-700"
+                  >
+                    Borrar
+                  </button>
+                )}
               </li>
             ))}
           </ul>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../../auth/AuthProvider'
 import { useRepositoryQuery } from '../../data/hooks'
@@ -9,6 +9,7 @@ import type { WeeklyField, WeeklyFormCode, WeeklyFormMeta } from '../../lib/cata
 import { formatDateTime, formatWeekRange } from '../../lib/format'
 import { Badge } from '../../components/Badge'
 import { useStudentDossier } from '../../components/StudentDossier'
+import { usePermissions } from '../../auth/PermissionsProvider'
 
 /**
  * Una bitácora semanal, como una tarea de Canvas: instrucciones arriba, el
@@ -28,6 +29,9 @@ import { useStudentDossier } from '../../components/StudentDossier'
  */
 export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
   const { portalStudentId: studentId, portalReadOnly } = useAuth()
+  // Entregar exige «Puede editar» en esta bitácora (0038); con «Solo
+  // lectura» se ven las entregas anteriores y el formulario deshabilitado.
+  const { can, loading: loadingPermissions } = usePermissions()
   const navigate = useNavigate()
   // El admin en «Ver como Alumno» recibe las semanas de TODOS los periodos
   // (RLS de admin); el alumno, solo las del suyo. Se acotan al periodo del
@@ -61,6 +65,9 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
     },
     [navigate, form.name],
   )
+
+  // Sin acceso a esta bitácora, de vuelta a la lista de tareas.
+  if (!loadingPermissions && !can(form.code)) return <Navigate to="/alumno" replace />
 
   return (
     <>
@@ -98,7 +105,7 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
       <SubmissionForm
         form={form}
         onSubmitted={onSubmitted}
-        readOnly={portalReadOnly}
+        readOnly={portalReadOnly || !can(form.code, 'edicion')}
         weeks={studentWeeks}
         weeksLoading={weeksLoading}
         weeksError={weeksError}
@@ -312,7 +319,7 @@ function SubmissionForm({
         </button>
         <p className="text-xs text-ink-500">
           {readOnly
-            ? 'Vista de solo lectura: no puedes entregar en nombre del alumno.'
+            ? 'Vista de solo lectura: aquí no se puede entregar.'
             : existingEntry
               ? 'Puedes seguir corrigiéndola mientras siga siendo esta semana.'
               : 'Podrás corregirla mientras siga siendo esta semana.'}

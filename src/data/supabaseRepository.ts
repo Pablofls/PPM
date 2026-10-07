@@ -13,6 +13,7 @@ import type { PostgrestFilterBuilder } from '@supabase/postgrest-js'
 
 import type { FormCode, SkillLevel } from '../lib/catalog'
 import { SKILL_GROUPS } from '../lib/catalog'
+import type { AccessLevel } from '../lib/screens'
 import type { PanelRepository } from './repository'
 import { supabase } from './supabaseClient'
 import type {
@@ -25,6 +26,7 @@ import type {
   GroupInput,
   RegisteredStudent,
   RoleCode,
+  RoleScreenAccess,
   StaffAccountInput,
   UserAccount,
   RegistrationResult,
@@ -837,6 +839,67 @@ export const supabaseRepository: PanelRepository = {
       p_password: password,
     })
     if (error) throw new Error(`No se pudo cambiar la contraseña: ${error.message}`)
+  },
+
+  async getRoleScreenAccess(): Promise<RoleScreenAccess[]> {
+    const { data, error } = await supabase
+      .from('role_screen_access')
+      .select('role_code, screen_code, access')
+
+    if (error) throw new Error(`No se pudieron cargar los permisos: ${error.message}`)
+    return ((data ?? []) as PanelRecord[]).map((record) => ({
+      roleCode: str(record.role_code) as RoleCode,
+      screenCode: str(record.screen_code) ?? '',
+      access: str(record.access) as RoleScreenAccess['access'],
+    }))
+  },
+
+  async setRoleScreenAccess(role: RoleCode, screen: string, access: AccessLevel): Promise<void> {
+    // Sin fila = Sin acceso (0038 prohíbe guardar 'ninguno' en la matriz).
+    const { error } =
+      access === 'ninguno'
+        ? await supabase
+            .from('role_screen_access')
+            .delete()
+            .eq('role_code', role)
+            .eq('screen_code', screen)
+        : await supabase
+            .from('role_screen_access')
+            .upsert({ role_code: role, screen_code: screen, access })
+    if (error) throw new Error(`No se pudo guardar el permiso: ${error.message}`)
+  },
+
+  async getUserScreenAccess(userId: string): Promise<Record<string, AccessLevel>> {
+    const { data, error } = await supabase
+      .from('user_screen_access')
+      .select('screen_code, access')
+      .eq('user_id', userId)
+
+    if (error) throw new Error(`No se pudieron cargar las excepciones: ${error.message}`)
+    return Object.fromEntries(
+      ((data ?? []) as PanelRecord[]).map((record) => [
+        str(record.screen_code) ?? '',
+        str(record.access) as AccessLevel,
+      ]),
+    )
+  },
+
+  async setUserScreenAccess(
+    userId: string,
+    screen: string,
+    access: AccessLevel | null,
+  ): Promise<void> {
+    const { error } =
+      access === null
+        ? await supabase
+            .from('user_screen_access')
+            .delete()
+            .eq('user_id', userId)
+            .eq('screen_code', screen)
+        : await supabase
+            .from('user_screen_access')
+            .upsert({ user_id: userId, screen_code: screen, access })
+    if (error) throw new Error(`No se pudo guardar la excepción: ${error.message}`)
   },
 
   async setGroupTeacher(groupId: string, teacherId: string): Promise<void> {

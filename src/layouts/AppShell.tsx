@@ -7,6 +7,8 @@ import { GroupCover } from '../components/GroupCover'
 import { RoleSwitcher } from '../components/RoleSwitcher'
 import { SettingsMenu } from '../components/SettingsMenu'
 import { useAuth } from '../auth/AuthProvider'
+import { usePermissions } from '../auth/PermissionsProvider'
+import { SCREENS, screenByPath } from '../lib/screens'
 import { useGroups } from './GroupProvider'
 
 /**
@@ -19,14 +21,24 @@ import { useGroups } from './GroupProvider'
  */
 export function AppShell() {
   const location = useLocation()
-  const secciones = (['1', '2', 'A', 'B'] as const).map((moduleCode) => ({
-    moduleCode,
-    titulo: MODULE_TITLES[moduleCode],
-    formularios: FORMS.filter((form) => form.moduleCode === moduleCode),
-  }))
+  const { can, loading: loadingPermissions } = usePermissions()
+  // Solo las pantallas que la vista activa puede ver (0038); una sección
+  // sin ninguna no se muestra.
+  const secciones = (['1', '2', 'A', 'B'] as const)
+    .map((moduleCode) => ({
+      moduleCode,
+      titulo: MODULE_TITLES[moduleCode],
+      formularios: FORMS.filter((form) => form.moduleCode === moduleCode && can(form.code)),
+    }))
+    .filter((seccion) => seccion.formularios.length > 0)
+  const currentScreen = screenByPath(location.pathname)
+  const deniedScreen = currentScreen !== undefined && !can(currentScreen.code)
+  const firstAllowed = SCREENS.find(
+    (screen) => screen.path && screen.audience !== 'portal' && !screen.path.startsWith('/configuracion') && can(screen.code),
+  )?.path
   const currentForm = FORMS.find((form) => form.path === location.pathname)
   const groupContext = useGroups()
-  const { activeRole, viewingAsAdmin } = useAuth()
+  const { activeRole } = useAuth()
 
   // Sin grupo elegido en esta sesión, primero «Mis grupos» (como entrar a
   // Blackboard). `volver` regresa a la pantalla que se había pedido, para que
@@ -64,13 +76,16 @@ export function AppShell() {
             </NavGroup>
           ))}
 
-          <NavGroup title="Entregas">
-            <NavItem to="/entregas/estado-de-entregas" label="" name="Estado de Entregas" />
-            {/* Asignar fechas es admin-only (form_deadlines, 0017). */}
-            {viewingAsAdmin && (
-              <NavItem to="/entregas/fechas-de-entrega" label="" name="Fechas de entrega" />
-            )}
-          </NavGroup>
+          {(can('estado_entregas') || can('fechas_entrega')) && (
+            <NavGroup title="Entregas">
+              {can('estado_entregas') && (
+                <NavItem to="/entregas/estado-de-entregas" label="" name="Estado de Entregas" />
+              )}
+              {can('fechas_entrega') && (
+                <NavItem to="/entregas/fechas-de-entrega" label="" name="Fechas de entrega" />
+              )}
+            </NavGroup>
+          )}
 
 
           {/*
@@ -115,7 +130,20 @@ export function AppShell() {
         </header>
 
         <main className="flex-1 overflow-x-hidden px-8 py-7">
-          <Outlet />
+          {/*
+            Una pantalla sin acceso no se abre aunque se escriba su ruta: se
+            manda a la primera que sí puede ver. Lo que protege los datos es
+            RLS (0038); esto es para no mostrar una tabla vacía sin razón.
+          */}
+          {loadingPermissions ? null : deniedScreen ? (
+            firstAllowed ? (
+              <Navigate to={firstAllowed} replace />
+            ) : (
+              <NoAccess />
+            )
+          ) : (
+            <Outlet />
+          )}
         </main>
       </div>
     </div>
@@ -200,5 +228,18 @@ function NavItem({ to, label, name }: { to: string; label: string; name: string 
         )}
       </NavLink>
     </li>
+  )
+}
+
+/** Ninguna pantalla del panel le queda a la vista activa. */
+function NoAccess() {
+  return (
+    <div className="mx-auto mt-16 max-w-md rounded-xl border border-ink-200 bg-white p-8 text-center shadow-sm">
+      <h1 className="text-lg font-semibold text-ink-950">Sin pantallas disponibles</h1>
+      <p className="mt-2 text-sm text-ink-600">
+        Tu rol no tiene acceso a ninguna pantalla del panel. Pide a un administrador que te
+        dé permisos en Configuración → Usuarios y permisos.
+      </p>
+    </div>
   )
 }

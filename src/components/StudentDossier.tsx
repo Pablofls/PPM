@@ -20,7 +20,7 @@ import {
   toHref,
 } from '../lib/format'
 import { HOLLAND_LABELS } from '../lib/catalog'
-import { useAuth } from '../auth/AuthProvider'
+import { usePermissions } from '../auth/PermissionsProvider'
 import { useGroups } from '../layouts/GroupProvider'
 import { Badge, Dash } from './Badge'
 import { HollandRadar } from './HollandRadar'
@@ -57,6 +57,7 @@ export function StudentDossier<T extends BaseRow>({
   children,
 }: StudentDossierProps<T>) {
   const studentId = row?.studentId ?? null
+  const { can } = usePermissions()
   const [weekFixKey, setWeekFixKey] = useState(0)
   const { dossier, jobSearch, internship, error } = useDossier(studentId, weekFixKey)
   const { statuses, error: statusError } = useSubmissionStatus(studentId)
@@ -118,8 +119,15 @@ export function StudentDossier<T extends BaseRow>({
             ) : (
               <>
                 <DossierProfile dossier={dossier} fallback={row} />
-                <JobSearchLogs rows={jobSearch} onClassifyWeek={classifyWeek} />
-                <InternshipLogs rows={internship} onClassifyWeek={classifyWeek} />
+                {/* Corregir la semana exige «Puede editar» en esa bitácora (0038). */}
+                <JobSearchLogs
+                  rows={jobSearch}
+                  onClassifyWeek={can('form_busqueda', 'edicion') ? classifyWeek : undefined}
+                />
+                <InternshipLogs
+                  rows={internship}
+                  onClassifyWeek={can('form_practicas', 'edicion') ? classifyWeek : undefined}
+                />
               </>
             )}
 
@@ -428,7 +436,8 @@ function JobSearchLogs({
   onClassifyWeek,
 }: {
   rows: JobSearchLogRow[]
-  onClassifyWeek: ClassifyWeek
+  /** Sin él, la semana se ve pero no se corrige (sin «Puede editar», 0038). */
+  onClassifyWeek?: ClassifyWeek
 }) {
   if (!rows.length) return null
 
@@ -467,7 +476,8 @@ function InternshipLogs({
   onClassifyWeek,
 }: {
   rows: InternshipLogRow[]
-  onClassifyWeek: ClassifyWeek
+  /** Sin él, la semana se ve pero no se corrige (sin «Puede editar», 0038). */
+  onClassifyWeek?: ClassifyWeek
 }) {
   if (!rows.length) return null
 
@@ -540,7 +550,8 @@ function LogTable({
 }: {
   headers: string[]
   rows: LogRow[]
-  onClassifyWeek: ClassifyWeek
+  /** Sin él, la semana se ve pero no se corrige (sin «Puede editar», 0038). */
+  onClassifyWeek?: ClassifyWeek
 }) {
   return (
     <div className="max-h-96 overflow-auto rounded-lg border border-ink-200">
@@ -565,7 +576,11 @@ function LogTable({
                   weekStart={row.week.weekStart}
                   weekEnd={row.week.weekEnd}
                   weekNumber={row.week.weekNumber}
-                  onSave={(weekNumber) => onClassifyWeek(row.week.submissionId, weekNumber)}
+                  onSave={
+                    onClassifyWeek
+                      ? (weekNumber) => onClassifyWeek(row.week.submissionId, weekNumber)
+                      : undefined
+                  }
                 />
               </td>
               {row.cells.map((cell, index) => (
@@ -606,10 +621,9 @@ function WeekNumberCell({
   weekStart: string | null
   weekEnd: string | null
   weekNumber: number | null
-  onSave: (weekNumber: number | null) => Promise<void>
+  /** Sin él no hay botón de corregir. */
+  onSave?: (weekNumber: number | null) => Promise<void>
 }) {
-  // Corregir la semana es admin-only (admin_set_weekly_log_week_number, 0029).
-  const { viewingAsAdmin } = useAuth()
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(weekNumber !== null ? String(weekNumber) : '')
   const [saving, setSaving] = useState(false)
@@ -637,7 +651,7 @@ function WeekNumberCell({
               setSaving(true)
               setError(null)
               try {
-                await onSave(value.trim() === '' ? null : Number(value))
+                await onSave?.(value.trim() === '' ? null : Number(value))
                 setEditing(false)
               } catch (cause) {
                 setError(cause instanceof Error ? cause.message : 'No se pudo guardar.')
@@ -670,7 +684,7 @@ function WeekNumberCell({
     <div className="space-y-0.5">
       {weekNumber !== null && <div className="font-medium text-ink-900">Semana {weekNumber}</div>}
       <div>{formatWeekRange(weekStart, weekEnd) || <Dash />}</div>
-      {viewingAsAdmin && (
+      {onSave && (
         <button
           type="button"
           onClick={() => setEditing(true)}

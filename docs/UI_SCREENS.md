@@ -103,7 +103,33 @@ lectura» arriba. Se recuerda en el navegador. Cambia:
   *Corregir semana* en el expediente. Sus rutas mandan a Mis grupos
   (`AdminRoute`).
 
-### Usuarios · `/configuracion/usuarios`
+### Usuarios y permisos · `/configuracion/usuarios`
+
+> `0038_permissions.sql`. Antes «Usuarios». Dos pestañas: **Usuarios** (lo de
+> abajo) y **Permisos por rol**.
+
+**Permisos por rol:** una matriz con una fila por pantalla, agrupadas por
+sección (Módulo 1, Módulo 2, Apéndices, Bitácoras semanales, Entregas,
+Configuración, Portal del alumno), y una columna por rol: Administrador
+(«✓ Total», fijo), Coordinador, Maestro y Alumno. Cada celda es un selector
+Sin acceso / Solo lectura / Puede editar, coloreado (gris, azul, verde); las
+pantallas de consulta solo llegan a Solo lectura, y las que no aplican a un
+rol muestran «—». Bajo el nombre de las pantallas editables se dice qué
+significa editar. Cada cambio se guarda solo y aplica de inmediato.
+
+**Editar** de una persona agrega **Permisos de esta persona**: por pantalla,
+«Como su rol (…)» o una excepción.
+
+**Lo que decide en el resto del panel:** el rail solo muestra las pantallas
+que la vista activa puede leer (y una sección sin ninguna desaparece); una
+ruta sin acceso manda a la primera permitida; el engrane muestra Alumnos
+registrados y Administrar grupos según su permiso y Usuarios y permisos solo
+al admin; los botones de escribir (fechas, registrar, grupos, corregir
+semana) aparecen solo con Puede editar; y en el portal, ADN, Estado y cada
+bitácora según el rol alumno (sin Puede editar, la bitácora se ve en solo
+lectura).
+
+### Usuarios · pestaña
 
 > `0037_user_admin.sql`. Menú Configuración (engrane), solo en la vista de
 > administrador.

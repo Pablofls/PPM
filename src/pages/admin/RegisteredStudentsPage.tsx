@@ -18,6 +18,7 @@ import {
 } from '../../lib/catalog'
 import { formatGroupLabel, formatSessionDay } from '../../lib/format'
 import { useGroups } from '../../layouts/GroupProvider'
+import { usePermissions } from '../../auth/PermissionsProvider'
 import {
   downloadRegistrationTemplate,
   parseRegistrationFile,
@@ -79,6 +80,8 @@ export function RegisteredStudentsPage() {
 
   const groupContext = useGroups()
   const groups = groupContext?.groups
+  // Registrar exige «Puede editar» (0038); con «Solo lectura» queda la lista.
+  const canEdit = usePermissions().can('alumnos_registrados', 'edicion')
 
   const {
     data: students,
@@ -153,14 +156,16 @@ export function RegisteredStudentsPage() {
             idioma deben corresponder a un grupo que ya exista (ver Administrar grupos).
           </p>
         </div>
-        <div className="flex gap-2">
-          <button type="button" onClick={() => setDialog('import')} className={SECONDARY_BUTTON}>
-            Importar Excel
-          </button>
-          <button type="button" onClick={() => setDialog('single')} className={ACCENT_BUTTON}>
-            + Registrar alumno
-          </button>
-        </div>
+        {canEdit && (
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setDialog('import')} className={SECONDARY_BUTTON}>
+              Importar Excel
+            </button>
+            <button type="button" onClick={() => setDialog('single')} className={ACCENT_BUTTON}>
+              + Registrar alumno
+            </button>
+          </div>
+        )}
       </header>
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">

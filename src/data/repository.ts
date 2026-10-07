@@ -13,6 +13,7 @@
  */
 
 import type { FormCode } from '../lib/catalog'
+import type { AccessLevel } from '../lib/screens'
 import { isSupabaseConfigured } from './supabaseClient'
 import { supabaseRepository } from './supabaseRepository'
 import type {
@@ -25,6 +26,7 @@ import type {
   GroupInput,
   RegisteredStudent,
   RoleCode,
+  RoleScreenAccess,
   StaffAccountInput,
   UserAccount,
   RegistrationResult,
@@ -219,6 +221,18 @@ export interface PanelRepository {
   /** Cambia el maestro de un grupo. */
   setGroupTeacher(groupId: string, teacherId: string): Promise<void>
 
+  /** La matriz de permisos por rol (`0038`). Sin fila = Sin acceso. */
+  getRoleScreenAccess(): Promise<RoleScreenAccess[]>
+
+  /** Cambia una celda de la matriz. `ninguno` borra la fila. Admin-only. */
+  setRoleScreenAccess(role: RoleCode, screen: string, access: AccessLevel): Promise<void>
+
+  /** Las excepciones de una persona: pantalla → acceso. */
+  getUserScreenAccess(userId: string): Promise<Record<string, AccessLevel>>
+
+  /** Pone o quita (`null` = «como su rol») la excepción de una persona. Admin-only. */
+  setUserScreenAccess(userId: string, screen: string, access: AccessLevel | null): Promise<void>
+
   /** Las cuentas con el rol de coordinador. Para «Ver como» del admin. */
   getCoordinators(): Promise<Teacher[]>
 
@@ -403,6 +417,18 @@ export const emptyRepository: PanelRepository = {
     throw new Error('No hay conexión con la base de datos. No se guardó.')
   },
   async setGroupTeacher() {
+    throw new Error('No hay conexión con la base de datos. No se guardó.')
+  },
+  async getRoleScreenAccess() {
+    return []
+  },
+  async setRoleScreenAccess() {
+    throw new Error('No hay conexión con la base de datos. No se guardó.')
+  },
+  async getUserScreenAccess() {
+    return {}
+  },
+  async setUserScreenAccess() {
     throw new Error('No hay conexión con la base de datos. No se guardó.')
   },
   async getCoordinatedTeacherIds() {

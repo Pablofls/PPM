@@ -2,12 +2,17 @@ import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 
 import { profileDisplayName, useAuth } from '../auth/AuthProvider'
+import { usePermissions } from '../auth/PermissionsProvider'
 
 /** Las pantallas de Configuración. Viven aquí, no en el rail del panel. */
-const SETTINGS_ITEMS = [
-  { to: '/configuracion/alumnos-registrados', label: 'Alumnos registrados' },
-  { to: '/configuracion/grupos', label: 'Administrar grupos' },
-  { to: '/configuracion/usuarios', label: 'Usuarios' },
+/**
+ * `screen` es la pantalla de `0038` que da acceso; sin ella, es solo del
+ * admin (Usuarios y permisos no se delega).
+ */
+const SETTINGS_ITEMS: { to: string; label: string; screen?: string }[] = [
+  { to: '/configuracion/alumnos-registrados', label: 'Alumnos registrados', screen: 'alumnos_registrados' },
+  { to: '/configuracion/grupos', label: 'Administrar grupos', screen: 'grupos' },
+  { to: '/configuracion/usuarios', label: 'Usuarios y permisos' },
 ]
 
 /**
@@ -19,6 +24,10 @@ export function SettingsMenu({ tone }: { tone: 'dark' | 'light' }) {
   const { profile, session, signOut, viewingAsAdmin } = useAuth()
   const [open, setOpen] = useState(false)
   const menu = useRef<HTMLDivElement>(null)
+  const { can } = usePermissions()
+  const items = SETTINGS_ITEMS.filter((item) =>
+    item.screen ? can(item.screen) : viewingAsAdmin,
+  )
   const name = profileDisplayName(profile)
   const email = profile?.email ?? session?.user?.email ?? ''
   const initials =
@@ -91,13 +100,13 @@ export function SettingsMenu({ tone }: { tone: 'dark' | 'light' }) {
             </span>
           </NavLink>
 
-          {/* Configuración es de la vista de administrador. */}
-          {viewingAsAdmin && (
+          {/* Lo de Configuración que la vista activa puede abrir (0038). */}
+          {items.length > 0 && (
             <>
               <p className="px-4 pt-2.5 pb-1 text-[11px] font-semibold tracking-widest text-ink-400 uppercase">
                 Configuración
               </p>
-              {SETTINGS_ITEMS.map((item) => (
+              {items.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}

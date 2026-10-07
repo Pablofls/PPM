@@ -57,6 +57,11 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   apellido, correo, contraseña inicial, roles), cambiar roles, asignar
   maestros a coordinadores, contraseña nueva y desactivar. En Administrar
   grupos se reasigna el maestro de un grupo.
+- **Permisos** (`0038`, **pendiente de ejecutar**): fase 4. Configuración →
+  **Usuarios y permisos**: matriz por rol (Sin acceso / Solo lectura / Puede
+  editar por pantalla, incluido el alumno) y excepciones por persona. Se
+  aplica en la base (restrictivas de lectura, escrituras con «Puede editar»
+  acotadas a los grupos de cada quien) y decide menú, rutas y botones.
 - **Mi perfil** (`0034`, ejecutada el 2026-10-07): nombre y apellido por
   separado en `profiles` (se elimina `full_name`), correo y rol de solo
   lectura, y cambio de contraseña. Las tarjetas muestran el nombre del maestro.
@@ -202,7 +207,7 @@ Ya están construidos **Módulo 1, Módulo 2 y los Apéndices A/B**, las bitáco
 semanales (dentro del expediente del alumno), Estado de Entregas, Fechas de
 entrega (antes «Panel de Administrador»), Mis grupos y, en su menú
 Configuración, Alumnos Registrados (`0031`, alta de alumnos sin 1.0),
-Administrar grupos (`0032`) y Usuarios (`0037`).
+Administrar grupos (`0032`) y Usuarios y permisos (`0037`–`0038`).
 
 **Fuera de alcance mientras no se pida:** la hoja `fechas_entrega`.
 

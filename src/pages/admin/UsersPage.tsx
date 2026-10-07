@@ -4,6 +4,9 @@ import { ROLE_LABELS, STAFF_ROLES, useAuth } from '../../auth/AuthProvider'
 import { Badge, Dash } from '../../components/Badge'
 import { DataTable, type Column } from '../../components/DataTable'
 import { Modal } from '../../components/Modal'
+import { ACCESS_TONES, PermissionsMatrix, levelsFor, sectionsOf } from './PermissionsMatrix'
+import { usePermissions } from '../../auth/PermissionsProvider'
+import { ACCESS_LABELS, ACCESS_RANK, SCREENS, type AccessLevel, type ScreenMeta } from '../../lib/screens'
 import { PasswordInput } from '../../components/PasswordInput'
 import { useRepositoryQuery } from '../../data/hooks'
 import { repository } from '../../data/repository'
@@ -62,6 +65,8 @@ export function UsersPage() {
   const [message, setMessage] = useState<Message>(null)
   const [refreshKey, setRefreshKey] = useState(0)
   const [search, setSearch] = useState('')
+  // Usuarios y permisos: las cuentas, y la matriz de acceso por rol (0038).
+  const [tab, setTab] = useState<'usuarios' | 'permisos'>('usuarios')
   const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
 
@@ -141,71 +146,107 @@ export function UsersPage() {
     <>
       <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-ink-950">Usuarios</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-ink-950">Usuarios y permisos</h1>
           <p className="mt-1.5 text-sm text-ink-500">
-            Maestros, coordinadores y administradores: sus cuentas, sus roles y, a cada
-            coordinador, los maestros que supervisa. Los alumnos están en Alumnos registrados.
+            Las cuentas del panel, sus roles y qué ve y edita cada rol. Los alumnos están en
+            Alumnos registrados.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setMessage(null)
-            setCreating(true)
-          }}
-          className="rounded-lg bg-accent-400 px-4 py-2.5 text-sm font-semibold text-ink-900 shadow-sm transition-colors hover:bg-accent-500"
-        >
-          + Nuevo usuario
-        </button>
+        {tab === 'usuarios' && (
+          <button
+            type="button"
+            onClick={() => {
+              setMessage(null)
+              setCreating(true)
+            }}
+            className="rounded-lg bg-accent-400 px-4 py-2.5 text-sm font-semibold text-ink-900 shadow-sm transition-colors hover:bg-accent-500"
+          >
+            + Nuevo usuario
+          </button>
+        )}
       </header>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <Stat value={users.length} label="Usuarios" tone="text-ink-950" />
-        <Stat value={activeCount} label="Activos" tone="text-emerald-700" />
-        <Stat value={users.length - activeCount} label="Desactivados" tone="text-red-700" />
+      <div role="tablist" className="mb-6 flex gap-1 border-b border-ink-200">
+        {(
+          [
+            ['usuarios', 'Usuarios'],
+            ['permisos', 'Permisos por rol'],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={tab === key}
+            onClick={() => {
+              setMessage(null)
+              setTab(key)
+            }}
+            className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
+              tab === key
+                ? 'border-ink-900 text-ink-950'
+                : 'border-transparent text-ink-500 hover:text-ink-900'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
-      {message && (
-        <p
-          role="status"
-          className={`mb-4 rounded-lg px-3 py-2 text-sm ${
-            message.tone === 'red' ? 'bg-red-50 text-red-800' : 'bg-emerald-50 text-emerald-800'
-          }`}
-        >
-          {message.text}
-        </p>
-      )}
+      {tab === 'permisos' ? (
+        <PermissionsMatrix />
+      ) : (
+        <>
+          <div className="mb-6 grid gap-4 sm:grid-cols-3">
+            <Stat value={users.length} label="Usuarios" tone="text-ink-950" />
+            <Stat value={activeCount} label="Activos" tone="text-emerald-700" />
+            <Stat value={users.length - activeCount} label="Desactivados" tone="text-red-700" />
+          </div>
 
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <input
-          type="search"
-          aria-label="Buscar usuario"
-          placeholder="Buscar por nombre o correo…"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          className={`${FIELD_INPUT} w-72`}
-        />
-        <p className="text-sm text-ink-500">{visible.length}</p>
-      </div>
-      <DataTable
-        columns={columns}
-        rows={visible}
-        rowKey={(user) => user.id}
-        rowAlert={(user) => !user.isActive || user.roles.length === 0}
-        loading={loading}
-        isConnected={isConnected}
-        error={error}
-      />
+          {message && (
+            <p
+              role="status"
+              className={`mb-4 rounded-lg px-3 py-2 text-sm ${
+                message.tone === 'red' ? 'bg-red-50 text-red-800' : 'bg-emerald-50 text-emerald-800'
+              }`}
+            >
+              {message.text}
+            </p>
+          )}
 
-      {creating && (
-        <NewUserModal
-          onClose={() => setCreating(false)}
-          onCreated={(text) => {
-            setCreating(false)
-            setMessage({ tone: 'green', text })
-            refresh()
-          }}
-        />
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <input
+              type="search"
+              aria-label="Buscar usuario"
+              placeholder="Buscar por nombre o correo…"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              className={`${FIELD_INPUT} w-72`}
+            />
+            <p className="text-sm text-ink-500">{visible.length}</p>
+          </div>
+          <DataTable
+            columns={columns}
+            rows={visible}
+            rowKey={(user) => user.id}
+            rowAlert={(user) => !user.isActive || user.roles.length === 0}
+            loading={loading}
+            isConnected={isConnected}
+            error={error}
+          />
+
+          {creating && (
+            <NewUserModal
+              onClose={() => setCreating(false)}
+              onCreated={(text) => {
+                setCreating(false)
+                setMessage({ tone: 'green', text })
+                refresh()
+              }}
+            />
+          )}
+
+        </>
       )}
 
       {editing && (
@@ -618,7 +659,139 @@ function UserEditor({
             {user.isActive ? 'Desactivar cuenta' : 'Reactivar cuenta'}
           </button>
         </div>
+
+        <div className="sm:col-span-2">
+          <UserPermissions user={user} onMessage={onMessage} />
+        </div>
       </div>
     </Modal>
+  )
+}
+
+/**
+ * Las excepciones de una persona (`user_screen_access`, `0038`): por pantalla,
+ * «Como su rol» (sin excepción) o un nivel que reemplaza al de sus roles. Se
+ * guardan en cuanto se eligen.
+ */
+function UserPermissions({
+  user,
+  onMessage,
+}: {
+  user: UserAccount
+  onMessage: (message: Message) => void
+}) {
+  const { matrix, refetch } = usePermissions()
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [savingScreen, setSavingScreen] = useState<string | null>(null)
+  const { data: overrides } = useRepositoryQuery(
+    () => repository.getUserScreenAccess(user.id),
+    {} as Record<string, AccessLevel>,
+    [user.id, refreshKey],
+  )
+
+  const staffRoles: RoleCode[] = user.roles.filter(
+    (role) => role === 'coordinador' || role === 'maestro',
+  )
+  if (user.roles.includes('admin')) {
+    return (
+      <>
+        <h3 className="text-sm font-semibold text-ink-900">Permisos de esta persona</h3>
+        <p className="mt-1 text-xs text-ink-500">
+          Es administrador: tiene acceso total y no lleva excepciones.
+        </p>
+      </>
+    )
+  }
+  if (staffRoles.length === 0) {
+    return (
+      <>
+        <h3 className="text-sm font-semibold text-ink-900">Permisos de esta persona</h3>
+        <p className="mt-1 text-xs text-ink-500">Dale primero un rol: sin rol no ve nada.</p>
+      </>
+    )
+  }
+
+  // Lo que le darían sus roles: el mayor de ellos, igual que la base.
+  const fromRoles = (screen: ScreenMeta): AccessLevel =>
+    matrix
+      .filter((cell) => cell.screenCode === screen.code && staffRoles.includes(cell.roleCode))
+      .reduce<AccessLevel>(
+        (best, cell) => (ACCESS_RANK[cell.access] > ACCESS_RANK[best] ? cell.access : best),
+        'ninguno',
+      )
+
+  async function change(screen: ScreenMeta, value: string) {
+    setSavingScreen(screen.code)
+    onMessage(null)
+    try {
+      await repository.setUserScreenAccess(user.id, screen.code, (value || null) as AccessLevel | null)
+      onMessage({
+        tone: 'green',
+        text: value
+          ? `${screen.name}: ${ACCESS_LABELS[value as AccessLevel]} para esta persona.`
+          : `${screen.name}: vuelve a lo que da su rol.`,
+      })
+      setRefreshKey((key) => key + 1)
+      refetch()
+    } catch (cause) {
+      onMessage({ tone: 'red', text: cause instanceof Error ? cause.message : 'No se pudo guardar.' })
+    } finally {
+      setSavingScreen(null)
+    }
+  }
+
+  const screens = SCREENS.filter((screen) => screen.audience !== 'portal')
+
+  return (
+    <>
+      <h3 className="text-sm font-semibold text-ink-900">Permisos de esta persona</h3>
+      <p className="mt-1 text-xs text-ink-500">
+        Por omisión, lo que da su rol (Permisos por rol). Una excepción lo reemplaza solo para
+        esta persona.
+      </p>
+      <div className="mt-3 max-h-80 overflow-y-auto rounded-lg border border-ink-200">
+        <table className="w-full border-collapse text-sm">
+          <tbody>
+            {sectionsOf(screens).map(({ section, screens: rows }) => [
+              <tr key={section} className="bg-ink-50">
+                <td
+                  colSpan={2}
+                  className="px-3 py-1.5 text-[11px] font-semibold tracking-widest text-ink-500 uppercase"
+                >
+                  {section}
+                </td>
+              </tr>,
+              ...rows.map((screen) => {
+                const override = overrides[screen.code]
+                const effective = override ?? fromRoles(screen)
+                return (
+                  <tr key={screen.code} className="border-t border-ink-100">
+                    <td className="px-3 py-1.5 text-ink-800">{screen.name}</td>
+                    <td className="w-56 px-3 py-1.5">
+                      <select
+                        aria-label={`Permiso de ${screen.name}`}
+                        value={override ?? ''}
+                        disabled={savingScreen === screen.code}
+                        onChange={(event) => void change(screen, event.target.value)}
+                        className={`w-full rounded-lg border px-2 py-1 text-sm focus:outline-none ${
+                          override ? ACCESS_TONES[effective] : 'border-ink-200 bg-white text-ink-600'
+                        }`}
+                      >
+                        <option value="">Como su rol ({ACCESS_LABELS[fromRoles(screen)]})</option>
+                        {levelsFor(screen).map((level) => (
+                          <option key={level} value={level}>
+                            {ACCESS_LABELS[level]}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                  </tr>
+                )
+              }),
+            ])}
+          </tbody>
+        </table>
+      </div>
+    </>
   )
 }

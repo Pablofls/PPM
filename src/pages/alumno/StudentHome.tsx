@@ -14,6 +14,7 @@ import { Toast } from '../../components/Toast'
 import { repository } from '../../data/repository'
 import { WEEKLY_FORMS, type WeeklyFormMeta } from '../../lib/catalog'
 import { formatRelativeTime, formatWeekRange } from '../../lib/format'
+import { usePermissions } from '../../auth/PermissionsProvider'
 
 /**
  * Índice del portal del alumno: su ADN Profesional y sus tareas.
@@ -34,6 +35,10 @@ export function StudentHome() {
   const correo = portalReadOnly
     ? dossier?.institutionalEmail
     : (profile?.email ?? session?.user?.email)
+  // Lo que el rol alumno puede ver (0038): cada parte del portal es una
+  // pantalla con permiso.
+  const { can } = usePermissions()
+  const forms = WEEKLY_FORMS.filter((form) => can(form.code))
   const { statuses, error: statusError } = useSubmissionStatus(studentId)
   const { weeks, error: weeksError } = useWeeklyLogStatus(studentId)
 
@@ -41,54 +46,64 @@ export function StudentHome() {
     <>
       {toast && <Toast message={toast} onDismiss={dismissToast} />}
 
-      <section className="rounded-xl border border-ink-200 bg-white p-6 shadow-sm">
-        <h2 className="text-sm font-semibold text-ink-900">ADN Profesional</h2>
-        <div className="mt-4 space-y-7">
-          <DossierProfile
-            dossier={dossier}
-            fallback={{ fullName: nombre ?? null, institutionalEmail: correo ?? null }}
-          />
-
-          <section>
-            <h3 className="mb-3 text-sm font-semibold text-ink-950">Estado de Entregas</h3>
-            {statusError ? (
-              <p className="text-sm text-red-800">{statusError}</p>
-            ) : (
-              <div className="flex flex-wrap gap-8">
-                <div className="space-y-2">
-                  <p className="text-[11px] font-semibold tracking-wider text-ink-500 uppercase">
-                    Formularios
-                  </p>
-                  <SubmissionStatusGrid statuses={statuses} />
-                </div>
-                <div className="space-y-2">
-                  <p className="text-[11px] font-semibold tracking-wider text-ink-500 uppercase">
-                    Semanas
-                  </p>
-                  {weeksError ? (
-                    <p className="text-sm text-red-800">{weeksError}</p>
-                  ) : (
-                    <WeeklyLogStatusGrid weeks={weeks} />
-                  )}
-                </div>
-              </div>
+      {(can('alumno_adn') || can('alumno_estado')) && (
+        <section className="rounded-xl border border-ink-200 bg-white p-6 shadow-sm">
+          <h2 className="text-sm font-semibold text-ink-900">
+            {can('alumno_adn') ? 'ADN Profesional' : 'Estado de Entregas'}
+          </h2>
+          <div className="mt-4 space-y-7">
+            {can('alumno_adn') && (
+              <DossierProfile
+                dossier={dossier}
+                fallback={{ fullName: nombre ?? null, institutionalEmail: correo ?? null }}
+              />
             )}
-          </section>
-        </div>
-      </section>
 
-      <section className="mt-8">
-        <h2 className="px-1 text-[11px] font-semibold tracking-widest text-ink-500 uppercase">
-          Tareas
-        </h2>
-        <ul className="mt-2 grid gap-3 sm:grid-cols-2">
-          {WEEKLY_FORMS.map((form) => (
-            <li key={form.code}>
-              <AssignmentCard form={form} />
-            </li>
-          ))}
-        </ul>
-      </section>
+            {can('alumno_estado') && (
+              <section>
+                <h3 className="mb-3 text-sm font-semibold text-ink-950">Estado de Entregas</h3>
+                {statusError ? (
+                  <p className="text-sm text-red-800">{statusError}</p>
+                ) : (
+                  <div className="flex flex-wrap gap-8">
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-semibold tracking-wider text-ink-500 uppercase">
+                        Formularios
+                      </p>
+                      <SubmissionStatusGrid statuses={statuses} />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-semibold tracking-wider text-ink-500 uppercase">
+                        Semanas
+                      </p>
+                      {weeksError ? (
+                        <p className="text-sm text-red-800">{weeksError}</p>
+                      ) : (
+                        <WeeklyLogStatusGrid weeks={weeks} />
+                      )}
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
+          </div>
+        </section>
+      )}
+
+      {forms.length > 0 && (
+        <section className="mt-8">
+          <h2 className="px-1 text-[11px] font-semibold tracking-widest text-ink-500 uppercase">
+            Tareas
+          </h2>
+          <ul className="mt-2 grid gap-3 sm:grid-cols-2">
+            {forms.map((form) => (
+              <li key={form.code}>
+                <AssignmentCard form={form} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </>
   )
 }

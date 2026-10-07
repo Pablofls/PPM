@@ -532,3 +532,10 @@ export interface StaffAccountInput {
   password: string
   roles: RoleCode[]
 }
+
+/** Una celda de la matriz de permisos por rol (`role_screen_access`, `0038`). */
+export interface RoleScreenAccess {
+  roleCode: RoleCode
+  screenCode: string
+  access: 'lectura' | 'edicion'
+}

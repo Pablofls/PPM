@@ -238,6 +238,24 @@ en claro; solo llama a `signInWithPassword()` y recibe una sesión.
 
 Tampoco se guarda nada de contraseñas en `profiles`.
 
+### Permisos (`0038`)
+
+Lo que ve cada rol ya no está fijo en el código. En **Configuración → Usuarios
+y permisos → Permisos por rol** el admin decide, por pantalla, el acceso de
+Coordinador, Maestro y Alumno: Sin acceso, Solo lectura o Puede editar. En
+**Editar** de una persona hay excepciones que reemplazan lo de su rol (por
+ejemplo, quitarle «Personalidad» a un maestro concreto). El administrador
+siempre tiene acceso total, y «Usuarios y permisos» y «Procesar datos» no se
+delegan.
+
+Se aplica en la base, no solo en la interfaz: sin lectura de un formulario,
+RLS no devuelve sus respuestas; sin «Puede editar» en una bitácora, el alumno
+no puede entregarla; con «Puede editar», un maestro o coordinador escribe
+(registrar alumnos, grupos, corregir semanas) **solo dentro de sus grupos**.
+Fechas de entrega es la excepción: sus reglas son globales. La interfaz usa
+los permisos del rol elegido en «Ver como»; la base, la unión de los roles de
+la persona.
+
 ### Cuentas de maestros, coordinadores y administradores (`0037`)
 
 Las crea un administrador en **Configuración → Usuarios**: nombre, apellido,

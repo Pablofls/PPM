@@ -1,7 +1,9 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 
 import { AdminRoute } from './auth/AdminRoute'
+import { ScreenRoute } from './auth/ScreenRoute'
 import { AuthProvider } from './auth/AuthProvider'
+import { PermissionsProvider } from './auth/PermissionsProvider'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { StudentRoute } from './auth/StudentRoute'
 import { AppShell } from './layouts/AppShell'
@@ -47,135 +49,137 @@ import { weeklyFormByCode } from './lib/catalog'
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route
-            path="/alumno"
-            element={
-              <StudentRoute>
-                <StudentShell />
-              </StudentRoute>
-            }
-          >
-            <Route index element={<StudentHome />} />
-
-            <Route path="perfil" element={<ProfilePage />} />
-
-            {/* Las dos bitácoras comparten pantalla: solo cambian sus campos. */}
+      <PermissionsProvider>
+        <BrowserRouter>
+          <Routes>
             <Route
-              path="reporte-de-busqueda"
-              element={<WeeklyLogPage form={weeklyFormByCode('form_busqueda')} />}
-            />
-            <Route
-              path="reporte-de-practicas"
-              element={<WeeklyLogPage form={weeklyFormByCode('form_practicas')} />}
-            />
+              path="/alumno"
+              element={
+                <StudentRoute>
+                  <StudentShell />
+                </StudentRoute>
+              }
+            >
+              <Route index element={<StudentHome />} />
 
-            <Route path="*" element={<Navigate to="/alumno" replace />} />
-          </Route>
+              <Route path="perfil" element={<ProfilePage />} />
 
-          {/*
-            «Mis grupos» y el panel comparten el grupo elegido, así que el
-            GroupProvider envuelve a los dos. «Mis grupos» va fuera del
-            AppShell: es la puerta de entrada, todavía sin rail.
-          */}
-          <Route
-            element={
-              <ProtectedRoute>
-                <GroupProvider>
-                  <Outlet />
-                </GroupProvider>
-              </ProtectedRoute>
-            }
-          >
-            {/* Afuera de un grupo: Mis grupos y el menú Configuración. */}
-            <Route element={<HomeShell />}>
-              <Route path="mis-grupos" element={<GroupPickerPage />} />
-              <Route path="mi-perfil" element={<MyProfilePage />} />
-              <Route path="configuracion">
-                <Route
-                  path="alumnos-registrados"
-                  element={
-                    <AdminRoute>
-                      <RegisteredStudentsPage />
-                    </AdminRoute>
-                  }
-                />
-                <Route
-                  path="grupos"
-                  element={
-                    <AdminRoute>
-                      <GroupsPage />
-                    </AdminRoute>
-                  }
-                />
-                <Route
-                  path="usuarios"
-                  element={
-                    <AdminRoute>
-                      <UsersPage />
-                    </AdminRoute>
-                  }
-                />
-              </Route>
+              {/* Las dos bitácoras comparten pantalla: solo cambian sus campos. */}
+              <Route
+                path="reporte-de-busqueda"
+                element={<WeeklyLogPage form={weeklyFormByCode('form_busqueda')} />}
+              />
+              <Route
+                path="reporte-de-practicas"
+                element={<WeeklyLogPage form={weeklyFormByCode('form_practicas')} />}
+              />
+
+              <Route path="*" element={<Navigate to="/alumno" replace />} />
             </Route>
 
-            <Route element={<AppShell />}>
-              <Route index element={<Navigate to="/modulo1/datos-demograficos" replace />} />
-
-              <Route path="modulo1">
-                <Route path="datos-demograficos" element={<DemographicsPage />} />
-                <Route path="intereses-profesionales" element={<InterestsPage />} />
-                <Route path="personalidad" element={<PersonalityPage />} />
-                <Route path="estilos-de-comportamiento" element={<BehaviorPage />} />
-                <Route path="habilidades" element={<SkillsPage />} />
-                <Route path="valores" element={<ValuesPage />} />
+            {/*
+              «Mis grupos» y el panel comparten el grupo elegido, así que el
+              GroupProvider envuelve a los dos. «Mis grupos» va fuera del
+              AppShell: es la puerta de entrada, todavía sin rail.
+            */}
+            <Route
+              element={
+                <ProtectedRoute>
+                  <GroupProvider>
+                    <Outlet />
+                  </GroupProvider>
+                </ProtectedRoute>
+              }
+            >
+              {/* Afuera de un grupo: Mis grupos y el menú Configuración. */}
+              <Route element={<HomeShell />}>
+                <Route path="mis-grupos" element={<GroupPickerPage />} />
+                <Route path="mi-perfil" element={<MyProfilePage />} />
+                <Route path="configuracion">
+                  <Route
+                    path="alumnos-registrados"
+                    element={
+                      <ScreenRoute screen="alumnos_registrados">
+                        <RegisteredStudentsPage />
+                      </ScreenRoute>
+                    }
+                  />
+                  <Route
+                    path="grupos"
+                    element={
+                      <ScreenRoute screen="grupos">
+                        <GroupsPage />
+                      </ScreenRoute>
+                    }
+                  />
+                  <Route
+                    path="usuarios"
+                    element={
+                      <AdminRoute>
+                        <UsersPage />
+                      </AdminRoute>
+                    }
+                  />
+                </Route>
               </Route>
 
-              <Route path="modulo2">
-                {/* Los cuatro comparten la tabla `reflections` y el mismo componente. */}
-                <Route path="analisis-foda" element={<ReflectionPage formCode="form2_1" />} />
-                <Route path="curriculum-vitae" element={<ReflectionPage formCode="form2_2" />} />
-                <Route path="cover-letter" element={<ReflectionPage formCode="form2_4" />} />
-                <Route path="elevator-pitch" element={<ReflectionPage formCode="form2_5" />} />
-                <Route path="indeed" element={<IndeedPage />} />
-              </Route>
+              <Route element={<AppShell />}>
+                <Route index element={<Navigate to="/modulo1/datos-demograficos" replace />} />
 
-              <Route path="apendice-a">
-                <Route path="carta-de-aceptacion" element={<InternshipsPage />} />
-              </Route>
+                <Route path="modulo1">
+                  <Route path="datos-demograficos" element={<DemographicsPage />} />
+                  <Route path="intereses-profesionales" element={<InterestsPage />} />
+                  <Route path="personalidad" element={<PersonalityPage />} />
+                  <Route path="estilos-de-comportamiento" element={<BehaviorPage />} />
+                  <Route path="habilidades" element={<SkillsPage />} />
+                  <Route path="valores" element={<ValuesPage />} />
+                </Route>
 
-              <Route path="apendice-b">
-                <Route path="formulario-de-inicio" element={<CompaniesPage />} />
-              </Route>
+                <Route path="modulo2">
+                  {/* Los cuatro comparten la tabla `reflections` y el mismo componente. */}
+                  <Route path="analisis-foda" element={<ReflectionPage formCode="form2_1" />} />
+                  <Route path="curriculum-vitae" element={<ReflectionPage formCode="form2_2" />} />
+                  <Route path="cover-letter" element={<ReflectionPage formCode="form2_4" />} />
+                  <Route path="elevator-pitch" element={<ReflectionPage formCode="form2_5" />} />
+                  <Route path="indeed" element={<IndeedPage />} />
+                </Route>
 
-              <Route path="entregas">
-                <Route path="estado-de-entregas" element={<SubmissionStatusPage />} />
-                <Route
-                  path="fechas-de-entrega"
-                  element={
-                    <AdminRoute>
-                      <DeadlinesPage />
-                    </AdminRoute>
-                  }
-                />
-              </Route>
+                <Route path="apendice-a">
+                  <Route path="carta-de-aceptacion" element={<InternshipsPage />} />
+                </Route>
 
-              {/* Rutas viejas: siguen funcionando si alguien las guardó. */}
-              <Route path="administrador">
-                <Route path="panel" element={<Navigate to="/entregas/fechas-de-entrega" replace />} />
-                <Route
-                  path="alumnos-registrados"
-                  element={<Navigate to="/configuracion/alumnos-registrados" replace />}
-                />
-                <Route path="grupos" element={<Navigate to="/configuracion/grupos" replace />} />
-              </Route>
+                <Route path="apendice-b">
+                  <Route path="formulario-de-inicio" element={<CompaniesPage />} />
+                </Route>
 
-              <Route path="*" element={<Navigate to="/modulo1/datos-demograficos" replace />} />
+                <Route path="entregas">
+                  <Route path="estado-de-entregas" element={<SubmissionStatusPage />} />
+                  <Route
+                    path="fechas-de-entrega"
+                    element={
+                      <ScreenRoute screen="fechas_entrega">
+                        <DeadlinesPage />
+                      </ScreenRoute>
+                    }
+                  />
+                </Route>
+
+                {/* Rutas viejas: siguen funcionando si alguien las guardó. */}
+                <Route path="administrador">
+                  <Route path="panel" element={<Navigate to="/entregas/fechas-de-entrega" replace />} />
+                  <Route
+                    path="alumnos-registrados"
+                    element={<Navigate to="/configuracion/alumnos-registrados" replace />}
+                  />
+                  <Route path="grupos" element={<Navigate to="/configuracion/grupos" replace />} />
+                </Route>
+
+                <Route path="*" element={<Navigate to="/modulo1/datos-demograficos" replace />} />
+              </Route>
             </Route>
-          </Route>
-        </Routes>
-      </BrowserRouter>
+          </Routes>
+        </BrowserRouter>
+      </PermissionsProvider>
     </AuthProvider>
   )
 }
