@@ -20,6 +20,7 @@ import {
   toHref,
 } from '../lib/format'
 import { HOLLAND_LABELS } from '../lib/catalog'
+import { useAuth } from '../auth/AuthProvider'
 import { useGroups } from '../layouts/GroupProvider'
 import { Badge, Dash } from './Badge'
 import { HollandRadar } from './HollandRadar'
@@ -607,6 +608,8 @@ function WeekNumberCell({
   weekNumber: number | null
   onSave: (weekNumber: number | null) => Promise<void>
 }) {
+  // Corregir la semana es admin-only (admin_set_weekly_log_week_number, 0029).
+  const { viewingAsAdmin } = useAuth()
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(weekNumber !== null ? String(weekNumber) : '')
   const [saving, setSaving] = useState(false)
@@ -667,13 +670,15 @@ function WeekNumberCell({
     <div className="space-y-0.5">
       {weekNumber !== null && <div className="font-medium text-ink-900">Semana {weekNumber}</div>}
       <div>{formatWeekRange(weekStart, weekEnd) || <Dash />}</div>
-      <button
-        type="button"
-        onClick={() => setEditing(true)}
-        className="font-medium text-ink-400 normal-case hover:text-ink-700 hover:underline"
-      >
-        {weekNumber !== null ? 'Corregir' : 'Clasificar semana'}
-      </button>
+      {viewingAsAdmin && (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="font-medium text-ink-400 normal-case hover:text-ink-700 hover:underline"
+        >
+          {weekNumber !== null ? 'Corregir' : 'Clasificar semana'}
+        </button>
+      )}
     </div>
   )
 }

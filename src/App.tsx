@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 
+import { AdminRoute } from './auth/AdminRoute'
 import { AuthProvider } from './auth/AuthProvider'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { StudentRoute } from './auth/StudentRoute'
@@ -91,8 +92,22 @@ export default function App() {
               <Route path="mis-grupos" element={<GroupPickerPage />} />
               <Route path="mi-perfil" element={<MyProfilePage />} />
               <Route path="configuracion">
-                <Route path="alumnos-registrados" element={<RegisteredStudentsPage />} />
-                <Route path="grupos" element={<GroupsPage />} />
+                <Route
+                  path="alumnos-registrados"
+                  element={
+                    <AdminRoute>
+                      <RegisteredStudentsPage />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="grupos"
+                  element={
+                    <AdminRoute>
+                      <GroupsPage />
+                    </AdminRoute>
+                  }
+                />
               </Route>
             </Route>
 
@@ -127,7 +142,14 @@ export default function App() {
 
               <Route path="entregas">
                 <Route path="estado-de-entregas" element={<SubmissionStatusPage />} />
-                <Route path="fechas-de-entrega" element={<DeadlinesPage />} />
+                <Route
+                  path="fechas-de-entrega"
+                  element={
+                    <AdminRoute>
+                      <DeadlinesPage />
+                    </AdminRoute>
+                  }
+                />
               </Route>
 
               {/* Rutas viejas: siguen funcionando si alguien las guardó. */}

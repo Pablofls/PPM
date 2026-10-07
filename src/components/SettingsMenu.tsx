@@ -15,7 +15,7 @@ const SETTINGS_ITEMS = [
  * el panel (barra clara).
  */
 export function SettingsMenu({ tone }: { tone: 'dark' | 'light' }) {
-  const { profile, session, signOut } = useAuth()
+  const { profile, session, signOut, viewingAsAdmin } = useAuth()
   const [open, setOpen] = useState(false)
   const menu = useRef<HTMLDivElement>(null)
   const name = profileDisplayName(profile)
@@ -90,24 +90,29 @@ export function SettingsMenu({ tone }: { tone: 'dark' | 'light' }) {
             </span>
           </NavLink>
 
-          <p className="px-4 pt-2.5 pb-1 text-[11px] font-semibold tracking-widest text-ink-400 uppercase">
-            Configuración
-          </p>
-          {SETTINGS_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              role="menuitem"
-              onClick={() => setOpen(false)}
-              className={({ isActive }) =>
-                `block px-4 py-2 text-sm ${
-                  isActive ? 'bg-ink-100 font-medium text-ink-900' : 'text-ink-700 hover:bg-ink-50'
-                }`
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
+          {/* Configuración es de la vista de administrador. */}
+          {viewingAsAdmin && (
+            <>
+              <p className="px-4 pt-2.5 pb-1 text-[11px] font-semibold tracking-widest text-ink-400 uppercase">
+                Configuración
+              </p>
+              {SETTINGS_ITEMS.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  role="menuitem"
+                  onClick={() => setOpen(false)}
+                  className={({ isActive }) =>
+                    `block px-4 py-2 text-sm ${
+                      isActive ? 'bg-ink-100 font-medium text-ink-900' : 'text-ink-700 hover:bg-ink-50'
+                    }`
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </>
+          )}
 
           <div className="mt-1 border-t border-ink-100 pt-1">
             <button

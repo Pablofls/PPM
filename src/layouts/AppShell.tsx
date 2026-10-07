@@ -4,7 +4,9 @@ import { repository } from '../data/repository'
 import { FORMS, MODULE_TITLES, UPCOMING_SECTIONS } from '../lib/catalog'
 import { formatGroupLabel } from '../lib/format'
 import { GroupCover } from '../components/GroupCover'
+import { RoleSwitcher } from '../components/RoleSwitcher'
 import { SettingsMenu } from '../components/SettingsMenu'
+import { useAuth } from '../auth/AuthProvider'
 import { useGroups } from './GroupProvider'
 
 /**
@@ -24,6 +26,7 @@ export function AppShell() {
   }))
   const currentForm = FORMS.find((form) => form.path === location.pathname)
   const groupContext = useGroups()
+  const { activeRole, viewingAsAdmin } = useAuth()
 
   // Sin grupo elegido en esta sesión, primero «Mis grupos» (como entrar a
   // Blackboard). `volver` regresa a la pantalla que se había pedido, para que
@@ -41,7 +44,13 @@ export function AppShell() {
           <p className="text-[15px] leading-tight font-semibold tracking-tight text-white group-hover:text-accent-300">
             Prácticas Profesionales
           </p>
-          <p className="mt-1 text-xs text-ink-400">Panel del profesor</p>
+          <p className="mt-1 text-xs text-ink-400">
+            {activeRole === 'admin'
+              ? 'Panel del administrador'
+              : activeRole === 'coordinador'
+                ? 'Panel del coordinador'
+                : 'Panel del maestro'}
+          </p>
         </Link>
 
         <CurrentGroup />
@@ -57,7 +66,10 @@ export function AppShell() {
 
           <NavGroup title="Entregas">
             <NavItem to="/entregas/estado-de-entregas" label="" name="Estado de Entregas" />
-            <NavItem to="/entregas/fechas-de-entrega" label="" name="Fechas de entrega" />
+            {/* Asignar fechas es admin-only (form_deadlines, 0017). */}
+            {viewingAsAdmin && (
+              <NavItem to="/entregas/fechas-de-entrega" label="" name="Fechas de entrega" />
+            )}
           </NavGroup>
 
 
@@ -81,6 +93,8 @@ export function AppShell() {
             </NavGroup>
           )}
         </nav>
+
+        <RoleSwitcher tone="rail" />
 
         {!repository.isConnected && (
           <p className="border-t border-white/10 px-5 py-4 text-xs leading-relaxed text-ink-400">

@@ -45,6 +45,11 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   como» de sus propios roles abajo del rail), usuarios y perfiles, permisos y
   «ver como» cualquier usuario.
   Todo cambio de BD de estas fases se normaliza hasta 4FN.
+- **Roles múltiples** (`0035`–`0036`, **pendientes de ejecutar**): fase 2.
+  Roles en `user_roles` (admin, coordinador, maestro, alumno; varios por
+  persona, salvo el alumno), `coordinator_teachers`, y políticas de alcance:
+  el maestro lee sus grupos y el coordinador los de sus maestros. Selector
+  **Ver como** abajo del rail. La escritura sigue siendo solo del admin.
 - **Mi perfil** (`0034`, ejecutada el 2026-10-07): nombre y apellido por
   separado en `profiles` (se elimina `full_name`), correo y rol de solo
   lectura, y cambio de contraseña. Las tarjetas muestran el nombre del maestro.
@@ -155,8 +160,9 @@ es un archivo nuevo.
 ### 8. Toda pantalla nace protegida y admin-only
 
 El panel muestra datos personales de alumnos. **Estar autenticado no da acceso a
-nada**: las políticas exigen `is_admin()`, no `authenticated`, y un usuario recién
-registrado tiene rol `pendiente` y no ve ni una fila.
+nada**: las políticas exigen `is_admin()` —o, desde `0036`, el alcance de
+maestro/coordinador con `visible_*_ids()`—, nunca `authenticated`, y un usuario
+recién registrado no tiene roles y no ve ni una fila.
 
 Al agregar una tabla o una pantalla:
 

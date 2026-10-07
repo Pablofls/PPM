@@ -1,5 +1,6 @@
 import { Link, Outlet, useLocation } from 'react-router-dom'
 
+import { RoleSwitcher } from '../components/RoleSwitcher'
 import { SettingsMenu } from '../components/SettingsMenu'
 
 /**
@@ -22,7 +23,10 @@ export function HomeShell() {
           </p>
           <p className="mt-0.5 text-xs text-ink-400 group-hover:text-ink-300">Mis grupos</p>
         </Link>
-        <SettingsMenu tone="dark" />
+        <div className="flex items-center gap-4">
+          <RoleSwitcher tone="dark" />
+          <SettingsMenu tone="dark" />
+        </div>
       </header>
 
       {isHome ? (

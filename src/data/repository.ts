@@ -186,8 +186,11 @@ export interface PanelRepository {
   /** Borra un grupo. La base lo impide si todavía tiene alumnos. */
   deleteGroup(id: string): Promise<void>
 
-  /** Quién puede impartir un grupo. */
+  /** Quién puede impartir un grupo: las cuentas con el rol de maestro (`0035`). */
   getTeachers(): Promise<Teacher[]>
+
+  /** Los maestros que coordina una cuenta (`coordinator_teachers`, `0035`). */
+  getCoordinatedTeacherIds(coordinatorId: string): Promise<string[]>
 
   /**
    * Asigna o mueve a un alumno de grupo (`admin_move_student()`): reemplaza
@@ -340,6 +343,9 @@ export const emptyRepository: PanelRepository = {
     throw new Error('No hay conexión con la base de datos. El grupo no se borró.')
   },
   async getTeachers() {
+    return []
+  },
+  async getCoordinatedTeacherIds() {
     return []
   },
   async moveStudentToGroup() {

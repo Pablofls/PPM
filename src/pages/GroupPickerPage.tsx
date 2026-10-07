@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
+import { useAuth } from '../auth/AuthProvider'
 import { GroupCover } from '../components/GroupCover'
 import type { Group } from '../data/types'
 import { ALL_GROUPS, useGroups } from '../layouts/GroupProvider'
@@ -22,6 +23,7 @@ const FIELD_INPUT =
  */
 export function GroupPickerPage() {
   const context = useGroups()
+  const { activeRole, viewingAsAdmin } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const groups = useMemo(() => context?.groups ?? [], [context?.groups])
@@ -129,7 +131,11 @@ export function GroupPickerPage() {
 
       {!context?.loading && groups.length === 0 && (
         <p className="mt-6 text-sm text-ink-500">
-          Todavía no hay grupos. Créalos en Configuración → Administrar grupos.
+          {viewingAsAdmin
+            ? 'Todavía no hay grupos. Créalos en Configuración → Administrar grupos.'
+            : activeRole === 'coordinador'
+              ? 'Todavía no tienes maestros asignados, o tus maestros no tienen grupos. Pídelo a un administrador.'
+              : 'Todavía no tienes grupos asignados. Pídelo a un administrador.'}
         </p>
       )}
     </main>

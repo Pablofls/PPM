@@ -16,7 +16,7 @@ import { PendingPage } from './PendingPage'
  * de alumno no lee ni una fila de nadie.
  */
 export function StudentRoute({ children }: { children: ReactNode }) {
-  const { session, loading, isAdmin, isStudent } = useAuth()
+  const { session, loading, isStaff, isStudent } = useAuth()
 
   if (loading) {
     return (
@@ -27,7 +27,7 @@ export function StudentRoute({ children }: { children: ReactNode }) {
   }
 
   if (!session) return <LoginPage />
-  if (isAdmin) return <Navigate to="/" replace />
+  if (isStaff) return <Navigate to="/" replace />
   if (!isStudent) return <PendingPage />
 
   return <>{children}</>

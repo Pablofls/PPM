@@ -13,7 +13,7 @@ import { PendingPage } from './PendingPage'
  * admin-only» de CLAUDE.md.
  */
 export function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { session, loading, isAdmin, isStudent } = useAuth()
+  const { session, loading, isStaff, isStudent } = useAuth()
 
   if (loading) {
     return (
@@ -27,7 +27,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   // Un alumno que escribe la dirección del panel no ve un error: va a su
   // pantalla. Lo que de verdad lo detiene es RLS, que no le devuelve una fila.
   if (isStudent) return <Navigate to="/alumno" replace />
-  if (!isAdmin) return <PendingPage />
+  if (!isStaff) return <PendingPage />
 
   return <>{children}</>
 }

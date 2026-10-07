@@ -11,13 +11,23 @@ import {
 
 import { supabase } from '../data/supabaseClient'
 
+/** Los roles de `roles` (`0035`). Una persona puede tener varios, salvo el alumno. */
+export type RoleCode = 'admin' | 'coordinador' | 'maestro' | 'alumno'
+
+/** Los roles del panel, del de más alcance al de menos. */
+export const STAFF_ROLES: RoleCode[] = ['admin', 'coordinador', 'maestro']
+
+/** Dónde se recuerda con qué rol está viendo el panel quien tiene varios. */
+const ACTIVE_ROLE_KEY = 'ppm.rol'
+
 export interface Profile {
   id: string
   email: string
   /** Desde `0034`. En los alumnos va vacío: su nombre vive en `demographics`. */
   first_name: string | null
   last_name: string | null
-  role: 'admin' | 'alumno' | 'pendiente'
+  /** De `user_roles`, vía `v_users`. Vacío = cuenta pendiente de autorización. */
+  roles: RoleCode[]
   is_active: boolean
   /** El alumno al que corresponde la cuenta. `null` en el profesor. */
   student_id: string | null
@@ -34,10 +44,23 @@ interface AuthState {
    * existe) se veía igual que una cuenta pendiente de autorización.
    */
   profileError: string | null
-  /** Único criterio de acceso al panel del profesor. */
+  /** Tiene el rol admin (sin importar con qué rol está viendo). */
   isAdmin: boolean
   /** Único criterio de acceso a la vista del alumno. */
   isStudent: boolean
+  /** Tiene algún rol del panel: admin, coordinador o maestro. Criterio de acceso al panel. */
+  isStaff: boolean
+  /** Sus roles del panel, del de más alcance al de menos. */
+  staffRoles: RoleCode[]
+  /**
+   * Con qué rol está viendo el panel («Ver como»). Decide qué grupos ve y qué
+   * secciones aparecen. Quien tiene un solo rol, siempre ese. RLS deja leer la
+   * unión de sus roles; esto solo acota lo que la interfaz muestra.
+   */
+  activeRole: RoleCode | null
+  setActiveRole: (role: RoleCode) => void
+  /** Atajo: la vista activa es la de administrador. */
+  viewingAsAdmin: boolean
   signIn: (email: string, password: string) => Promise<string | null>
   signOut: () => Promise<void>
   /**
@@ -56,6 +79,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loadingSession, setLoadingSession] = useState(true)
   const [loadingProfile, setLoadingProfile] = useState(false)
   const [profileError, setProfileError] = useState<string | null>(null)
+  const [storedRole, setStoredRole] = useState<string>(() => {
+    try {
+      return localStorage.getItem(ACTIVE_ROLE_KEY) ?? ''
+    } catch {
+      return ''
+    }
+  })
 
   // Sesión. El callback de onAuthStateChange se mantiene síncrono a propósito:
   // hacer await de una consulta aquí adentro puede bloquear al cliente de
@@ -91,8 +121,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfileError(null)
 
     supabase
-      .from('profiles')
-      .select('id, email, first_name, last_name, role, is_active, student_id')
+      .from('v_users')
+      .select('id, email, first_name, last_name, roles, is_active, student_id')
       .eq('id', userId)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -134,20 +164,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [userId],
   )
 
-  const value = useMemo<AuthState>(
-    () => ({
+  const setActiveRole = useCallback((role: RoleCode) => {
+    setStoredRole(role)
+    try {
+      localStorage.setItem(ACTIVE_ROLE_KEY, role)
+    } catch {
+      // Sin almacenamiento, la vista dura lo que dure la página.
+    }
+  }, [])
+
+  const value = useMemo<AuthState>(() => {
+    const active = profile?.is_active ? (profile.roles ?? []) : []
+    const staffRoles = STAFF_ROLES.filter((role) => active.includes(role))
+    // El rol guardado solo vale si la cuenta lo sigue teniendo; si no, el de
+    // más alcance.
+    const activeRole = staffRoles.includes(storedRole as RoleCode)
+      ? (storedRole as RoleCode)
+      : (staffRoles[0] ?? (active.includes('alumno') ? 'alumno' : null))
+    return {
       session,
       profile,
       loading: loadingSession || loadingProfile,
       profileError,
-      isAdmin: profile?.role === 'admin' && profile.is_active,
-      isStudent: profile?.role === 'alumno' && profile.is_active,
+      isAdmin: active.includes('admin'),
+      isStudent: active.includes('alumno'),
+      isStaff: staffRoles.length > 0,
+      staffRoles,
+      activeRole,
+      setActiveRole,
+      viewingAsAdmin: activeRole === 'admin',
       signIn,
       signOut,
       updateName,
-    }),
-    [session, profile, loadingSession, loadingProfile, profileError, signIn, signOut, updateName],
-  )
+    }
+  }, [
+    session,
+    profile,
+    loadingSession,
+    loadingProfile,
+    profileError,
+    storedRole,
+    setActiveRole,
+    signIn,
+    signOut,
+    updateName,
+  ])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
@@ -169,10 +230,11 @@ export function profileDisplayName(
 }
 
 /** Cómo se llama cada rol en la interfaz. */
-export const ROLE_LABELS: Record<Profile['role'], string> = {
+export const ROLE_LABELS: Record<RoleCode, string> = {
   admin: 'Administrador',
+  coordinador: 'Coordinador',
+  maestro: 'Maestro',
   alumno: 'Alumno',
-  pendiente: 'Pendiente de autorización',
 }
 
 /**

@@ -10,6 +10,9 @@
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
 - **Última migración aplicada:** `0034_profile_names.sql` (2026-10-07).
+  `0035_roles.sql` y `0036_scoped_rls.sql` (roles múltiples y alcance por
+  rol) están escritas y documentadas aquí pero **todavía no se pegan en
+  Supabase**.
   `0019_student_dossier_read.sql` está escrita y documentada aquí pero
   **todavía no se pega en Supabase**.
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
@@ -133,6 +136,22 @@ erDiagram
     GROUPS ||--o{ STUDENT_ENROLLMENTS : "tiene alumnos"
     PERIODS ||--o{ GROUPS : "en un periodo"
     PROFILES ||--o{ GROUPS : "imparte (maestro)"
+    PROFILES ||--o{ USER_ROLES : "tiene"
+    ROLES ||--o{ USER_ROLES : "asignado"
+    PROFILES ||--o{ COORDINATOR_TEACHERS : "coordina"
+    PROFILES ||--o{ COORDINATOR_TEACHERS : "es coordinado"
+
+    ROLES {
+        text code PK "admin | coordinador | maestro | alumno"
+    }
+    USER_ROLES {
+        uuid user_id PK "FK profiles"
+        text role_code PK "FK roles"
+    }
+    COORDINATOR_TEACHERS {
+        uuid coordinator_id PK "FK profiles"
+        uuid teacher_id PK "FK profiles"
+    }
 
     PERIODS {
         text code PK "PR-26"
@@ -159,7 +178,6 @@ erDiagram
         citext email UK
         text first_name "desde 0034"
         text last_name "desde 0034"
-        app_role role "admin | pendiente"
         boolean is_active
     }
     STUDENTS {
@@ -342,28 +360,86 @@ columna también dejaba cambiar `email`, `is_active` o `student_id`. Lo demás l
 escriben funciones `SECURITY DEFINER`. `handle_new_user()` lee `first_name` y
 `last_name` de los metadatos del alta.
 
-### `app_role`
+### Roles (desde `0035`)
 
-`admin` · `alumno` · `pendiente`
+> `0035_roles.sql` y `0036_scoped_rls.sql` — ⏳ **pendientes de ejecutar**.
+> Hasta `0034` cada cuenta tenía un solo rol en `profiles.role` (tipo
+> `app_role`: `admin`, `alumno`, `pendiente`). Esa columna y el tipo **se
+> eliminaron**.
 
-`pendiente` es el rol con el que nace todo usuario. Puede iniciar sesión y no ve
-nada. Roles futuros se agregan con `ALTER TYPE app_role ADD VALUE`, y en su
-**propio archivo**: PostgreSQL no deja usar un valor de enum en la misma
-transacción que lo agregó. Por eso `alumno` viene solo en `0013`.
+Una persona puede tener **varios roles** (René: `admin` + `maestro`).
+*Pendiente* ya no es un valor: es no tener ningún rol.
 
-`alumno` hoy es un rol sin lectura: no hay una sola política que lo mencione, así
-que un alumno con sesión no ve ni una fila —ni la suya—. Solo existen su cuenta y
-su pantalla de bienvenida. Las políticas `student_id = current_student_id()`
-llegan cuando lleguen sus pantallas de datos.
+| Rol | Qué ve |
+|---|---|
+| `admin` | Todo. Es el único que escribe desde el panel |
+| `coordinador` | Los grupos —y sus alumnos— de los maestros que tiene asignados en `coordinator_teachers` |
+| `maestro` | Sus grupos (`groups.teacher_id`) y sus alumnos |
+| `alumno` | Su portal. **Exclusivo**: no se combina con otro rol |
+
+#### `roles`
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `code` | `text` PK | `admin`, `coordinador`, `maestro`, `alumno`. El nombre visible vive en la interfaz |
+
+#### `user_roles`
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `user_id` | `uuid` FK `profiles(id)` ON DELETE CASCADE | PK compuesta |
+| `role_code` | `text` FK `roles(code)` | PK compuesta; índice propio |
+| `created_at` | `timestamptz` NOT NULL DEFAULT `now()` | |
+
+#### `coordinator_teachers`
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `coordinator_id` | `uuid` FK `profiles(id)` ON DELETE CASCADE | PK compuesta; debe tener el rol `coordinador` |
+| `teacher_id` | `uuid` FK `profiles(id)` ON DELETE CASCADE | PK compuesta; debe tener el rol `maestro`; índice propio |
+| `created_at` | `timestamptz` NOT NULL DEFAULT `now()` | |
+
+CHECK `coordinator_id <> teacher_id`.
+
+**Normalización (4FN).** `user_roles` y `coordinator_teachers` son tablas
+todo-llave (BCNF). Los roles de una persona son un hecho multivaluado
+(usuario ↠ rol) y «A coordina a B» es otro, **independiente**: guardarlos
+juntos en una tabla (usuario, rol, maestro) mezclaría dos dependencias
+multivaluadas independientes —la violación típica de 4FN—, por eso van en
+tablas separadas. `profiles.role` se eliminó porque repetía el mismo hecho.
+
+**Reglas (triggers).**
+
+- `guard_user_roles()` sobre `user_roles`: solo un admin agrega o quita roles
+  (o el SQL Editor / la sincronización, sin sesión); `alumno` no se combina con
+  otro rol; un admin no se quita su propio rol de admin; no se le quita
+  `maestro` a quien tiene grupos o está asignado a un coordinador, ni
+  `coordinador` a quien tiene maestros asignados. Sin `UPDATE`: cambiar de rol
+  es quitar uno y poner otro.
+- `guard_groups_teacher()` sobre `groups`: el maestro de un grupo tiene el rol `maestro`.
+- `guard_coordinator_teachers()`: solo un admin asigna, y solo de coordinador a maestro.
+- `touch_profile()`: mantiene `profiles.updated_at` (antes lo hacía
+  `guard_profile_role()`, que se eliminó).
+
+**RLS.** `roles`: lo lee el staff. `user_roles`: cada quien lee los suyos; el
+admin, todos. `coordinator_teachers`: el admin, y el coordinador o maestro de
+la fila. Sin políticas de escritura (SQL Editor y, en la fase de usuarios,
+funciones `SECURITY DEFINER`).
+
+**`v_users`** (`security_invoker`): cada cuenta con `roles text[]`, armado al
+leer desde `user_roles`. El frontend carga de aquí el perfil de la sesión.
 
 ### Funciones y triggers
 
 | Objeto | Qué hace |
 |---|---|
-| `is_admin()` | `SECURITY DEFINER`. Base de todas las políticas |
-| `handle_new_user()` | Trigger sobre `auth.users`: crea el perfil en `pendiente` |
-| `guard_profile_role()` | Trigger sobre `profiles`: protege la columna `role` |
-| `current_student_id()` | `SECURITY DEFINER`. El alumno de la sesión, o `NULL`. Base de las políticas «lo mío» |
+| `has_role(code)` | `SECURITY DEFINER`, `0035`. ¿La cuenta de la sesión, activa, tiene ese rol? |
+| `is_admin()` | `SECURITY DEFINER`. Base de todas las políticas `*_select_admin`. Desde `0035`, `has_role('admin')` |
+| `is_staff()` | `SECURITY DEFINER`, `0035`. Admin, coordinador o maestro |
+| `visible_teacher_ids()` / `visible_group_ids()` / `visible_student_ids()` | `SECURITY DEFINER`, `0035`. Lo que le toca a la sesión como maestro (lo suyo) y como coordinador (lo de sus maestros). No incluyen el camino del admin. Base de las políticas `*_select_scope` (`0036`) |
+| `handle_new_user()` | Trigger sobre `auth.users`: crea el perfil, sin roles |
+| `guard_profile_role()` | **Eliminada en `0035`** (protegía `profiles.role`); sus reglas viven en `guard_user_roles()` |
+| `current_student_id()` | `SECURITY DEFINER`. El alumno de la sesión (con rol `alumno`), o `NULL`. Base de las políticas «lo mío» |
 | `current_student_period()` | `SECURITY DEFINER`, `0018`. El `period_code` del alumno de la sesión, o `NULL`. Base de `semester_weeks_select_own` |
 | `create_student_accounts()` | Alta masiva de cuentas de alumno. Sin permiso de ejecución para `authenticated`; la llama `import_sheet_rows()` en cada sincronización (`0021`), y sigue disponible para correrla a mano en el SQL Editor |
 
@@ -374,9 +450,11 @@ se salta RLS dentro de la función y corta el ciclo. Además lleva
 `set search_path = ''` para que nadie pueda suplantar `public.profiles` con un
 esquema propio.
 
-**Por qué existe `guard_profile_role()`:** RLS decide qué *filas* se pueden
-modificar, pero no qué *columnas*. Sin este trigger, un usuario con permiso de
-editar su propio perfil podría ascenderse a `admin`.
+**Por qué existía `guard_profile_role()`:** RLS decide qué *filas* se pueden
+modificar, pero no qué *columnas*. Sin ese trigger, un usuario con permiso de
+editar su propio perfil podría ascenderse a `admin`. Desde `0035` los roles
+viven en `user_roles`, donde nadie escribe desde el navegador, y
+`guard_user_roles()` hace las validaciones.
 
 ---
 
@@ -1459,7 +1537,9 @@ RLS habilitado en **las 20 tablas**.
 | Rol | Permisos |
 |---|---|
 | `anon` | ninguno |
-| `authenticated` con rol `pendiente` | solo su propio `profiles` |
+| `authenticated` sin roles (pendiente) | solo su propio `profiles` |
+| `authenticated` con rol `maestro` (`0036`) | lectura de sus alumnos —los inscritos en sus grupos— en todas las tablas de datos de alumnos, sus grupos, su propio perfil, y los catálogos sin datos personales (`forms`, `periods`, `form_deadlines`, `semester_weeks`, `sheet_sync_runs`). Nada de escritura |
+| `authenticated` con rol `coordinador` (`0036`) | lo mismo, para los grupos de los maestros que tiene asignados, y los perfiles de esos maestros |
 | `authenticated` con rol `alumno` | su propio `profiles`; su propia inscripción y su propio grupo (`0032`); sus propias `submissions`, `job_search_logs` e `internship_logs`; lectura de las `semester_weeks` de su propio periodo; su propio `students` y su propio expediente (`demographics`, `holland_results`, `mbti_results`, `disc_results`, `values_results`, `company_profiles`); lectura de `form_deadlines` completa —no tiene datos personales, es la misma regla para todos— para poder calcular su propio estado de entregas. Ninguna fila de otro alumno, ninguna otra tabla |
 | `authenticated` con rol `admin` | lectura de todo; escritura directa de `form_deadlines` y `semester_weeks` |
 | `service_role` | escritura (importación y sincronización); se salta RLS por definición |
@@ -1572,6 +1652,8 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0032_groups.sql` | `groups`, `student_enrollments` → `(student_id, group_id)`, clasificación de los alumnos actuales, `v_current_enrollments`, `v_groups`, `v_students_directory` (el grupo manda, más `group_id`/`teacher_id`), `enforce_one_group_per_period()`, `assign_students_to_groups()` + trigger en `demographics`, `admin_create_group()`, `admin_move_student()`, `admin_register_students()` redefinida | ✅ 2026-10-07 |
 | `0033_views_group.sql` | `group_id` al final de las 10 `v_panel_*`, `v_submission_status` y `v_student_dossier` | ✅ 2026-10-07 |
 | `0034_profile_names.sql` | `profiles.first_name`/`last_name` (con CHECK), se elimina `full_name`, `v_groups` recreada con `teacher_name` derivado, `UPDATE` de `profiles` acotado por columna, `handle_new_user()` y `create_student_accounts()` sin `full_name` | ✅ 2026-10-07 |
+| `0035_roles.sql` | `roles`, `user_roles`, `coordinator_teachers`, se eliminan `profiles.role` y `app_role`; `has_role()`, `is_admin()` y `current_student_id()` sobre `user_roles`, `is_staff()`, `visible_*_ids()`, `guard_user_roles()`, `guard_groups_teacher()`, `guard_coordinator_teachers()`, `touch_profile()`, `v_users`, `admin_create_group()` y `create_student_accounts()` con roles; corrige `enforce_one_group_per_period()` en `UPDATE` | ⏳ **pendiente** |
+| `0036_scoped_rls.sql` | políticas `*_select_scope` (maestro y coordinador leen a sus alumnos, sus grupos y sus maestros) y `*_select_staff` de los catálogos | ⏳ **pendiente** |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.

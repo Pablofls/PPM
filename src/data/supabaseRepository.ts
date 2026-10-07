@@ -75,7 +75,16 @@ function applyFilters<T extends PostgrestFilterBuilder<any, any, any, any, any>>
   if (filters.semester) next = next.eq('semester', Number(filters.semester)) as T
   if (filters.period) next = next.eq('period_code', filters.period) as T
   if (filters.group) next = next.eq('group_id', filters.group) as T
+  else if (filters.scopeGroups) next = next.in('group_id', scopeIds(filters.scopeGroups)) as T
   return next
+}
+
+/**
+ * `in.()` vacío no es un filtro válido para PostgREST. Una vista sin grupos
+ * tiene que devolver cero filas, no todas: se filtra por un id que no existe.
+ */
+function scopeIds(ids: string[]): string[] {
+  return ids.length > 0 ? ids : ['00000000-0000-0000-0000-000000000000']
 }
 
 /**
@@ -94,6 +103,7 @@ async function fetchAppendix(view: string, filters: PanelFilters): Promise<Panel
   }
   if (filters.period) query = query.eq('period_code', filters.period)
   if (filters.group) query = query.eq('group_id', filters.group)
+  else if (filters.scopeGroups) query = query.in('group_id', scopeIds(filters.scopeGroups))
 
   const { data, error } = await query.order('full_name', {
     ascending: true,
@@ -730,9 +740,9 @@ export const supabaseRepository: PanelRepository = {
 
   async getTeachers(): Promise<Teacher[]> {
     const { data, error } = await supabase
-      .from('profiles')
+      .from('v_users')
       .select('id, first_name, last_name, email')
-      .eq('role', 'admin')
+      .contains('roles', ['maestro'])
       .eq('is_active', true)
       .order('first_name')
 
@@ -744,6 +754,16 @@ export const supabaseRepository: PanelRepository = {
       name: [str(record.first_name), str(record.last_name)].filter(Boolean).join(' ') || null,
       email: str(record.email) ?? '',
     }))
+  },
+
+  async getCoordinatedTeacherIds(coordinatorId: string): Promise<string[]> {
+    const { data, error } = await supabase
+      .from('coordinator_teachers')
+      .select('teacher_id')
+      .eq('coordinator_id', coordinatorId)
+
+    if (error) throw new Error(`No se pudieron cargar tus maestros: ${error.message}`)
+    return ((data ?? []) as PanelRecord[]).map((record) => str(record.teacher_id) ?? '')
   },
 
   async moveStudentToGroup(studentId: string, groupId: string): Promise<void> {

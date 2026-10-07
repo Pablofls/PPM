@@ -21,13 +21,29 @@ usuario recién registrado puede iniciar sesión y no ve ni una fila.
 
 ## Roles
 
+Desde `0035` una cuenta puede tener **varios roles** (`user_roles`); René es
+`admin` y `maestro`. Sin ningún rol, la cuenta está pendiente de autorización.
+
 | Rol | Qué puede hacer |
 |---|---|
-| `pendiente` | Iniciar sesión y ver su propio perfil. **Nada más.** Es el rol con el que nace todo usuario |
-| `alumno` | Iniciar sesión, entregar sus dos bitácoras semanales, leer **sus propias** entregas, su propio expediente (ADN Profesional) y su propio estado de entregas. Nada de ningún otro alumno, nada de los otros trece formularios |
-| `admin` | Leer todas las pantallas del panel y administrar los roles de los demás |
+| (sin roles) | Iniciar sesión y ver su propio perfil. **Nada más.** Así nace todo usuario |
+| `alumno` | Iniciar sesión, entregar sus dos bitácoras semanales, leer **sus propias** entregas, su propio expediente (ADN Profesional) y su propio estado de entregas. Nada de ningún otro alumno, nada de los otros trece formularios. **No se combina con otro rol** |
+| `maestro` | Leer el panel **de sus grupos**: sus alumnos y sus entregas. Sin escritura (`0036`) |
+| `coordinador` | Leer el panel de los grupos **de los maestros que tiene asignados** (`coordinator_teachers`). Sin escritura (`0036`) |
+| `admin` | Leer todo, escribir lo que el panel escribe (fechas, semanas, alumnos, grupos, sincronización) y administrar roles |
 
-Todas las pantallas **del panel** son admin-only. El alumno tiene su propio
+### «Ver como»
+
+Quien tiene varios roles del panel elige con cuál trabaja en el selector
+**Ver como** (abajo del rail, y en la barra de Mis grupos). La vista decide qué
+grupos aparecen y qué secciones se muestran (Configuración y Fechas de entrega
+solo en la vista de administrador). **No da ni quita permisos**: RLS deja leer
+la unión de los roles de la cuenta; la vista solo acota lo que la interfaz
+muestra. «Ver como» a otra persona (cualquier usuario) es una fase posterior.
+
+Las pantallas **del panel** son para el staff (`ProtectedRoute` exige un rol
+de admin, coordinador o maestro); Configuración y Fechas de entrega además van
+dentro de `AdminRoute`. El alumno tiene su propio
 árbol de rutas bajo `/alumno`, con su propia guardia (`StudentRoute`).
 
 ### Lo que el alumno puede hacer

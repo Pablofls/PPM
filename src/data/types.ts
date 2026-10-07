@@ -321,6 +321,13 @@ export interface PanelFilters {
    * toca. Ver `GroupProvider`.
    */
   group: string
+  /**
+   * Los grupos que la vista activa puede ver, cuando no se eligió uno
+   * («Todos mis grupos»). `null` = sin restricción (vista de administrador).
+   * RLS deja leer la unión de los roles de la cuenta; esto acota a la vista
+   * elegida en «Ver como». Ver `GroupProvider`.
+   */
+  scopeGroups: string[] | null
 }
 
 export const EMPTY_FILTERS: PanelFilters = {
@@ -331,6 +338,7 @@ export const EMPTY_FILTERS: PanelFilters = {
   semester: '',
   period: '',
   group: '',
+  scopeGroups: null,
 }
 
 /**

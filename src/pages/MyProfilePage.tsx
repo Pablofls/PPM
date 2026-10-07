@@ -84,9 +84,19 @@ export function MyProfilePage() {
               </dd>
             </div>
             <div>
-              <dt className="text-sm text-ink-700">Rol</dt>
-              <dd className="mt-1">
-                {profile ? <Badge tone="neutral">{ROLE_LABELS[profile.role]}</Badge> : null}
+              <dt className="text-sm text-ink-700">
+                {(profile?.roles.length ?? 0) > 1 ? 'Roles' : 'Rol'}
+              </dt>
+              <dd className="mt-1 flex flex-wrap gap-1.5">
+                {profile?.roles.length ? (
+                  profile.roles.map((role) => (
+                    <Badge key={role} tone="neutral">
+                      {ROLE_LABELS[role]}
+                    </Badge>
+                  ))
+                ) : (
+                  <Badge tone="neutral">Pendiente de autorización</Badge>
+                )}
               </dd>
             </div>
           </dl>

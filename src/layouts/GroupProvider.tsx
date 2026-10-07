@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react'
 
+import { useAuth } from '../auth/AuthProvider'
 import { useRepositoryQuery } from '../data/hooks'
 import { repository } from '../data/repository'
 import type { Group } from '../data/types'
@@ -23,7 +24,13 @@ export const ALL_GROUPS = 'todos'
 const STORAGE_KEY = 'ppm.grupo'
 
 interface GroupState {
+  /** Los grupos que ve la vista activa («Ver como»): todos, los que coordina o los suyos. */
   groups: Group[]
+  /**
+   * Para filtrar el panel cuando no se eligió un grupo: los ids de `groups`,
+   * o `null` en la vista de administrador (sin restricción).
+   */
+  scopeGroupIds: string[] | null
   loading: boolean
   error: string | null
   /** El profesor ya eligió un grupo (o «Todos») en esta sesión. */
@@ -59,10 +66,39 @@ export function GroupProvider({ children }: { children: ReactNode }) {
   const [refreshKey, setRefreshKey] = useState(0)
   const [storedId, setStoredId] = useState(readStored)
 
-  const { data: groups, loading, error } = useRepositoryQuery(
+  const { profile, activeRole } = useAuth()
+  const userId = profile?.id ?? ''
+
+  const { data: allGroups, loading: loadingGroups, error } = useRepositoryQuery(
     () => repository.getGroups(),
     [] as Group[],
     [refreshKey],
+  )
+
+  // Solo hace falta en la vista de coordinador.
+  const { data: coordinatedTeachers, loading: loadingTeachers } = useRepositoryQuery(
+    () =>
+      activeRole === 'coordinador'
+        ? repository.getCoordinatedTeacherIds(userId)
+        : Promise.resolve([] as string[]),
+    [] as string[],
+    [activeRole, userId],
+  )
+  const loading = loadingGroups || loadingTeachers
+
+  // RLS ya entrega la unión de los roles de la cuenta (René, admin y maestro,
+  // recibe todos). Aquí se acota a la vista elegida.
+  const groups = useMemo(() => {
+    if (activeRole === 'admin') return allGroups
+    if (activeRole === 'coordinador') {
+      return allGroups.filter((group) => coordinatedTeachers.includes(group.teacherId))
+    }
+    return allGroups.filter((group) => group.teacherId === userId)
+  }, [allGroups, coordinatedTeachers, activeRole, userId])
+
+  const scopeGroupIds = useMemo(
+    () => (activeRole === 'admin' ? null : groups.map((group) => group.id)),
+    [activeRole, groups],
   )
 
   const selectGroup = useCallback((id: string) => {
@@ -87,6 +123,7 @@ export function GroupProvider({ children }: { children: ReactNode }) {
     const hasChosen = isAll || selectedGroup !== null || (loading && storedId !== '')
     return {
       groups,
+      scopeGroupIds,
       loading,
       error,
       hasChosen,
@@ -95,7 +132,7 @@ export function GroupProvider({ children }: { children: ReactNode }) {
       selectGroup,
       refetch,
     }
-  }, [groups, loading, error, storedId, selectGroup, refetch])
+  }, [groups, scopeGroupIds, loading, error, storedId, selectGroup, refetch])
 
   return <GroupContext.Provider value={value}>{children}</GroupContext.Provider>
 }

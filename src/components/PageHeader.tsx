@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { useAuth } from '../auth/AuthProvider'
 import { useSyncStatus } from '../data/hooks'
 import { repository } from '../data/repository'
 import type { FormSummary, SyncRunResult, SyncStatus } from '../data/types'
@@ -38,6 +39,7 @@ export function PageHeader({
   isConnected,
   hideProcessAction = false,
 }: PageHeaderProps) {
+  const { viewingAsAdmin } = useAuth()
   const { data: sync, loading: syncLoading, isConnected: syncConnected, error: syncError, refetch } =
     useSyncStatus()
   const [toast, setToast] = useState<{ message: string; tone: 'success' | 'error' } | null>(null)
@@ -58,7 +60,8 @@ export function PageHeader({
             <SyncIndicator sync={sync} error={syncError} />
           )}
           <div className="flex gap-2">
-            {!hideProcessAction && (
+            {/* Reprocesar el Sheets es admin-only (admin_run_sheet_sync, 0022). */}
+            {!hideProcessAction && viewingAsAdmin && (
               <ProcessDataButton
                 disabled={!isConnected}
                 onDone={(result) => {
