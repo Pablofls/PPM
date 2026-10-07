@@ -37,9 +37,12 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
 - **Grupos** (`0032`–`0033`, ejecutadas el 2026-10-07): fase 1 de «varios
   maestros, coordinadores y administradores». Grupo = periodo + frecuencia +
   idioma + maestro; un alumno está en un grupo por periodo. Los datos actuales
-  se clasifican y se asignan al profesor actual. Selector de grupo global en el
-  encabezado y pantalla Grupos. Todavía no cambia quién ve qué: siguen las
-  fases de roles múltiples, usuarios y perfiles, permisos y «ver como».
+  se clasifican y se asignan al profesor actual. El profesor entra por
+  **Mis grupos** (tarjetas estilo Blackboard), y el grupo elegido filtra todo
+  el panel; *Administrar grupos* los crea y asigna alumnos. Todavía no cambia
+  quién ve qué: siguen las fases de roles múltiples (con el selector «Ver
+  como» de sus propios roles abajo del rail), usuarios y perfiles, permisos y
+  «ver como» cualquier usuario.
   Todo cambio de BD de estas fases se normaliza hasta 4FN.
 - El **rol `alumno`** existe: las cuentas se crean desde `demographics` (usuario =
   correo institucional, contraseña = matrícula) con

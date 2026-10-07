@@ -37,8 +37,10 @@ PPM
 └── ADMINISTRADOR
     ├── Panel de Administrador
     ├── Alumnos Registrados
-    └── Grupos
+    └── Administrar grupos
 ```
+
+Antes del rail está **Mis grupos** (abajo), y arriba del rail el grupo actual.
 
 Las secciones de «Próximamente» se muestran deshabilitadas a propósito: le comunican
 al profesor el alcance completo del proyecto sin prometer que ya funcionan.
@@ -48,18 +50,33 @@ son las dos pantallas nuevas, y a diferencia del resto de «Próximamente» sí
 funcionan. «Grupos» fue la última en salir (`0032`); con la lista vacía, el
 rail ya no muestra la sección «Próximamente».
 
-### Selector de grupo
+### Mis grupos · `/mis-grupos`
 
-En el encabezado de todas las pantallas del panel, junto al nombre del
-profesor: *Todos los grupos* o un grupo (`OT-26 · Lunes · Español (12)`; con
-varios maestros, también el nombre del maestro). Filtra **todas** las pantallas
-a la vez —tablas, contadores, Estado de Entregas y Alumnos Registrados— por la
-columna `group_id` de sus vistas (`0033`).
+La pantalla de inicio del profesor, como la lista de materias de Blackboard.
+Cada vez que entra (cada sesión del navegador) empieza aquí: una tarjeta por
+grupo con una **portada generada** a partir del id del grupo (color y patrón
+fijos por grupo, sin subir imágenes), el periodo, cuántos alumnos tiene,
+frecuencia · idioma y el maestro. Arriba, un buscador y el selector de
+**periodo** (por omisión el más reciente; también *Todos los periodos*).
 
-No es un parámetro de la URL como los filtros de la barra: el rail navega a la
-ruta limpia de cada pantalla y el grupo tiene que sobrevivir a ese cambio. Vive
-en `GroupProvider` y se recuerda en el navegador (`localStorage`, solo como
-comodidad). *Limpiar* de la barra de filtros no lo toca.
+La primera tarjeta es **Todos mis grupos**: entra al panel sin filtro de grupo.
+El botón *Administrar grupos* lleva a la pantalla de administración.
+
+Al elegir una tarjeta se entra al panel ya filtrado: todas las pantallas
+—tablas, contadores, Estado de Entregas y Alumnos Registrados— filtran por la
+columna `group_id` de sus vistas (`0033`). Si se abre una ruta del panel sin
+haber elegido grupo, el panel manda aquí con `?volver=` y, al elegir, regresa a
+esa ruta (un enlace guardado sigue sirviendo).
+
+El grupo elegido vive en `GroupProvider` y en `sessionStorage`, no en la URL
+como los filtros de la barra: el rail navega a la ruta limpia de cada pantalla
+y el grupo tiene que sobrevivir a ese cambio. *Limpiar* de la barra no lo toca.
+
+### Grupo actual en el rail
+
+Arriba del rail, un recuadro con la portada mini del grupo, su nombre
+(`OT-26 · Lunes · Español` o *Todos mis grupos*) y el enlace **Cambiar de
+grupo**, que vuelve a Mis grupos.
 
 ## Estructura común de una pantalla
 
@@ -374,18 +391,19 @@ es solo retroalimentación; la autoridad es `admin_register_students()`.
 Desde `0032` periodo + frecuencia + idioma tienen que corresponder a **un grupo
 que ya exista**; si no, la fila sale con el error «no existe un grupo …: créalo
 en Grupos». La tabla agrega la columna **Grupo** (o *Sin grupo*, en rojo) y
-respeta el selector de grupo del encabezado.
+respeta el grupo actual.
 
-## Grupos
+## Administrar grupos
 
-> `0032_groups.sql`. Ruta `/administrador/grupos`.
+> `0032_groups.sql`. Ruta `/administrador/grupos`. Elegir con qué grupo
+> trabajar es otra pantalla: [Mis grupos](#mis-grupos--mis-grupos).
 
 - **Nuevo grupo:** periodo (texto con sugerencias de los periodos existentes,
   formato `OT-26`), frecuencia, idioma y maestro. Con un solo maestro ya viene
   elegido. Crear un grupo inscribe de una vez a los alumnos sin grupo cuyo 1.0
   coincide solo con él.
 - **Tabla de grupos:** grupo, maestro, número de alumnos, *Ver en el panel*
-  (lo pone en el selector del encabezado) y *Borrar* (solo si no tiene alumnos).
+  (lo vuelve el grupo actual) y *Borrar* (solo si no tiene alumnos).
 - **Alumnos:** todo el directorio con lo que contestó (periodo · frecuencia ·
   idioma) y un selector de grupo por fila para asignarlo o moverlo. Por
   omisión muestra **solo los alumnos sin grupo** (en rojo), si hay alguno.

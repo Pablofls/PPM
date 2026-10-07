@@ -1,9 +1,10 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 
 import { AuthProvider } from './auth/AuthProvider'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { StudentRoute } from './auth/StudentRoute'
 import { AppShell } from './layouts/AppShell'
+import { GroupProvider } from './layouts/GroupProvider'
 import { StudentShell } from './layouts/StudentShell'
 import { BehaviorPage } from './pages/modulo1/BehaviorPage'
 import { DemographicsPage } from './pages/modulo1/DemographicsPage'
@@ -19,6 +20,7 @@ import { WeeklyLogPage } from './pages/alumno/WeeklyLogPage'
 import { IndeedPage } from './pages/modulo2/IndeedPage'
 import { ReflectionPage } from './pages/modulo2/ReflectionPage'
 import { DeadlinesPage } from './pages/admin/DeadlinesPage'
+import { GroupPickerPage } from './pages/GroupPickerPage'
 import { GroupsPage } from './pages/admin/GroupsPage'
 import { RegisteredStudentsPage } from './pages/admin/RegisteredStudentsPage'
 import { SubmissionStatusPage } from './pages/admin/SubmissionStatusPage'
@@ -68,52 +70,63 @@ export default function App() {
             <Route path="*" element={<Navigate to="/alumno" replace />} />
           </Route>
 
+          {/*
+            «Mis grupos» y el panel comparten el grupo elegido, así que el
+            GroupProvider envuelve a los dos. «Mis grupos» va fuera del
+            AppShell: es la puerta de entrada, todavía sin rail.
+          */}
           <Route
             element={
               <ProtectedRoute>
-                <AppShell />
+                <GroupProvider>
+                  <Outlet />
+                </GroupProvider>
               </ProtectedRoute>
             }
           >
-            <Route index element={<Navigate to="/modulo1/datos-demograficos" replace />} />
+            <Route path="mis-grupos" element={<GroupPickerPage />} />
 
-            <Route path="modulo1">
-              <Route path="datos-demograficos" element={<DemographicsPage />} />
-              <Route path="intereses-profesionales" element={<InterestsPage />} />
-              <Route path="personalidad" element={<PersonalityPage />} />
-              <Route path="estilos-de-comportamiento" element={<BehaviorPage />} />
-              <Route path="habilidades" element={<SkillsPage />} />
-              <Route path="valores" element={<ValuesPage />} />
+            <Route element={<AppShell />}>
+              <Route index element={<Navigate to="/modulo1/datos-demograficos" replace />} />
+
+              <Route path="modulo1">
+                <Route path="datos-demograficos" element={<DemographicsPage />} />
+                <Route path="intereses-profesionales" element={<InterestsPage />} />
+                <Route path="personalidad" element={<PersonalityPage />} />
+                <Route path="estilos-de-comportamiento" element={<BehaviorPage />} />
+                <Route path="habilidades" element={<SkillsPage />} />
+                <Route path="valores" element={<ValuesPage />} />
+              </Route>
+
+              <Route path="modulo2">
+                {/* Los cuatro comparten la tabla `reflections` y el mismo componente. */}
+                <Route path="analisis-foda" element={<ReflectionPage formCode="form2_1" />} />
+                <Route path="curriculum-vitae" element={<ReflectionPage formCode="form2_2" />} />
+                <Route path="cover-letter" element={<ReflectionPage formCode="form2_4" />} />
+                <Route path="elevator-pitch" element={<ReflectionPage formCode="form2_5" />} />
+                <Route path="indeed" element={<IndeedPage />} />
+              </Route>
+
+              <Route path="apendice-a">
+                <Route path="carta-de-aceptacion" element={<InternshipsPage />} />
+              </Route>
+
+              <Route path="apendice-b">
+                <Route path="formulario-de-inicio" element={<CompaniesPage />} />
+              </Route>
+
+              <Route path="entregas">
+                <Route path="estado-de-entregas" element={<SubmissionStatusPage />} />
+              </Route>
+
+              <Route path="administrador">
+                <Route path="panel" element={<DeadlinesPage />} />
+                <Route path="alumnos-registrados" element={<RegisteredStudentsPage />} />
+                <Route path="grupos" element={<GroupsPage />} />
+              </Route>
+
+              <Route path="*" element={<Navigate to="/modulo1/datos-demograficos" replace />} />
             </Route>
-
-            <Route path="modulo2">
-              {/* Los cuatro comparten la tabla `reflections` y el mismo componente. */}
-              <Route path="analisis-foda" element={<ReflectionPage formCode="form2_1" />} />
-              <Route path="curriculum-vitae" element={<ReflectionPage formCode="form2_2" />} />
-              <Route path="cover-letter" element={<ReflectionPage formCode="form2_4" />} />
-              <Route path="elevator-pitch" element={<ReflectionPage formCode="form2_5" />} />
-              <Route path="indeed" element={<IndeedPage />} />
-            </Route>
-
-            <Route path="apendice-a">
-              <Route path="carta-de-aceptacion" element={<InternshipsPage />} />
-            </Route>
-
-            <Route path="apendice-b">
-              <Route path="formulario-de-inicio" element={<CompaniesPage />} />
-            </Route>
-
-            <Route path="entregas">
-              <Route path="estado-de-entregas" element={<SubmissionStatusPage />} />
-            </Route>
-
-            <Route path="administrador">
-              <Route path="panel" element={<DeadlinesPage />} />
-              <Route path="alumnos-registrados" element={<RegisteredStudentsPage />} />
-              <Route path="grupos" element={<GroupsPage />} />
-            </Route>
-
-            <Route path="*" element={<Navigate to="/modulo1/datos-demograficos" replace />} />
           </Route>
         </Routes>
       </BrowserRouter>

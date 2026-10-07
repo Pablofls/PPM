@@ -6,7 +6,7 @@ import { Select } from '../../components/FilterBar'
 import { useRepositoryQuery } from '../../data/hooks'
 import { repository } from '../../data/repository'
 import type { Group, Language, RegisteredStudent, SessionDay, Teacher } from '../../data/types'
-import { useGroups } from '../../layouts/GroupProvider'
+import { ALL_GROUPS, useGroups } from '../../layouts/GroupProvider'
 import { LANGUAGE_OPTIONS, SESSION_DAY_OPTIONS } from '../../lib/catalog'
 import { formatGroupLabel, formatLanguage, formatSessionDay } from '../../lib/format'
 
@@ -129,7 +129,7 @@ export function GroupsPage() {
 
   async function handleDelete(group: Group) {
     if (!window.confirm(`¿Borrar el grupo ${formatGroupLabel(group)}?`)) return
-    if (groupContext?.selectedGroupId === group.id) groupContext.setSelectedGroupId('')
+    if (groupContext?.selectedGroupId === group.id) groupContext.selectGroup(ALL_GROUPS)
     await run(() => repository.deleteGroup(group.id), `Grupo ${formatGroupLabel(group)} borrado.`)
   }
 
@@ -165,7 +165,7 @@ export function GroupsPage() {
           <button
             type="button"
             className={LINK_BUTTON}
-            onClick={() => groupContext?.setSelectedGroupId(group.id)}
+            onClick={() => groupContext?.selectGroup(group.id)}
             disabled={groupContext?.selectedGroupId === group.id}
           >
             {groupContext?.selectedGroupId === group.id ? 'Viendo' : 'Ver en el panel'}
@@ -236,10 +236,10 @@ export function GroupsPage() {
   return (
     <>
       <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight text-ink-950">Grupos</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink-950">Administrar grupos</h1>
         <p className="mt-1.5 text-sm text-ink-500">
-          Un grupo es un periodo, una frecuencia y un idioma con su maestro. Elige un grupo en el
-          selector de arriba para que todas las pantallas muestren solo a sus alumnos.
+          Un grupo es un periodo, una frecuencia y un idioma con su maestro. Para ver solo a los
+          alumnos de un grupo, elígelo en «Cambiar de grupo», arriba del menú.
         </p>
       </header>
 
