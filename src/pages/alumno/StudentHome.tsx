@@ -11,7 +11,7 @@ import {
 } from '../../components/SubmissionStatusGrid'
 import { DossierProfile, useStudentDossier } from '../../components/StudentDossier'
 import { Toast } from '../../components/Toast'
-import { repository } from '../../data/repository'
+import { useWeeklyLogRows } from '../../data/hooks'
 import { WEEKLY_FORMS, type WeeklyFormMeta } from '../../lib/catalog'
 import { formatRelativeTime, formatWeekRange } from '../../lib/format'
 import { usePermissions } from '../../auth/PermissionsProvider'
@@ -162,42 +162,11 @@ interface LastEntry {
  */
 function useLastEntry(form: WeeklyFormMeta) {
   const { portalStudentId: studentId } = useAuth()
+  // Un error aquí deja la tarjeta sin resumen, no sin tarea: el alumno
+  // todavía puede entrar y entregar, que es lo que vino a hacer.
+  const { data: rows, loading } = useWeeklyLogRows(form.code, studentId)
 
-  const [entregas, setEntregas] = useState(0)
-  const [ultima, setUltima] = useState<LastEntry | null>(null)
-  const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    if (!studentId) return
-
-    let cancelled = false
-    setLoading(true)
-
-    const query =
-      form.code === 'form_busqueda'
-        ? repository.getJobSearchLogs(studentId)
-        : repository.getInternshipLogs(studentId)
-
-    query
-      .then((rows) => {
-        if (cancelled) return
-        setEntregas(rows.length)
-        setUltima(rows[0] ?? null)
-        setLoading(false)
-      })
-      // Un error aquí deja la tarjeta sin resumen, no sin tarea: el alumno
-      // todavía puede entrar y entregar, que es lo que vino a hacer.
-      .catch(() => {
-        if (cancelled) return
-        setLoading(false)
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [form.code, studentId])
-
-  return { entregas, ultima, loading }
+  return { entregas: rows.length, ultima: (rows[0] ?? null) as LastEntry | null, loading }
 }
 
 /**

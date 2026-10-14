@@ -1,9 +1,15 @@
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 
-import type { FormCode } from '../lib/catalog'
+import type { FormCode, WeeklyFormCode } from '../lib/catalog'
 import { repository } from './repository'
 import { fetchEntry, getEntry, setSnapshot, stableStringify } from './queryCache'
-import type { FormSummary, PanelFilters, SyncStatus } from './types'
+import type {
+  FormSummary,
+  InternshipLogRow,
+  JobSearchLogRow,
+  PanelFilters,
+  SyncStatus,
+} from './types'
 
 interface QueryResult<T> {
   data: T
@@ -23,6 +29,11 @@ interface QueryResult<T> {
    * escritura que ya se guardó (p. ej. una calificación).
    */
   mutate: (update: (current: T) => T) => void
+  /**
+   * Vuelve a consultar sin soltar el dato que ya se ve: la pantalla se
+   * actualiza en silencio, sin «Cargando…».
+   */
+  refetch: () => void
 }
 
 /**
@@ -85,6 +96,15 @@ export function useRepositoryQuery<T>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entry, waiting])
 
+  // La función de la consulta cambia en cada render; `refetch` usa la última.
+  const queryRef = useRef(query)
+  useEffect(() => {
+    queryRef.current = query
+  })
+  const refetch = useCallback(() => {
+    if (repository.isConnected && !waiting) void fetchEntry(entry, () => queryRef.current())
+  }, [entry, waiting])
+
   const mutate = useCallback(
     (update: (current: T) => T) => {
       if (!entry.snapshot.hasData) return
@@ -95,7 +115,7 @@ export function useRepositoryQuery<T>(
 
   return useMemo(() => {
     if (!repository.isConnected) {
-      return { data: fallback, loading: false, isConnected: false, error: null, mutate }
+      return { data: fallback, loading: false, isConnected: false, error: null, mutate, refetch }
     }
     return {
       data: snapshot.hasData ? (snapshot.data as T) : fallback,
@@ -105,11 +125,12 @@ export function useRepositoryQuery<T>(
       isConnected: true,
       error: snapshot.error,
       mutate,
+      refetch,
     }
     // `fallback` es un literal nuevo en cada render; solo importa su valor
     // cuando todavía no hay dato.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [snapshot, mutate])
+  }, [snapshot, mutate, refetch])
 }
 
 export function useFormSummary(formCode: FormCode, filters: PanelFilters) {
@@ -142,4 +163,23 @@ export function useSyncStatus() {
   const refetch = useCallback(() => setRefreshToken((token) => token + 1), [])
 
   return { ...result, refetch }
+}
+
+/**
+ * Las entregas de una bitácora semanal del alumno, de la más reciente a la más
+ * antigua. El inicio del portal y la pantalla de la bitácora piden lo mismo,
+ * así que comparten el resultado.
+ */
+export function useWeeklyLogRows(code: WeeklyFormCode, studentId: string | null) {
+  return useRepositoryQuery<(JobSearchLogRow | InternshipLogRow)[]>(
+    () => {
+      if (!studentId) return Promise.resolve([])
+      return code === 'form_busqueda'
+        ? repository.getJobSearchLogs(studentId)
+        : repository.getInternshipLogs(studentId)
+    },
+    [],
+    [code, studentId],
+    'weeklyLogs',
+  )
 }

@@ -14,7 +14,7 @@
 
 import type { FormCode } from '../lib/catalog'
 import type { AccessLevel } from '../lib/screens'
-import { clearQueryCache } from './queryCache'
+import { invalidateQueries } from './queryCache'
 import { isSupabaseConfigured } from './supabaseClient'
 import { supabaseRepository } from './supabaseRepository'
 import type {
@@ -512,8 +512,9 @@ const baseRepository: PanelRepository = isSupabaseConfigured
   : emptyRepository
 
 /**
- * Todo método que no empieza con `get` escribe. Al terminar vacía el caché de
- * consultas para que ninguna pantalla muestre el dato de antes. Las
+ * Todo método que no empieza con `get` escribe. Al terminar descarta del caché
+ * las consultas que no están a la vista, para que ninguna pantalla muestre el
+ * dato de antes. Las
  * calificaciones son la excepción: `useGradeEntries` actualiza el caché al
  * guardar, y vaciarlo haría esperar al profesor entre una calificación y otra.
  */
@@ -526,7 +527,7 @@ export const repository: PanelRepository = new Proxy(baseRepository, {
     if (prop.startsWith('get') || KEEP_CACHE.has(prop)) return value
     return async (...args: unknown[]) => {
       const result = await value.apply(target, args)
-      clearQueryCache()
+      invalidateQueries()
       return result
     }
   },

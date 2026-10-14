@@ -73,9 +73,21 @@ export function fetchEntry<T>(entry: Entry, query: () => Promise<T>): Promise<vo
   return promise
 }
 
-/** Vacía el caché. Se llama tras cualquier escritura y al cambiar de cuenta. */
+/** Vacía todo el caché. Se llama al cambiar de cuenta. */
 export function clearQueryCache() {
   cache.clear()
+}
+
+/**
+ * Tras una escritura: lo que no está a la vista se descarta, para que la
+ * próxima visita no muestre el dato de antes. Lo que sí está a la vista se
+ * deja: quien escribió decide cuándo recargarlo (`refetch`), y tirarlo haría
+ * parpadear «Cargando…» en plena pantalla.
+ */
+export function invalidateQueries() {
+  for (const [key, entry] of cache) {
+    if (entry.listeners.size === 0) cache.delete(key)
+  }
 }
 
 // Los datos son los de la sesión: al entrar con otra cuenta o salir no puede

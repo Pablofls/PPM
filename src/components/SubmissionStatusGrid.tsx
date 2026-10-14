@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
+import { useRepositoryQuery } from '../data/hooks'
 import { repository } from '../data/repository'
 import type { SubmissionState, SubmissionStatusCell, WeeklyLogStatusCell } from '../data/types'
 import { DEADLINE_FORMS, type FormCode } from '../lib/catalog'
@@ -159,38 +160,23 @@ export function useSubmissionStatus(studentId: string | null) {
  * la corrección de semana del expediente.
  */
 export function useWeeklyLogStatus(studentId: string | null, refreshKey = 0) {
-  const [weeks, setWeeks] = useState<WeeklyLogStatusCell[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const [loaded, setLoaded] = useState(false)
+  const { data, loading, error, refetch } = useRepositoryQuery(
+    () =>
+      studentId
+        ? repository.getWeeklyLogStatusForStudent(studentId)
+        : Promise.resolve([] as WeeklyLogStatusCell[]),
+    [] as WeeklyLogStatusCell[],
+    [studentId],
+    'weeklyLogStatus',
+  )
 
+  // `refreshKey` pide una recarga sin soltar lo que ya se ve.
+  const lastRefresh = useRef(refreshKey)
   useEffect(() => {
-    if (!studentId) {
-      setWeeks([])
-      setError(null)
-      setLoaded(false)
-      return
-    }
+    if (lastRefresh.current === refreshKey) return
+    lastRefresh.current = refreshKey
+    refetch()
+  }, [refreshKey, refetch])
 
-    let cancelled = false
-    repository
-      .getWeeklyLogStatusForStudent(studentId)
-      .then((result) => {
-        if (cancelled) return
-        setWeeks(result)
-        setError(null)
-        setLoaded(true)
-      })
-      .catch((cause: unknown) => {
-        if (cancelled) return
-        setWeeks([])
-        setError(cause instanceof Error ? cause.message : 'Error desconocido')
-        setLoaded(true)
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [studentId, refreshKey])
-
-  return { weeks, error, loaded }
+  return { weeks: data, error, loaded: studentId !== null && !loading }
 }

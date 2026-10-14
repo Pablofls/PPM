@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 
 import { useAuth } from '../../auth/AuthProvider'
-import { useRepositoryQuery } from '../../data/hooks'
+import { useRepositoryQuery, useWeeklyLogRows } from '../../data/hooks'
 import { repository } from '../../data/repository'
 import type {
   InternshipLogRow,
@@ -529,51 +529,18 @@ interface Entry {
 }
 
 function useMyLogs(code: WeeklyFormCode, studentId: string | null, refreshKey: number) {
-  const [entries, setEntries] = useState<Entry[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const loadedFor = useRef<string | null>(null)
+  const { data, loading, error, refetch } = useWeeklyLogRows(code, studentId)
+  const entries = useMemo(() => data.map(toEntry), [data])
 
+  // Una recarga tras entregar es silenciosa: mostrar «Cargando…» encogería
+  // la página y movería el scroll de quien acaba de entregar. `refetch` deja
+  // las entregas a la vista hasta que llegan las nuevas.
+  const lastRefresh = useRef(refreshKey)
   useEffect(() => {
-    if (!studentId) {
-      setEntries([])
-      return
-    }
-
-    let cancelled = false
-    // Una recarga tras entregar es silenciosa: mostrar «Cargando…» encogería
-    // la página y movería el scroll de quien acaba de entregar.
-    const silent = loadedFor.current === `${code}:${studentId}`
-    loadedFor.current = `${code}:${studentId}`
-    if (!silent) setLoading(true)
-    setError(null)
-
-    const query =
-      code === 'form_busqueda'
-        ? repository.getJobSearchLogs(studentId)
-        : repository.getInternshipLogs(studentId)
-
-    query
-      .then((rows: (JobSearchLogRow | InternshipLogRow)[]) => {
-        if (cancelled) return
-        setEntries(rows.map(toEntry))
-        setLoading(false)
-      })
-      .catch((cause: unknown) => {
-        if (cancelled) return
-        setEntries([])
-        setError(
-          cause instanceof Error
-            ? cause.message
-            : 'No se pudieron cargar tus entregas.',
-        )
-        setLoading(false)
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [code, studentId, refreshKey])
+    if (lastRefresh.current === refreshKey) return
+    lastRefresh.current = refreshKey
+    refetch()
+  }, [refreshKey, refetch])
 
   return { entries, loading, error }
 }
