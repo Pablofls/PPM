@@ -10,7 +10,7 @@ import { useRepositoryQuery } from '../../data/hooks'
 import { repository } from '../../data/repository'
 import type { GradeEntry, WeeklyReport } from '../../data/types'
 import { weeklyFormByCode } from '../../lib/catalog'
-import { formatDateTime, formatSemester, formatWeekRange } from '../../lib/format'
+import { formatDate, formatDateTime, formatSemester, formatWeekRange } from '../../lib/format'
 import { formatPoints, parseScore, studentLabel } from './gradeUtils'
 import { useGradeEntries } from './useGradeEntries'
 
@@ -84,6 +84,7 @@ interface ActivitySummary {
   submitted: number
   graded: number
   pending: number
+  late: number
 }
 
 function summarize(entries: GradeEntry[]): ActivitySummary[] {
@@ -100,6 +101,7 @@ function summarize(entries: GradeEntry[]): ActivitySummary[] {
         submitted: 0,
         graded: 0,
         pending: 0,
+        late: 0,
       }
       byWeek.set(entry.weekNumber, summary)
     }
@@ -108,6 +110,7 @@ function summarize(entries: GradeEntry[]): ActivitySummary[] {
     if (entry.submissionId) summary.submitted += 1
     if (entry.state === 'calificado') summary.graded += 1
     if (entry.state === 'por_calificar') summary.pending += 1
+    if (entry.isLate) summary.late += 1
   }
   return [...byWeek.values()].sort((a, b) => a.weekNumber - b.weekNumber)
 }
@@ -155,6 +158,12 @@ function ActivityList({
       render: (row) => (
         <span className="tnum">
           {row.submitted} <span className="text-ink-400">de {row.students}</span>
+          {row.late > 0 && (
+            <>
+              {' '}
+              <Badge tone="red">{row.late} tardía{row.late === 1 ? '' : 's'}</Badge>
+            </>
+          )}
         </span>
       ),
     },
@@ -422,6 +431,15 @@ function ReportCard({
           Semana del {formatWeekRange(entry.weekStart, entry.weekEnd)}
           {entry.submittedAt && <> · Entregado el {formatDateTime(entry.submittedAt)}</>}
         </p>
+        {entry.isLate && (
+          <p
+            role="alert"
+            className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-800"
+          >
+            Entrega tardía: este reporte se entregó fuera de su semana (cerró el{' '}
+            {formatDate(entry.weekEnd)}).
+          </p>
+        )}
       </div>
 
       {!entry.submissionId ? (

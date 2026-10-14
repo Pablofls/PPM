@@ -15,6 +15,7 @@ import { repository } from '../../data/repository'
 import { WEEKLY_FORMS, type WeeklyFormMeta } from '../../lib/catalog'
 import { formatRelativeTime, formatWeekRange } from '../../lib/format'
 import { usePermissions } from '../../auth/PermissionsProvider'
+import { targetWeek } from '../../lib/weeks'
 
 /**
  * Índice del portal del alumno: su ADN Profesional y sus tareas.
@@ -79,7 +80,7 @@ export function StudentHome() {
                       {weeksError ? (
                         <p className="text-sm text-red-800">{weeksError}</p>
                       ) : (
-                        <WeeklyLogStatusGrid weeks={weeks} />
+                        <WeeklyLogStatusGrid weeks={weeks} highlightWeek={targetWeek(weeks)?.cell.weekNumber} />
                       )}
                     </div>
                   </div>

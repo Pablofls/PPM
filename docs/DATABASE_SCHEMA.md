@@ -10,6 +10,7 @@
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
 - **Última migración aplicada:** `0042_grade_center_fast.sql` (2026-10-14).
+  `0043_weekly_log_sequential.sql` está escrita y **todavía no se ejecuta**.
   `0019_student_dossier_read.sql` está escrita y documentada aquí pero
   **todavía no se pega en Supabase**.
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
@@ -926,6 +927,28 @@ porque ya no escribe fechas—. Ver [Semanas del semestre](#semanas-del-semestre
 > ver [La semana en curso se puede corregir](#la-semana-en-curso-se-puede-corregir),
 > más abajo.
 
+#### Entrega secuencial de las bitácoras
+
+`0043_weekly_log_sequential.sql`. Para entregar la semana N hay que tener
+entregadas todas las anteriores. Una semana está **entregada** si alguna de las
+dos bitácoras tiene una entrega que resuelve a ella (`resolved_week_number`, el
+mismo emparejamiento de `v_weekly_submission_status`).
+
+| Pieza | Qué hace |
+|---|---|
+| `next_weekly_week_number()` | `smallint`, `security invoker`. La semana que le toca al alumno actual: la más antigua con `week_start <= today_monterrey()` y sin entrega; si no debe ninguna, la semana en curso |
+| `new_weekly_submission(form, week)` | Rechaza cualquier semana distinta de la que devuelve la función anterior: «Primero entrega la semana N.» / «La semana N ya está entregada.» |
+| `v_grade_center.is_late` | Entrega tardía, para Calificar y el Centro de calificaciones |
+
+**Entrega tardía** = `submissions.submitted_at` posterior al cierre de la
+semana a la que resuelve la entrega (`semester_weeks.week_end`, 23:59:59
+America/Monterrey: el mismo corte que `due_at` y que el estado `tarde` de
+`v_weekly_submission_status`). **No se agrega tabla ni columna**: el hecho ya lo
+determinan `submitted_at` y `week_end`, y guardarlo aparte permitiría que se
+contradijeran (normalización hasta 4FN intacta). Una semana recuperada tarde no
+se puede corregir después: la política de `UPDATE` de abajo solo cubre la
+semana en curso.
+
 #### La semana en curso se puede corregir
 
 > Migración `0020_weekly_log_current_week_only.sql` — ✅ ejecutada en Supabase
@@ -1258,6 +1281,11 @@ era un `LATERAL` por alumno × semana que repetía la lectura y la RLS 688 veces
 | `sin_entrega` | no entregó reporte esa semana y no tiene calificación |
 | `por_calificar` | entregó y falta calificar |
 | `calificado` | tiene calificación (aunque no haya entregado, p. ej. un 0) |
+
+Desde `0043` la vista agrega al final `is_late` (`boolean`, nulo si no hay
+entrega): la entrega llegó después de que cerró su semana (`submitted_at` >
+medianoche de Monterrey al terminar `week_end`). **Es derivada, no una columna
+guardada** (ver [Entrega secuencial](#entrega-secuencial-de-las-bitácoras)).
 
 **Total** de un alumno = Σ `score` / Σ `points_possible` de las actividades
 **ya calificadas** (como el Total de Blackboard): lo que aún no se califica no
@@ -1908,6 +1936,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0040_grades.sql` | `grade_activities`, `grades`, `guard_grade_week()`, `set_grade()`, `set_grade_activity_points()`, `v_grade_center`; pantalla `calificaciones` y sus permisos iniciales | ✅ 2026-10-14 |
 | `0041_grades_report_points.sql` | `grade_activities` pasa a `(group_id)` (los puntos son del reporte, no de cada semana); `set_grade_activity_points(group, points)`; se rehace `v_grade_center` sin leer las vistas de bitácoras | ✅ 2026-10-14 |
 | `0042_grade_center_fast.sql` | se rehace `v_grade_center` (mismas columnas): las entregas semanales se leen una vez con su semana resuelta, en vez de un `LATERAL` por alumno × semana | ✅ 2026-10-14 |
+| `0043_weekly_log_sequential.sql` | entrega secuencial de bitácoras: `next_weekly_week_number()`, `new_weekly_submission` exige la primera semana pendiente, y `v_grade_center` agrega `is_late` (derivada) | ⏳ pendiente |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.

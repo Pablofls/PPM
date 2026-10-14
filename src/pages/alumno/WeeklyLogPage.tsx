@@ -4,11 +4,18 @@ import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthProvider'
 import { useRepositoryQuery } from '../../data/hooks'
 import { repository } from '../../data/repository'
-import type { InternshipLogRow, JobSearchLogRow, SemesterWeek } from '../../data/types'
+import type {
+  InternshipLogRow,
+  JobSearchLogRow,
+  SemesterWeek,
+  WeeklyLogStatusCell,
+} from '../../data/types'
 import type { WeeklyField, WeeklyFormCode, WeeklyFormMeta } from '../../lib/catalog'
-import { formatDateTime, formatWeekRange } from '../../lib/format'
+import { formatDate, formatDateTime, formatWeekRange } from '../../lib/format'
+import { targetWeek } from '../../lib/weeks'
 import { Badge } from '../../components/Badge'
 import { useStudentDossier } from '../../components/StudentDossier'
+import { useWeeklyLogStatus } from '../../components/SubmissionStatusGrid'
 import { usePermissions } from '../../auth/PermissionsProvider'
 
 /**
@@ -21,8 +28,10 @@ import { usePermissions } from '../../auth/PermissionsProvider'
  * de `JobSearchLogRow` e `InternshipLogRow`, así que el mismo catálogo dibuja
  * el formulario en blanco y las entregas ya hechas.
  *
- * La única semana que se puede entregar es la de hoy, y mientras siga siendo
- * la de hoy se puede corregir en vez de acumular una entrega más: es la
+ * Las semanas se entregan en orden (`0043_weekly_log_sequential.sql`): la única
+ * que se puede llenar es la primera pendiente. Si ya cerró, es una entrega
+ * tardía. Cuando no se debe ninguna, es la semana de hoy, y mientras siga
+ * siendo la de hoy se puede corregir en vez de acumular una entrega más: es la
  * excepción acotada a «Historial completo» de CLAUDE.md que abre
  * `0020_weekly_log_current_week_only.sql`. En cuanto la semana termina, la
  * entrega vuelve a ser inmutable para siempre.
@@ -39,6 +48,9 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
   const { dossier } = useStudentDossier(portalReadOnly ? studentId : null)
 
   const { entries, loading, error } = useMyLogs(form.code, studentId)
+  // Qué semanas están entregadas (con cualquiera de las dos bitácoras): de ahí
+  // sale la semana que toca. `entries` solo trae las de esta bitácora.
+  const { weeks: statusCells, loaded: statusLoaded } = useWeeklyLogStatus(studentId)
   const {
     data: allWeeks,
     loading: weeksLoading,
@@ -110,7 +122,8 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
         weeksLoading={weeksLoading}
         weeksError={weeksError}
         entries={entries}
-        entriesLoading={loading}
+        entriesLoading={loading || !statusLoaded}
+        statusCells={statusCells}
       />
 
       <PreviousEntries
@@ -135,6 +148,7 @@ function SubmissionForm({
   weeksError,
   entries,
   entriesLoading,
+  statusCells,
   readOnly,
 }: {
   form: WeeklyFormMeta
@@ -146,6 +160,7 @@ function SubmissionForm({
   weeksError: string | null
   entries: Entry[]
   entriesLoading: boolean
+  statusCells: WeeklyLogStatusCell[]
 }) {
   // Se rearma al cambiar de tarea: los campos son otros y un valor a medio
   // escribir no debe cruzarse de una bitácora a la otra.
@@ -158,12 +173,18 @@ function SubmissionForm({
     setError(null)
   }, [form.code])
 
-  // La única semana posible es la de hoy: ya no hay selector. Si el alumno ya
-  // tiene una entrega de esa semana, es la que se corrige.
-  const currentWeek = weekForToday(weeks)
-  const existingEntry = currentWeek
-    ? entries.find((entry) => entry.weekStart === currentWeek.weekStart)
+  // La única semana posible es la que toca (la primera pendiente, o la de hoy
+  // si no se debe ninguna): no hay selector. Solo la semana en curso se
+  // corrige; una atrasada se entrega por primera vez, como entrega tardía.
+  const target = targetWeek(statusCells)
+  const currentWeek = target
+    ? weeks.find((week) => week.weekNumber === target.cell.weekNumber)
     : undefined
+  const isLate = target?.late ?? false
+  const existingEntry =
+    currentWeek && !isLate
+      ? entries.find((entry) => entry.weekStart === currentWeek.weekStart)
+      : undefined
 
   // Precarga el formulario con lo ya entregado en cuanto se sabe cuál es esa
   // entrega -no antes, porque hasta que cargan `entries` no hay con qué-. Se
@@ -241,8 +262,27 @@ function SubmissionForm({
       className="mt-6 rounded-xl border border-ink-200 bg-white p-6 shadow-sm"
     >
       <h2 className="text-sm font-semibold text-ink-900">
-        {existingEntry ? 'Tu entrega de esta semana' : 'Nueva entrega'}
+        {existingEntry
+          ? 'Tu entrega de esta semana'
+          : isLate && currentWeek
+            ? `Entrega tardía · semana ${currentWeek.weekNumber}`
+            : 'Nueva entrega'}
       </h2>
+
+      {isLate && currentWeek && target && (
+        <p
+          role="status"
+          className="mt-3 rounded-lg border border-accent-300 bg-accent-100 px-3 py-2 text-sm text-ink-900"
+        >
+          <strong>Entrega tardía.</strong> La semana {currentWeek.weekNumber} cerró el{' '}
+          {formatDate(currentWeek.weekEnd)} y no la entregaste a tiempo. Tienes que
+          entregarla para poder llenar las que siguen
+          {target.pendingAfter > 0
+            ? ` (te quedan ${target.pendingAfter} más por entregar después de esta).`
+            : ' hasta llegar a la semana actual.'}{' '}
+          Tu profesor verá que fue fuera de tiempo.
+        </p>
+      )}
 
       <fieldset
         className="mt-5"
@@ -322,7 +362,9 @@ function SubmissionForm({
             ? 'Vista de solo lectura: aquí no se puede entregar.'
             : existingEntry
               ? 'Puedes seguir corrigiéndola mientras siga siendo esta semana.'
-              : 'Podrás corregirla mientras siga siendo esta semana.'}
+              : isLate
+                ? 'Una entrega tardía ya no se puede corregir.'
+                : 'Podrás corregirla mientras siga siendo esta semana.'}
         </p>
       </div>
     </form>
@@ -574,26 +616,4 @@ function update(
 function valueToString(value: unknown): string {
   if (value === null || value === undefined) return ''
   return String(value)
-}
-
-// ---------------------------------------------------------------------------
-// La única semana disponible
-// ---------------------------------------------------------------------------
-
-/**
- * De las semanas configuradas, la que contiene hoy — o `undefined` si hoy cae
- * fuera de todas (antes de la semana 1 o después de la última).
- *
- * Es la única semana que se puede entregar o corregir: ya no hay selector
- * (regla del profesor, `0020_weekly_log_current_week_only.sql`). Una semana
- * atrasada que nadie reportó a tiempo queda sin reportar.
- */
-function weekForToday(weeks: SemesterWeek[]): SemesterWeek | undefined {
-  const hoy = isoDate(new Date())
-  return weeks.find((week) => week.weekStart <= hoy && hoy <= week.weekEnd)
-}
-
-/** `YYYY-MM-DD` en Monterrey, igual que `today_monterrey()` en la base (`0030`). */
-function isoDate(value: Date): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Monterrey' }).format(value)
 }

@@ -1029,7 +1029,7 @@ export const supabaseRepository: PanelRepository = {
   async getWeeklyLogStatusForStudent(studentId: string): Promise<WeeklyLogStatusCell[]> {
     const { data, error } = await supabase
       .from('v_weekly_submission_status')
-      .select('week_number, state, submitted_at, due_at')
+      .select('week_number, week_start, week_end, state, submitted_at, due_at')
       .eq('student_id', studentId)
       .order('week_number', { ascending: true })
 
@@ -1037,6 +1037,8 @@ export const supabaseRepository: PanelRepository = {
 
     return (data ?? []).map((record: PanelRecord) => ({
       weekNumber: num(record.week_number) ?? 0,
+      weekStart: str(record.week_start) ?? '',
+      weekEnd: str(record.week_end) ?? '',
       state: (str(record.state) as SubmissionState) ?? 'sin_fecha',
       submittedAt: str(record.submitted_at),
       dueAt: str(record.due_at),
@@ -1094,6 +1096,7 @@ export const supabaseRepository: PanelRepository = {
       comment: str(record.comment),
       gradedAt: str(record.graded_at),
       state: (str(record.state) as GradeState) ?? 'sin_entrega',
+      isLate: record.is_late === true,
     }))
   },
 

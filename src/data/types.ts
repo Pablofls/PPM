@@ -389,6 +389,8 @@ export interface SubmissionStatusCell {
  */
 export interface WeeklyLogStatusCell extends SubmissionStatusCell {
   weekNumber: number
+  weekStart: string
+  weekEnd: string
 }
 
 /**
@@ -575,6 +577,8 @@ export interface GradeEntry {
   comment: string | null
   gradedAt: string | null
   state: GradeState
+  /** Entregó después de que cerró su semana (`is_late`, `0043`). `false` si no entregó. */
+  isLate: boolean
 }
 
 /** Lo que el alumno contestó en su reporte de una semana, para calificarlo. */

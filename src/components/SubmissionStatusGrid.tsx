@@ -17,10 +17,17 @@ export const SUBMISSION_STATE_COLOR: Record<SubmissionState, string> = {
  * significado que la matriz de "Estado de Entregas" (`SubmissionStatusPage`):
  * un solo código de color en todo el panel.
  */
-export function SubmissionStatusSquare({ cell }: { cell: SubmissionStatusCell | undefined }) {
+export function SubmissionStatusSquare({
+  cell,
+  highlight = false,
+}: {
+  cell: SubmissionStatusCell | undefined
+  /** Anillo alrededor del cuadro: la semana que le toca entregar al alumno. */
+  highlight?: boolean
+}) {
   const state = cell?.state ?? 'sin_fecha'
   const label = cell?.submittedAt
-    ? `Entregado: ${formatDateTime(cell.submittedAt)}`
+    ? `${state === 'tarde' ? 'Entrega tardía · e' : 'E'}ntregado: ${formatDateTime(cell.submittedAt)}`
     : state === 'pendiente'
       ? 'No entregado'
       : cell?.dueAt
@@ -29,7 +36,11 @@ export function SubmissionStatusSquare({ cell }: { cell: SubmissionStatusCell | 
 
   return (
     <span className="group/cell relative inline-block">
-      <span className={`inline-block size-5 rounded-sm ${SUBMISSION_STATE_COLOR[state]}`} />
+      <span
+        className={`inline-block size-5 rounded-sm ${SUBMISSION_STATE_COLOR[state]} ${
+          highlight ? 'ring-2 ring-ink-900 ring-offset-2' : ''
+        }`}
+      />
       <span
         role="tooltip"
         className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1.5 -translate-x-1/2 rounded-md bg-ink-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity group-hover/cell:opacity-100"
@@ -65,7 +76,14 @@ export function SubmissionStatusGrid({
  * columna por formulario que mostrar — una por semana ya dice si esa semana
  * quedó reportada. Mismo componente de cuadro y el mismo color.
  */
-export function WeeklyLogStatusGrid({ weeks }: { weeks: WeeklyLogStatusCell[] }) {
+export function WeeklyLogStatusGrid({
+  weeks,
+  highlightWeek,
+}: {
+  weeks: WeeklyLogStatusCell[]
+  /** Número de la semana que le toca entregar (solo en el portal del alumno). */
+  highlightWeek?: number
+}) {
   if (!weeks.length) {
     return <p className="text-sm text-ink-500">El profesor no ha configurado tus semanas.</p>
   }
@@ -74,7 +92,7 @@ export function WeeklyLogStatusGrid({ weeks }: { weeks: WeeklyLogStatusCell[] })
     <div className="flex flex-wrap gap-3">
       {weeks.map((week) => (
         <div key={week.weekNumber} className="flex flex-col items-center gap-1">
-          <SubmissionStatusSquare cell={week} />
+          <SubmissionStatusSquare cell={week} highlight={week.weekNumber === highlightWeek} />
           <span className="text-[10px] font-medium text-ink-500">{week.weekNumber}</span>
         </div>
       ))}
@@ -86,7 +104,7 @@ export function SubmissionStatusLegend() {
   return (
     <div className="flex flex-wrap items-center gap-4 text-xs text-ink-500">
       <LegendItem color="bg-emerald-500" label="A tiempo" />
-      <LegendItem color="bg-accent-500" label="Tarde" />
+      <LegendItem color="bg-accent-500" label="Entrega tardía" />
       <LegendItem color="bg-red-500" label="No entregado" />
     </div>
   )
@@ -143,11 +161,13 @@ export function useSubmissionStatus(studentId: string | null) {
 export function useWeeklyLogStatus(studentId: string | null, refreshKey = 0) {
   const [weeks, setWeeks] = useState<WeeklyLogStatusCell[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     if (!studentId) {
       setWeeks([])
       setError(null)
+      setLoaded(false)
       return
     }
 
@@ -158,11 +178,13 @@ export function useWeeklyLogStatus(studentId: string | null, refreshKey = 0) {
         if (cancelled) return
         setWeeks(result)
         setError(null)
+        setLoaded(true)
       })
       .catch((cause: unknown) => {
         if (cancelled) return
         setWeeks([])
         setError(cause instanceof Error ? cause.message : 'Error desconocido')
+        setLoaded(true)
       })
 
     return () => {
@@ -170,5 +192,5 @@ export function useWeeklyLogStatus(studentId: string | null, refreshKey = 0) {
     }
   }, [studentId, refreshKey])
 
-  return { weeks, error }
+  return { weeks, error, loaded }
 }

@@ -286,7 +286,8 @@ Al lado, la misma idea pero por semana en vez de por formulario
 un cuadro por cada semana configurada del periodo del alumno, verde si esa
 semana reportó cualquiera de las dos bitácoras (Búsqueda o Prácticas — el
 alumno solo llena una, nunca las dos), ámbar si la reportó tarde, rojo si la
-semana ya cerró sin reporte, gris si todavía no llega. No hay una columna por
+semana ya cerró sin reporte, gris si todavía no llega. Ámbar significa
+**entrega tardía** (la leyenda y el tooltip lo dicen así). No hay una columna por
 formulario aquí porque no aplica: lo que importa es si la semana quedó
 cubierta, no cuál de las dos bitácoras se usó.
 
@@ -694,7 +695,7 @@ que cambia entre ellas son sus campos, y esos viven en `WEEKLY_FORMS`
 | Bloque | Contenido |
 |---|---|
 | Instrucciones | Cada cuándo se entrega, qué semana se reporta y qué pasa si se equivoca |
-| Nueva entrega | Un `<select>` con la semana que reporta, más los campos del formulario |
+| Nueva entrega | La semana que le toca (sin selector), más los campos del formulario. Si esa semana ya cerró, se llama «Entrega tardía» y lleva un aviso amarillo |
 | Tus entregas | Todas las que lleva, de la más reciente a la más antigua |
 
 Los campos son **los mismos** que tenía el Google Form, con la pregunta original
@@ -710,21 +711,19 @@ mantener en sincronía.
 
 \* obligatorio.
 
-**El alumno ya no escribe fechas — elige un número de semana.** Desde
-`0018_semester_weeks.sql`, el `<select>` se llena con las semanas que el
-profesor definió para el periodo del alumno
-([Semanas del semestre](#semanas-del-semestre)), cada opción mostrando su
-rango («Semana 3 · 17/08 – 23/08»). Es justo la pieza que atajaba el error más
-común de la bitácora en el Sheets: 18 de 183 entregas traían el rango
-invertido o de más de un mes (ver
-[DATA_MAPPING.md](DATA_MAPPING.md#bitácoras-semanales)) porque el alumno lo
-tecleaba a mano; ahora es imposible, porque ya no hay nada que teclear.
-
-Se preselecciona la semana que contiene hoy, si el periodo tiene una
-configurada; el alumno la puede cambiar, porque reportar una semana atrasada
-es legítimo. Lo que no puede es reportar una semana futura, y eso lo rechaza
-la base. Si el profesor todavía no configuró las semanas del periodo, el
-`<select>` no aparece: un aviso lo reemplaza.
+**El alumno no escribe fechas ni elige semana.** Las semanas son las que el
+profesor definió para el periodo ([Semanas del semestre](#semanas-del-semestre)).
+Desde `0043_weekly_log_sequential.sql` **se entregan en orden**: para llenar la
+semana N hay que tener entregadas todas las anteriores (con cualquiera de las
+dos bitácoras). El formulario muestra solo **la primera semana pendiente**; al
+entregarla, la siguiente, hasta llegar a la semana en curso. Si la semana que
+toca ya cerró, el formulario se titula «Entrega tardía · semana N», lleva un
+aviso amarillo (cuántas más quedan) y esa entrega **no se puede corregir**
+después. Cuando no se debe ninguna, es la semana de hoy y se puede corregir
+mientras siga en curso (`0020`). La base lo exige: `new_weekly_submission`
+responde «Primero entrega la semana N.». En la matriz de semanas del portal la
+semana que toca lleva un anillo. Si el profesor todavía no configuró las
+semanas, un aviso reemplaza el formulario.
 
 **Al entregar se regresa a la lista de tareas**, con un aviso flotante que
 confirma qué se entregó. Quedarse en el formulario dejaría al alumno frente a
@@ -736,10 +735,10 @@ una sola vez, y en la URL quedaría en el historial y en cualquier enlace que el
 alumno copiara— y se limpia del historial en cuanto se lee, para que recargar
 no vuelva a anunciar una entrega vieja.
 
-**Una entrega no se edita ni se borra.** Corregir una semana es volver a
-entregarla, y el profesor ve las dos en el expediente (regla «Historial
-completo» de [CLAUDE.md](../CLAUDE.md)). La pantalla lo dice junto al botón, en
-vez de dejar que el alumno lo descubra después.
+**Una entrega no se borra.** Solo la semana en curso se puede corregir
+(excepción acotada a la regla «Historial completo» de [CLAUDE.md](../CLAUDE.md));
+una semana cerrada —también las recuperadas tarde— queda inmutable. La pantalla
+lo dice junto al botón.
 
 «Tus entregas» incluye lo que el alumno entregó por Google Forms antes de que
 existiera esta pantalla: las dos vías escriben en la misma tabla y aquí no se
@@ -764,3 +763,12 @@ distinguen, que es justo lo que se quiere.
 | La semana se propone en vez de dejarla vacía | Las fechas mal capturadas fueron el error más común de la bitácora en el Sheets |
 | Una entrega no se puede editar | Es la regla «Historial completo»: corregir es volver a entregar, y el profesor ve las dos |
 | Al entregar se vuelve al índice, con aviso | Un formulario que se vacía en su sitio se parece a que la entrega se perdió |
+
+### Entrega tardía (Calificar y Centro de calificaciones)
+
+Desde `0043`, `v_grade_center.is_late` marca los reportes entregados después de
+que cerró su semana. **Calificar:** aviso rojo «Entrega tardía» bajo el
+encabezado del reporte, y en la lista por semana un chip rojo «N tardías» junto
+a «Entregados». **Centro de calificaciones:** punto rojo en la esquina de la
+celda y tooltip «Entrega tardía» (el amarillo sigue significando «por
+calificar»). En el expediente, la matriz de semanas ya la muestra en ámbar.

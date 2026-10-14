@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 
 import { usePermissions } from '../../auth/PermissionsProvider'
 import { Dash } from '../../components/Badge'
@@ -140,7 +140,9 @@ export function GradeCenterPage() {
           {canEdit ? 'Escribe la calificación en la celda; Enter guarda. ' : ''}
           <span className="text-ink-400">«–»</span> es sin calificar y{' '}
           <span className="rounded bg-accent-100 px-1.5 text-ink-700">amarillo</span> es un reporte
-          entregado que falta calificar. El total solo cuenta lo ya calificado.
+          entregado que falta calificar. Un{' '}
+          <span className="inline-block size-2 rounded-full bg-red-500 align-middle" /> rojo marca una
+          entrega tardía. El total solo cuenta lo ya calificado.
         </p>
       </header>
 
@@ -181,10 +183,14 @@ function GradeCell({
   }, [entry.score])
 
   if (!canEdit) {
-    return entry.score === null ? (
-      <Dash />
-    ) : (
-      <span className="tnum text-ink-900">{formatPoints(entry.score)}</span>
+    return (
+      <LateMark late={entry.isLate}>
+        {entry.score === null ? (
+          <Dash />
+        ) : (
+          <span className="tnum text-ink-900">{formatPoints(entry.score)}</span>
+        )}
+      </LateMark>
     )
   }
 
@@ -207,6 +213,7 @@ function GradeCell({
   const pending = entry.state === 'por_calificar'
 
   return (
+    <LateMark late={entry.isLate}>
     <input
       type="text"
       inputMode="decimal"
@@ -219,10 +226,34 @@ function GradeCell({
         if (event.key === 'Escape') setText(formatPoints(entry.score))
       }}
       aria-label={`Semana ${entry.weekNumber} de ${studentLabel(entry)}`}
-      title={pending ? 'Entregado, sin calificar' : entry.state === 'sin_entrega' ? 'No entregó' : undefined}
+      title={
+        pending
+          ? `Entregado, sin calificar${entry.isLate ? ' · entrega tardía' : ''}`
+          : entry.state === 'sin_entrega'
+            ? 'No entregó'
+            : entry.isLate
+              ? 'Entrega tardía'
+              : undefined
+      }
       className={`tnum w-16 rounded-md border px-2 py-1 text-right text-sm text-ink-900 placeholder:text-ink-300 hover:border-ink-300 focus:border-ink-400 focus:ring-2 focus:ring-ink-900/5 focus:outline-none ${
         pending ? 'border-accent-300 bg-accent-100' : 'border-ink-100 bg-white'
       }`}
     />
+    </LateMark>
   )
 }
+
+/** Punto rojo en la esquina de la celda cuando el reporte se entregó fuera de su semana. */
+function LateMark({ late, children }: { late: boolean; children: ReactNode }) {
+  if (!late) return <>{children}</>
+  return (
+    <span className="relative inline-block" title="Entrega tardía">
+      {children}
+      <span
+        aria-label="Entrega tardía"
+        className="absolute -top-1 -right-1 size-2.5 rounded-full bg-red-500 ring-2 ring-white"
+      />
+    </span>
+  )
+}
+
