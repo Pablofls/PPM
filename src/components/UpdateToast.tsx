@@ -45,29 +45,30 @@ export function UpdateToast() {
 
   if (!outdated || dismissed) return null
 
+  // Arriba a la derecha, debajo de la barra superior del panel.
   return (
     <div
       role="status"
       aria-live="polite"
-      className="fixed inset-x-4 bottom-6 z-50 mx-auto flex max-w-md items-center gap-3 rounded-xl border border-ink-200 bg-white px-5 py-4 shadow-lg"
+      className="fixed top-48 right-6 z-50 w-80 max-w-[calc(100vw-3rem)] rounded-xl border border-ink-200 bg-white px-5 py-4 shadow-lg"
     >
-      <p className="min-w-0 flex-1 text-sm text-ink-900">
-        Hay una nueva versión del panel disponible.
-      </p>
-      <button
-        type="button"
-        onClick={() => setDismissed(true)}
-        className="shrink-0 rounded-lg px-2 py-1 text-sm text-ink-500 hover:bg-ink-100"
-      >
-        Después
-      </button>
-      <button
-        type="button"
-        onClick={() => window.location.reload()}
-        className="shrink-0 rounded-lg bg-ink-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-ink-800"
-      >
-        Actualizar
-      </button>
+      <p className="text-sm text-ink-900">Hay una nueva versión del panel disponible.</p>
+      <div className="mt-3 flex items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          className="rounded-lg px-2 py-1 text-sm text-ink-500 hover:bg-ink-100"
+        >
+          Después
+        </button>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="rounded-lg bg-ink-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-ink-800"
+        >
+          Actualizar
+        </button>
+      </div>
     </div>
   )
 }
