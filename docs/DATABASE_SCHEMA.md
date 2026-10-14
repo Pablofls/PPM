@@ -9,7 +9,7 @@
 
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
-- **Última migración aplicada:** `0041_grades_report_points.sql` (2026-10-14).
+- **Última migración aplicada:** `0042_grade_center_fast.sql` (2026-10-14).
   `0019_student_dossier_read.sql` está escrita y documentada aquí pero
   **todavía no se pega en Supabase**.
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
@@ -1246,7 +1246,11 @@ Una fila por alumno con grupo y por semana de su periodo, con las columnas de
 filtro de las `v_panel_*` (incluye `group_id`). Además: `form_code` y
 `submission_id` de la entrega más reciente de esa semana (se busca directo en
 `submissions` y las dos bitácoras con `resolved_week_number()`, sin pasar por
-las vistas de bitácoras: hacerlo así agotaba el tiempo en `0040`),
+las vistas de bitácoras: hacerlo así agotaba el tiempo en `0040`). Desde `0042`
+la semana de cada entrega se resuelve **una sola vez** (CTE `weekly`, con la más
+reciente por alumno y semana) y luego se une con las semanas del periodo; antes
+era un `LATERAL` por alumno × semana que repetía la lectura y la RLS 688 veces
+(maestro: 1387 ms),
 `points_possible` (`grade_activities` o 100), `score`, `comment`, `graded_at` y `state`:
 
 | `state` | Significa |
@@ -1903,6 +1907,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0039_user_admin_rules.sql` | `admin_create_staff_account()` con maestros del coordinador y cuentas pendientes (devuelve jsonb), `admin_set_user_roles()` que suelta asignaciones al quitar un rol, `admin_register_students()` con el mensaje del grupo de otro maestro | ✅ 2026-10-07 |
 | `0040_grades.sql` | `grade_activities`, `grades`, `guard_grade_week()`, `set_grade()`, `set_grade_activity_points()`, `v_grade_center`; pantalla `calificaciones` y sus permisos iniciales | ✅ 2026-10-14 |
 | `0041_grades_report_points.sql` | `grade_activities` pasa a `(group_id)` (los puntos son del reporte, no de cada semana); `set_grade_activity_points(group, points)`; se rehace `v_grade_center` sin leer las vistas de bitácoras | ✅ 2026-10-14 |
+| `0042_grade_center_fast.sql` | se rehace `v_grade_center` (mismas columnas): las entregas semanales se leen una vez con su semana resuelta, en vez de un `LATERAL` por alumno × semana | ✅ 2026-10-14 |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.
