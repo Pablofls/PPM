@@ -10,12 +10,7 @@ import type {
   RegistrationResult,
   StudentRegistrationInput,
 } from '../../data/types'
-import {
-  LANGUAGE_OPTIONS,
-  PERIOD_OPTIONS,
-  SESSION_DAY_OPTIONS,
-  type FilterOption,
-} from '../../lib/catalog'
+import type { FilterOption } from '../../lib/catalog'
 import { formatGroupLabel, formatSessionDay } from '../../lib/format'
 import { useGroups } from '../../layouts/GroupProvider'
 import { usePermissions } from '../../auth/PermissionsProvider'
@@ -104,12 +99,6 @@ export function RegisteredStudentsPage() {
     refreshKey,
   ])
 
-  // Los periodos que de verdad tienen grupo; sin grupos, los del catálogo.
-  const periodOptions = useMemo<FilterOption[]>(() => {
-    const codes = [...new Set((groups ?? []).map((group) => group.periodCode))]
-    return codes.length ? codes.map((code) => ({ value: code, label: code })) : PERIOD_OPTIONS
-  }, [groups])
-
   // «Ver como» maestro o coordinador: solo los alumnos de los grupos de esa vista.
   const scoped = useMemo(() => {
     if (viewingAsAdmin) return students
@@ -132,6 +121,16 @@ export function RegisteredStudentsPage() {
   const withoutDemographics = scoped.filter((student) => student.fullName === null).length
   const withoutGroup = scoped.filter((student) => !student.groupId).length
   const showTeacher = teacherOptions.length > 1
+
+  // «Registrar alumno» elige un grupo existente; con varios maestros se aclara de quién es.
+  const groupOptions = useMemo<FilterOption[]>(
+    () =>
+      (groups ?? []).map((group) => ({
+        value: group.id,
+        label: `${formatGroupLabel(group)}${showTeacher ? ` — ${group.teacherName ?? group.teacherEmail}` : ''}`,
+      })),
+    [groups, showTeacher],
+  )
 
   // Es una pantalla de Configuración, fuera de un grupo: lista a los alumnos
   // que le tocan a quien mira, con la columna Grupo (y Maestro si ve a varios).
@@ -260,8 +259,7 @@ export function RegisteredStudentsPage() {
 
       {dialog === 'single' && (
         <RegisterModal
-          periodOptions={periodOptions}
-          teacherOptions={teacherOptions}
+          groupOptions={groupOptions}
           onClose={() => setDialog(null)}
           onDone={afterRegister}
         />
@@ -318,21 +316,31 @@ function FieldSelect({
 
 /** «+ Registrar alumno»: un alumno a la vez. */
 function RegisterModal({
-  periodOptions,
-  teacherOptions,
+  groupOptions,
   onClose,
   onDone,
 }: {
-  periodOptions: FilterOption[]
-  teacherOptions: FilterOption[]
+  groupOptions: FilterOption[]
   onClose: () => void
   onDone: (results: RegistrationResult[]) => void
 }) {
+  const groupContext = useGroups()
   const [form, setForm] = useState<StudentRegistrationInput>(EMPTY_FORM)
+  const [groupId, setGroupId] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [touched, setTouched] = useState(false)
-  const formError = validateRegistration(form)
+
+  // El grupo elegido pone periodo, frecuencia, idioma y maestro.
+  const group = groupContext?.groups.find((candidate) => candidate.id === groupId)
+  const input: StudentRegistrationInput = {
+    ...form,
+    periodCode: group?.periodCode ?? '',
+    sessionDay: group?.sessionDay ?? '',
+    language: group?.language ?? '',
+    teacherId: group?.teacherId,
+  }
+  const formError = !group && form.email && form.studentNumber ? 'Elige un grupo.' : validateRegistration(input)
 
   function setField(key: keyof StudentRegistrationInput, value: string) {
     setForm((current) => ({ ...current, [key]: value }))
@@ -345,7 +353,7 @@ function RegisterModal({
     setSaving(true)
     setError(null)
     try {
-      const results = await repository.registerStudents([form])
+      const results = await repository.registerStudents([input])
       // Un error de la base (sin grupo, matrícula repetida) deja la ventana
       // abierta con el motivo, para corregir sin volver a capturar todo.
       const failed = results.find((result) => result.outcome.startsWith('error'))
@@ -405,39 +413,16 @@ function RegisterModal({
           </label>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <FieldSelect
-            label="Periodo"
-            value={form.periodCode}
-            options={periodOptions}
-            onChange={(value) => setField('periodCode', value)}
-          />
-          <FieldSelect
-            label="Frecuencia"
-            value={form.sessionDay}
-            options={SESSION_DAY_OPTIONS}
-            onChange={(value) => setField('sessionDay', value)}
-          />
-          <FieldSelect
-            label="Idioma"
-            value={form.language}
-            options={LANGUAGE_OPTIONS}
-            onChange={(value) => setField('language', value)}
-          />
-        </div>
-
-        {teacherOptions.length > 1 && (
-          <FieldSelect
-            label="Maestro (si varios tienen el mismo grupo)"
-            value={form.teacherId ?? ''}
-            options={teacherOptions}
-            onChange={(value) => setField('teacherId', value)}
-          />
+        <FieldSelect label="Grupo" value={groupId} options={groupOptions} onChange={setGroupId} />
+        {groupOptions.length === 0 && (
+          <p className="text-xs text-red-700">
+            Todavía no hay grupos. Créalo en Configuración → Administrar grupos.
+          </p>
         )}
 
         <p className="text-xs text-ink-500">
-          Su usuario será el correo y su contraseña inicial la matrícula. Periodo, frecuencia e
-          idioma lo inscriben en el grupo que coincide.
+          Su usuario será el correo y su contraseña inicial la matrícula. Queda inscrito en el
+          grupo que elijas.
         </p>
 
         {(error || (touched && formError)) && (
