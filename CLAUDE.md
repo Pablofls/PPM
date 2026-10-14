@@ -74,7 +74,7 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   cifra por grupo, 100 por defecto; `0041`, ejecutada el 2026-10-14). Primera fase: solo los reportes semanales; el
   alumno todavía no ve sus calificaciones. Ver
   [docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md#calificaciones).
-- **Entrega secuencial** (`0043`, escrita, **sin ejecutar**): las bitácoras se
+- **Entrega secuencial** (`0043`, ejecutada el 2026-10-14): las bitácoras se
   entregan en orden; el alumno solo puede llenar la primera semana pendiente y,
   si ya cerró, es **entrega tardía** (ámbar en los bloques, rojo en Calificar,
   punto rojo en el Centro). «Tardía» se deriva de `submitted_at` y `week_end`,
