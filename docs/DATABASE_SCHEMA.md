@@ -9,7 +9,7 @@
 
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
-- **Última migración aplicada:** `0042_grade_center_fast.sql` (2026-10-14).
+- **Última migración aplicada:** `0047_rls_init_plans.sql` (2026-10-14).
   `0043_weekly_log_sequential.sql` (2026-10-14); `0044_teacher_group_admin.sql` (2026-10-14); `0045_session_days_weekdays.sql` (2026-10-14).
   `0046_group_deadlines.sql` (2026-10-14).
   `0019_student_dossier_read.sql` está escrita y documentada aquí pero
@@ -1342,6 +1342,19 @@ baja el porcentaje.
   y una restrictiva `screen_access('calificaciones') >= 'lectura'`.
 - **El alumno no tiene política**: todavía no ve sus calificaciones.
 
+### Rendimiento de las políticas (0047)
+
+Las funciones auxiliares de RLS sin argumentos (`is_admin()`, `is_staff()`,
+`current_student_id()`, `current_student_period()`,
+`current_student_group_id()`) son `SECURITY DEFINER` y consultan tablas. Dentro
+de una política se ejecutan **por fila**; envueltas en `(select …)` Postgres las
+evalúa **una vez por consulta**. Medido el 2026-10-14 con un alumno de 12
+entregas: `v_weekly_submission_status` 900 ms, bitácoras ~500 ms.
+
+> **Toda política nueva** escribe `(select public.is_admin())` y
+> `(select public.current_student_id())`, nunca la llamada suelta. `0047` rehízo
+> las existentes; una política nueva con la llamada suelta vuelve el problema.
+
 ## Fechas de entrega y estado de las entregas
 
 > ⚠️ Desde `0046` las fechas límite son `group_deadlines` (por grupo); `form_deadlines` y
@@ -1985,6 +1998,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0040_grades.sql` | `grade_activities`, `grades`, `guard_grade_week()`, `set_grade()`, `set_grade_activity_points()`, `v_grade_center`; pantalla `calificaciones` y sus permisos iniciales | ✅ 2026-10-14 |
 | `0041_grades_report_points.sql` | `grade_activities` pasa a `(group_id)` (los puntos son del reporte, no de cada semana); `set_grade_activity_points(group, points)`; se rehace `v_grade_center` sin leer las vistas de bitácoras | ✅ 2026-10-14 |
 | `0042_grade_center_fast.sql` | se rehace `v_grade_center` (mismas columnas): las entregas semanales se leen una vez con su semana resuelta, en vez de un `LATERAL` por alumno × semana | ✅ 2026-10-14 |
+| `0047_rls_init_plans.sql` | reescribe con `alter policy` las políticas que llaman a `is_admin()`, `is_staff()`, `current_student_id()`, `current_student_period()` o `current_student_group_id()` para envolverlas en `(select …)` (InitPlan: una evaluación por consulta, no por fila). No cambia quién ve qué | ✅ 2026-10-14 |
 | `0046_group_deadlines.sql` | `group_weeks`, `group_deadlines` por grupo (reemplazan `semester_weeks`/`form_deadlines`), funciones de escritura por alcance, `current_student_group_id()`, y vistas/funciones de bitácoras, estado y calificaciones unidas por `group_id` | ✅ 2026-10-14 |
 | `0045_session_days_weekdays.sql` | `session_day` suma `martes`, `jueves`, `viernes`; `admin_register_students` los acepta | ✅ 2026-10-14 |
 | `0044_teacher_group_admin.sql` | semilla `maestro`/`coordinador` = «Puede editar» en `alumnos_registrados` y `grupos`; `v_students_directory.teacher_name`; `admin_register_students` acepta `maestro_id` por fila para distinguir grupos homónimos | ✅ 2026-10-14 |
