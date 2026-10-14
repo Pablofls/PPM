@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 
+import { UpdateToast } from './components/UpdateToast'
 import { AdminRoute } from './auth/AdminRoute'
 import { ScreenRoute } from './auth/ScreenRoute'
 import { AuthProvider } from './auth/AuthProvider'
@@ -188,6 +189,7 @@ export default function App() {
               </Route>
             </Route>
           </Routes>
+          <UpdateToast />
         </BrowserRouter>
       </PermissionsProvider>
     </AuthProvider>
