@@ -9,7 +9,7 @@
 
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
-- **Última migración aplicada:** `0039_user_admin_rules.sql` (2026-10-07).
+- **Última migración aplicada:** `0040_grades.sql` (2026-10-14).
   `0019_student_dossier_read.sql` está escrita y documentada aquí pero
   **todavía no se pega en Supabase**.
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
@@ -29,6 +29,7 @@
 10. [Registro de alumnos](#registro-de-alumnos)
 11. [Grupos](#grupos)
 12. [Semanas del semestre](#semanas-del-semestre)
+    - [Calificaciones](#calificaciones)
 13. [Fechas de entrega y estado de las entregas](#fechas-de-entrega-y-estado-de-las-entregas)
 14. [Sincronización con el Sheets](#sincronización-con-el-sheets)
 15. [Vistas](#vistas)
@@ -174,6 +175,25 @@ erDiagram
     COORDINATOR_TEACHERS {
         uuid coordinator_id PK "FK profiles"
         uuid teacher_id PK "FK profiles"
+    }
+
+    GROUPS ||--o{ GRADE_ACTIVITIES : "puntos de"
+    STUDENT_ENROLLMENTS ||--o{ GRADES : "calificado en"
+    PROFILES ||--o{ GRADES : "califica"
+
+    GRADE_ACTIVITIES {
+        uuid group_id PK "FK groups"
+        smallint week_number PK
+        numeric points_possible "default 100 si no hay fila"
+    }
+    GRADES {
+        uuid student_id PK "FK student_enrollments"
+        uuid group_id PK "FK student_enrollments"
+        smallint week_number PK
+        numeric score
+        text comment
+        uuid graded_by "FK profiles"
+        timestamptz graded_at
     }
 
     PERIODS {
@@ -501,7 +521,7 @@ solo sobre `teacher_id` (`0032`), y `guard_groups_teacher()` exige el rol.
 
 | Columna | Tipo | Notas |
 |---|---|---|
-| `code` | `text` PK | `form1_0` … `formB_1`, `form_busqueda`, `form_practicas`, `estado_entregas`, `fechas_entrega`, `alumnos_registrados`, `grupos`, `alumno_adn`, `alumno_estado` |
+| `code` | `text` PK | `form1_0` … `formB_1`, `form_busqueda`, `form_practicas`, `calificaciones`, `estado_entregas`, `fechas_entrega`, `alumnos_registrados`, `grupos`, `alumno_adn`, `alumno_estado` |
 | `max_access` | `access_level` NOT NULL | lo más que se puede dar; las de consulta, `lectura` |
 | `audience` | `text` NOT NULL | `panel` (maestro, coordinador), `portal` (alumno) o `ambos` |
 
@@ -1163,6 +1183,86 @@ tenga datos personales: es la misma condición «lo mío» de siempre (regla
 
 ---
 
+## Calificaciones
+
+> Migración `0040_grades.sql` — ✅ ejecutada en Supabase (2026-10-14).
+> El profesor califica el reporte semanal de cada alumno, como en el Grade
+> Center de Blackboard. Cada semana del periodo es una actividad («Reporte
+> semana N»); el reporte que se califica es el que el alumno entregó esa
+> semana, de Búsqueda **o** de Prácticas (llena uno u otro según su
+> situación), así que la actividad es la semana y no el formulario.
+
+### Normalización (hasta 4FN)
+
+- `grade_activities (group_id, week_number) → points_possible`: la única
+  dependencia es de la llave completa. Es solo configuración: sin fila, la
+  vista usa 100.
+- `grades (student_id, group_id, week_number) → score, comment, graded_by, graded_at`:
+  todo depende de la llave completa; puntaje y comentario son del mismo acto
+  de calificar, no hechos multivaluados independientes. Sin fila = «sin
+  calificar».
+- **Nada derivable se guarda**: ni la entrega calificada (la vista la busca
+  con el mismo número de semana de las bitácoras, `0029`) ni el total y el
+  porcentaje (los calcula el panel). Guardarlos los desfasaría.
+- La FK compuesta `(student_id, group_id) → student_enrollments` garantiza
+  que solo se califica a quien está inscrito en ese grupo.
+
+### `grade_activities`
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `group_id` | `uuid` PK, FK → `groups` | `ON DELETE CASCADE` |
+| `week_number` | `smallint` PK | 1–53; el trigger `guard_grade_week()` exige que exista en `semester_weeks` del periodo del grupo |
+| `points_possible` | `numeric(6,2)` NOT NULL | `> 0` |
+
+### `grades`
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `student_id`, `group_id` | `uuid` PK, FK compuesta → `student_enrollments` | `ON DELETE CASCADE` |
+| `week_number` | `smallint` PK | mismo trigger de validación |
+| `score` | `numeric(6,2)` NOT NULL | `>= 0`. Puede superar `points_possible` (crédito extra, como Blackboard) |
+| `comment` | `text` | opcional |
+| `graded_by` | `uuid` FK → `profiles` | `ON DELETE SET NULL` |
+| `graded_at` | `timestamptz` | |
+
+### Funciones
+
+| Función | Qué hace |
+|---|---|
+| `set_grade(student, group, week, score, comment)` | Califica; `score` nulo quita la calificación. Admin, o «Puede editar» en `calificaciones` con sus grupos y alumnos (`visible_*_ids()`) |
+| `set_grade_activity_points(group, week, points)` | Puntos posibles de una semana; nulo vuelve al 100 predeterminado. Mismo permiso |
+| `guard_grade_week()` | Trigger de las dos tablas: la semana existe en el periodo del grupo |
+
+Nadie escribe directo en las tablas: no hay `INSERT`/`UPDATE`/`DELETE` para
+`authenticated`, solo estas funciones (`SECURITY DEFINER`).
+
+### Vista `v_grade_center`
+
+Una fila por alumno con grupo y por semana de su periodo, con las columnas de
+filtro de las `v_panel_*` (incluye `group_id`). Además: `form_code` y
+`submission_id` de la entrega más reciente de esa semana (unión de
+`v_student_job_search_logs` y `v_student_internship_logs`), `points_possible`
+(`grade_activities` o 100), `score`, `comment`, `graded_at` y `state`:
+
+| `state` | Significa |
+|---|---|
+| `sin_entrega` | no entregó reporte esa semana y no tiene calificación |
+| `por_calificar` | entregó y falta calificar |
+| `calificado` | tiene calificación (aunque no haya entregado, p. ej. un 0) |
+
+**Total** de un alumno = Σ `score` / Σ `points_possible` de las actividades
+**ya calificadas** (como el Total de Blackboard): lo que aún no se califica no
+baja el porcentaje.
+
+### Seguridad
+
+- Pantalla `calificaciones` en `app_screens` (`edicion`, `panel`);
+  `role_screen_access`: maestro = edición, coordinador = lectura.
+- Lectura: `*_select_admin`, `*_select_scope` (`group_id in visible_group_ids()`)
+  y una restrictiva `screen_access('calificaciones') >= 'lectura'`.
+- **El alumno no tiene política**: todavía no ve sus calificaciones.
+
 ## Fechas de entrega y estado de las entregas
 
 > Migración `0017_form_deadlines.sql` — ✅ ejecutada en Supabase (2026-09-25).
@@ -1797,6 +1897,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0037_user_admin.sql` | `admin_create_staff_account()`, `admin_set_user_roles()`, `admin_set_user_active()`, `admin_set_coordinator_teachers()`, `admin_set_user_password()` | ✅ 2026-10-07 |
 | `0038_permissions.sql` | `access_level`, `app_screens`, `app_screen_forms`, `role_screen_access`, `user_screen_access`, `guard_screen_access()`, `screen_access()`, `can_edit_screen()`, `readable_forms()`, `writable_forms()`; restrictivas de lectura y de escritura del alumno; escrituras del staff con «Puede editar» (fechas, grupos, registro, semana) | ✅ 2026-10-07 |
 | `0039_user_admin_rules.sql` | `admin_create_staff_account()` con maestros del coordinador y cuentas pendientes (devuelve jsonb), `admin_set_user_roles()` que suelta asignaciones al quitar un rol, `admin_register_students()` con el mensaje del grupo de otro maestro | ✅ 2026-10-07 |
+| `0040_grades.sql` | `grade_activities`, `grades`, `guard_grade_week()`, `set_grade()`, `set_grade_activity_points()`, `v_grade_center`; pantalla `calificaciones` y sus permisos iniciales | ✅ 2026-10-14 |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.

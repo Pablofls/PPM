@@ -208,7 +208,7 @@ export function StudentDossier<T extends BaseRow>({
   )
 }
 
-function DossierNavButton({
+export function DossierNavButton({
   children,
   onClick,
   label,

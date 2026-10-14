@@ -11,7 +11,7 @@
 
 import type { PostgrestFilterBuilder } from '@supabase/postgrest-js'
 
-import type { FormCode, SkillLevel } from '../lib/catalog'
+import type { FormCode, SkillLevel, WeeklyFormCode } from '../lib/catalog'
 import { SKILL_GROUPS } from '../lib/catalog'
 import type { AccessLevel } from '../lib/screens'
 import type { PanelRepository } from './repository'
@@ -32,6 +32,7 @@ import type {
   RegistrationResult,
   StudentRegistrationInput,
   FormSummary,
+  GradeState,
   HollandRow,
   IndeedRow,
   InternshipLogInput,
@@ -45,6 +46,9 @@ import type {
   PanelFilters,
   ReflectionRow,
   SemesterWeek,
+  GradeActivityPoints,
+  GradeEntry,
+  WeeklyReport,
   SkillsRow,
   StudentDossier,
   SubmissionHistoryEntry,
@@ -57,6 +61,7 @@ import type {
   ValuesRow,
   WeeklyLogStatusCell,
 } from './types'
+import { DEFAULT_POINTS_POSSIBLE } from './types'
 
 /** Fila cruda de una vista `v_panel_*`. */
 type PanelRecord = Record<string, unknown>
@@ -1059,6 +1064,126 @@ export const supabaseRepository: PanelRepository = {
       weekStart: str(record.week_start) ?? '',
       weekEnd: str(record.week_end) ?? '',
     }))
+  },
+
+  async getGradeCenter(filters: PanelFilters): Promise<GradeEntry[]> {
+    const { data, error } = await applyFilters(
+      supabase.from('v_grade_center').select('*'),
+      filters,
+    )
+      .order('full_name', { ascending: true, nullsFirst: false })
+      .order('institutional_email', { ascending: true })
+      .order('week_number', { ascending: true })
+
+    if (error) throw new Error(`No se pudieron cargar las calificaciones: ${error.message}`)
+
+    return ((data ?? []) as PanelRecord[]).map((record) => ({
+      studentId: str(record.student_id) ?? '',
+      institutionalEmail: str(record.institutional_email) ?? '',
+      fullName: str(record.full_name),
+      degreeCode: str(record.degree_code),
+      semester: num(record.semester),
+      groupId: str(record.group_id) ?? '',
+      weekNumber: num(record.week_number) ?? 0,
+      weekStart: str(record.week_start) ?? '',
+      weekEnd: str(record.week_end) ?? '',
+      formCode: (str(record.form_code) as WeeklyFormCode | null) ?? null,
+      submissionId: str(record.submission_id),
+      submittedAt: str(record.submitted_at),
+      pointsPossible: num(record.points_possible) ?? DEFAULT_POINTS_POSSIBLE,
+      score: num(record.score),
+      comment: str(record.comment),
+      gradedAt: str(record.graded_at),
+      state: (str(record.state) as GradeState) ?? 'sin_entrega',
+    }))
+  },
+
+  async getWeeklyReports(weekNumber: number, studentIds: string[]): Promise<WeeklyReport[]> {
+    if (studentIds.length === 0) return []
+
+    const [busqueda, practicas] = await Promise.all([
+      supabase
+        .from('v_student_job_search_logs')
+        .select('*')
+        .eq('week_number', weekNumber)
+        .in('student_id', studentIds),
+      supabase
+        .from('v_student_internship_logs')
+        .select('*')
+        .eq('week_number', weekNumber)
+        .in('student_id', studentIds),
+    ])
+    for (const { error } of [busqueda, practicas]) {
+      if (error) throw new Error(`No se pudieron cargar los reportes: ${error.message}`)
+    }
+
+    const reports: WeeklyReport[] = []
+    for (const record of (busqueda.data ?? []) as PanelRecord[]) {
+      reports.push({
+        studentId: str(record.student_id) ?? '',
+        submissionId: str(record.submission_id) ?? '',
+        formCode: 'form_busqueda',
+        submittedAt: str(record.submitted_at),
+        answers: {
+          activities: str(record.activities),
+          applications: str(record.applications),
+          interviews: str(record.interviews),
+          learnings: str(record.learnings),
+          nextSteps: str(record.next_steps),
+        },
+      })
+    }
+    for (const record of (practicas.data ?? []) as PanelRecord[]) {
+      reports.push({
+        studentId: str(record.student_id) ?? '',
+        submissionId: str(record.submission_id) ?? '',
+        formCode: 'form_practicas',
+        submittedAt: str(record.submitted_at),
+        answers: {
+          activities: str(record.activities),
+          hoursWorked: num(record.hours_worked),
+          skillsPracticed: str(record.skills_practiced),
+          proposal: str(record.proposal),
+        },
+      })
+    }
+    return reports
+  },
+
+  async getGradeActivityPoints(groupId: string): Promise<GradeActivityPoints[]> {
+    const { data, error } = await supabase
+      .from('grade_activities')
+      .select('week_number, points_possible')
+      .eq('group_id', groupId)
+
+    if (error) throw new Error(`No se pudieron cargar los puntos de las actividades: ${error.message}`)
+
+    return ((data ?? []) as PanelRecord[]).map((record) => ({
+      weekNumber: num(record.week_number) ?? 0,
+      pointsPossible: num(record.points_possible) ?? DEFAULT_POINTS_POSSIBLE,
+    }))
+  },
+
+  async setGrade(studentId, groupId, weekNumber, score, comment): Promise<void> {
+    const { error } = await supabase.rpc('set_grade', {
+      p_student_id: studentId,
+      p_group_id: groupId,
+      p_week_number: weekNumber,
+      p_score: score,
+      p_comment: comment,
+    })
+
+    if (error) throw new Error(`No se pudo guardar la calificación: ${error.message}`)
+  },
+
+  async setGradeActivityPoints(groupId, weekNumber, points): Promise<void> {
+    const { error } = await supabase.rpc('set_grade_activity_points', {
+      p_group_id: groupId,
+      p_week_number: weekNumber,
+      p_points: points,
+    })
+
+    if (error) throw new Error(`No se pudieron guardar los puntos: ${error.message}`)
   },
 
   async createSemesterWeeks(

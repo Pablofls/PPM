@@ -66,6 +66,14 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   permisos — coordinador creado con sus maestros, cuentas pendientes,
   quitar roles suelta asignaciones, candados en el editor — y «Ver como
   Alumno» con las excepciones de ese alumno.
+- **Calificaciones** (`0040`, **escrita, todavía no ejecutada**): sección del
+  rail antes de Entregas, estilo Blackboard. *Calificar* (una actividad =
+  Reporte semana N; navegación alumno por alumno con las respuestas y la
+  calificación a la derecha), *Centro de calificaciones* (alumno × semana,
+  total y %) y *Configurar actividades* (puntos posibles por semana y por
+  grupo, 100 por defecto). Primera fase: solo los reportes semanales; el
+  alumno todavía no ve sus calificaciones. Ver
+  [docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md#calificaciones).
 - **Mi perfil** (`0034`, ejecutada el 2026-10-07): nombre y apellido por
   separado en `profiles` (se elimina `full_name`), correo y rol de solo
   lectura, y cambio de contraseña. Las tarjetas muestran el nombre del maestro.

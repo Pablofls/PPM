@@ -76,6 +76,14 @@ export function AppShell() {
             </NavGroup>
           ))}
 
+          {can('calificaciones') && (
+            <NavGroup title="Calificaciones">
+              <NavItem to="/calificaciones/calificar" label="" name="Calificar" />
+              <NavItem to="/calificaciones/centro" label="" name="Centro de calificaciones" />
+              <NavItem to="/calificaciones/actividades" label="" name="Configurar actividades" />
+            </NavGroup>
+          )}
+
           {(can('estado_entregas') || can('fechas_entrega')) && (
             <NavGroup title="Entregas">
               {can('estado_entregas') && (

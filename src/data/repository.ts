@@ -45,6 +45,9 @@ import type {
   PanelFilters,
   ReflectionRow,
   SemesterWeek,
+  GradeActivityPoints,
+  GradeEntry,
+  WeeklyReport,
   SkillsRow,
   StudentDossier,
   SubmissionHistoryEntry,
@@ -288,6 +291,35 @@ export interface PanelRepository {
   getSemesterWeeks(): Promise<SemesterWeek[]>
 
   /**
+   * Calificaciones (`0040`): una fila por alumno y semana, con la bitácora que
+   * entregó y su calificación si ya la tiene. Respeta el grupo elegido y los
+   * demás filtros del panel.
+   */
+  getGradeCenter(filters: PanelFilters): Promise<GradeEntry[]>
+
+  /** Lo que contestaron los alumnos en su reporte de una semana, para calificarlo. */
+  getWeeklyReports(weekNumber: number, studentIds: string[]): Promise<WeeklyReport[]>
+
+  /** Los puntos posibles configurados de un grupo (las semanas sin fila valen 100). */
+  getGradeActivityPoints(groupId: string): Promise<GradeActivityPoints[]>
+
+  /** Califica a un alumno en una semana. `score: null` quita la calificación. */
+  setGrade(
+    studentId: string,
+    groupId: string,
+    weekNumber: number,
+    score: number | null,
+    comment: string | null,
+  ): Promise<void>
+
+  /** Puntos posibles de una semana en un grupo. `null` vuelve a los 100 predeterminados. */
+  setGradeActivityPoints(
+    groupId: string,
+    weekNumber: number,
+    points: number | null,
+  ): Promise<void>
+
+  /**
    * Genera las semanas de un periodo: la 1 empieza en `firstWeekStart` y las
    * siguientes suman 7 días, `weekCount` veces. Falla si el periodo ya tiene
    * semanas — hay que borrarlas primero (`deleteSemesterWeeksForPeriod`).
@@ -463,6 +495,21 @@ export const emptyRepository: PanelRepository = {
   },
   async getSemesterWeeks() {
     return []
+  },
+  async getGradeCenter() {
+    return []
+  },
+  async getWeeklyReports() {
+    return []
+  },
+  async getGradeActivityPoints() {
+    return []
+  },
+  async setGrade() {
+    throw new Error('No hay conexión con la base de datos. La calificación no se guardó.')
+  },
+  async setGradeActivityPoints() {
+    throw new Error('No hay conexión con la base de datos. Los puntos no se guardaron.')
   },
   async createSemesterWeeks() {
     throw new Error('No hay conexión con la base de datos. Las semanas no se guardaron.')

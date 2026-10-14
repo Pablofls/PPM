@@ -259,6 +259,17 @@ Fechas de entrega es la excepción: sus reglas son globales. La interfaz usa
 los permisos del rol elegido en «Ver como»; la base, la unión de los roles de
 la persona.
 
+#### Calificaciones (`0040`)
+
+La pantalla `calificaciones` (Calificar, Centro de calificaciones y Configurar
+actividades) es de `panel`: el maestro nace con «Puede editar» y el
+coordinador con «Solo lectura». Calificar y fijar los puntos de una semana
+solo se hace con `set_grade()` y `set_grade_activity_points()`, que acotan a
+los grupos de cada quien (`visible_group_ids()`); no hay escritura directa en
+las tablas. **El alumno no tiene política de lectura** sobre `grades` ni
+`grade_activities`: todavía no ve sus calificaciones. Abrírsela es una decisión
+que se pide, no se asume.
+
 ### Cuentas de maestros, coordinadores y administradores (`0037`)
 
 Las crea un administrador en **Configuración → Usuarios**: nombre, apellido,

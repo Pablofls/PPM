@@ -6,7 +6,7 @@
  * del formulario, a través de `latest_submissions`.
  */
 
-import type { FormCode, SkillLevel } from '../lib/catalog'
+import type { FormCode, SkillLevel, WeeklyFormCode } from '../lib/catalog'
 
 export type Language = 'es' | 'en'
 export type SessionDay = 'lunes' | 'miercoles'
@@ -541,3 +541,51 @@ export interface RoleScreenAccess {
   screenCode: string
   access: 'lectura' | 'edicion'
 }
+
+// ---------------------------------------------------------------------------
+// Calificaciones (0040)
+// ---------------------------------------------------------------------------
+
+/** Cómo va una actividad (semana) de un alumno. */
+export type GradeState = 'sin_entrega' | 'por_calificar' | 'calificado'
+
+/** Una celda del Centro de calificaciones: un alumno en una semana (`v_grade_center`). */
+export interface GradeEntry {
+  studentId: string
+  institutionalEmail: string
+  fullName: string | null
+  degreeCode: string | null
+  semester: number | null
+  groupId: string
+  weekNumber: number
+  weekStart: string
+  weekEnd: string
+  /** Qué bitácora entregó esa semana, si entregó alguna. */
+  formCode: WeeklyFormCode | null
+  submissionId: string | null
+  submittedAt: string | null
+  pointsPossible: number
+  score: number | null
+  comment: string | null
+  gradedAt: string | null
+  state: GradeState
+}
+
+/** Lo que el alumno contestó en su reporte de una semana, para calificarlo. */
+export interface WeeklyReport {
+  studentId: string
+  submissionId: string
+  formCode: WeeklyFormCode
+  submittedAt: string | null
+  /** Por la `key` de `WEEKLY_FORMS[].fields`. */
+  answers: Record<string, string | number | null>
+}
+
+/** Los puntos posibles de una semana en un grupo, cuando no son los 100 predeterminados. */
+export interface GradeActivityPoints {
+  weekNumber: number
+  pointsPossible: number
+}
+
+/** Puntos posibles cuando el profesor no configura otra cosa. */
+export const DEFAULT_POINTS_POSSIBLE = 100

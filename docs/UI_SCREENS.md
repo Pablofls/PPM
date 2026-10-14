@@ -32,6 +32,10 @@ PPM
 │   └── A.1 Carta Formal de Aceptación
 ├── APÉNDICE B · REPORTES
 │   └── B.1 Formulario de Inicio
+├── CALIFICACIONES
+│   ├── Calificar
+│   ├── Centro de calificaciones
+│   └── Configurar actividades
 └── ENTREGAS
     ├── Estado de Entregas
     └── Fechas de entrega
@@ -528,6 +532,48 @@ muestra a todos los alumnos.
   periodo, lo agrega como nueva inscripción.
 
 El expediente del alumno muestra su grupo junto a la matrícula.
+
+## Calificaciones
+
+> `0040_grades.sql` (✅ ejecutada 2026-10-14). Ver
+> [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#calificaciones). Permiso:
+> pantalla `calificaciones` (maestro edita, coordinador lee). Modeladas en el
+> Grade Center de Blackboard. Rutas: `/calificaciones/calificar`,
+> `/calificaciones/centro`, `/calificaciones/actividades`. Va en el rail
+> **antes de Entregas**.
+
+Cada semana del periodo es una actividad: **Reporte semana N**. El reporte que
+se califica es el que el alumno haya entregado esa semana, de Búsqueda o de
+Prácticas (nunca llena los dos). Todo se filtra por el grupo elegido.
+
+### Calificar
+
+Como «Needs Grading». Lista de actividades con semana, puntos, entregados,
+calificados y por calificar; clic en una abre la **vista de calificación** a
+pantalla completa, con la misma navegación que el ADN Profesional:
+
+- Breadcrumb `Calificar › Reporte semana N › Alumno`, botones `‹ n / total ›`
+  y atajos ← → y Esc. La semana y el alumno van en la URL (`?semana=&alumno=`).
+- **Izquierda:** el formulario ya llenado, con las etiquetas del formulario.
+- **Derecha:** puntos «\_\_ / puntos posibles», comentario, **Guardar y
+  siguiente** (Enter), Guardar y Quitar calificación.
+- «Solo por calificar» e «Incluir a quienes no entregaron» (que también se
+  pueden calificar, p. ej. con 0).
+- Con «Solo lectura» se ve la calificación sin controles.
+
+### Centro de calificaciones
+
+Como el Full Grade Center: una fila por estudiante, una columna por
+actividad (`Semana N · pts`), **Total** (puntos obtenidos / posibles) y **%**.
+La celda se edita ahí mismo (Enter guarda, Tab pasa a la siguiente); «–» es
+sin calificar y el amarillo marca un reporte entregado que falta calificar.
+El total solo cuenta las actividades ya calificadas.
+
+### Configurar actividades
+
+Los puntos posibles de cada semana **del grupo elegido** (cada maestro pone los
+de sus grupos). Sin configurar valen 100; el campo vacío vuelve a 100. Pide
+elegir un grupo si está en «Todos mis grupos».
 
 ## Estado de Entregas y Fechas de entrega
 

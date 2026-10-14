@@ -29,6 +29,9 @@ import { MyProfilePage } from './pages/MyProfilePage'
 import { GroupsPage } from './pages/admin/GroupsPage'
 import { UsersPage } from './pages/admin/UsersPage'
 import { RegisteredStudentsPage } from './pages/admin/RegisteredStudentsPage'
+import { GradeActivitiesPage } from './pages/calificaciones/GradeActivitiesPage'
+import { GradeCenterPage } from './pages/calificaciones/GradeCenterPage'
+import { GradeSettingsPage } from './pages/calificaciones/GradeSettingsPage'
 import { SubmissionStatusPage } from './pages/admin/SubmissionStatusPage'
 import { weeklyFormByCode } from './lib/catalog'
 
@@ -150,6 +153,13 @@ export default function App() {
 
                 <Route path="apendice-b">
                   <Route path="formulario-de-inicio" element={<CompaniesPage />} />
+                </Route>
+
+                <Route path="calificaciones">
+                  <Route index element={<Navigate to="calificar" replace />} />
+                  <Route path="calificar" element={<GradeActivitiesPage />} />
+                  <Route path="centro" element={<GradeCenterPage />} />
+                  <Route path="actividades" element={<GradeSettingsPage />} />
                 </Route>
 
                 <Route path="entregas">

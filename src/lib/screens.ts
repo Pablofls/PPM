@@ -68,6 +68,15 @@ export const SCREENS: ScreenMeta[] = [
     editHint: 'Maestro: corregir la semana · Alumno: entregar',
   },
   {
+    code: 'calificaciones',
+    name: 'Calificaciones',
+    section: 'Calificaciones',
+    maxAccess: 'edicion',
+    audience: 'panel',
+    path: '/calificaciones',
+    editHint: 'Calificar los reportes y configurar los puntos de sus grupos',
+  },
+  {
     code: 'estado_entregas',
     name: 'Estado de Entregas',
     section: 'Entregas',
@@ -118,8 +127,9 @@ export const SCREENS: ScreenMeta[] = [
   },
 ]
 
+/** Una pantalla puede tener subrutas (Calificaciones): `/calificaciones/centro` es suya. */
 export const screenByPath = (path: string): ScreenMeta | undefined =>
-  SCREENS.find((screen) => screen.path === path)
+  SCREENS.find((screen) => screen.path && (path === screen.path || path.startsWith(`${screen.path}/`)))
 
 /** ¿`access` alcanza para `needed`? */
 export function hasAccess(access: AccessLevel, needed: AccessLevel = 'lectura'): boolean {
