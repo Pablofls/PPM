@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 
 import type { CelebrationKind } from '../lib/celebration'
 
-const CONFETTI_MS = 6500
+const CONFETTI_MS = 4000
 const STAMP_MS = 2800
 const COLORS = ['#f2e63d', '#e3d41c', '#343c48', '#6b7484', '#8b5cf6', '#22c55e', '#f97316', '#ef4444']
 
@@ -123,12 +123,12 @@ function Confetti({ onDone }: { onDone: () => void }) {
     window.addEventListener('resize', resize)
 
     const rand = (min: number, max: number) => min + Math.random() * (max - min)
-    const pieces: Piece[] = Array.from({ length: 360 }, () => {
+    const pieces: Piece[] = Array.from({ length: 700 }, () => {
       const shape = (['rect', 'rect', 'circle', 'strip'] as const)[Math.floor(Math.random() * 4)]
       return {
         x: rand(0, window.innerWidth),
         // Arrancan escalonadas por encima de la pantalla: cae como lluvia, no de golpe.
-        y: rand(-40, -window.innerHeight * 1.6),
+        y: rand(-40, -window.innerHeight * 0.9),
         w: shape === 'strip' ? rand(4, 6) : rand(7, 12),
         h: shape === 'strip' ? rand(18, 30) : shape === 'circle' ? 0 : rand(10, 16),
         vy: rand(150, 350),
@@ -153,7 +153,7 @@ function Confetti({ onDone }: { onDone: () => void }) {
       const dt = Math.min((now - last) / 1000, 0.1)
       last = now
       const elapsed = now - start
-      const fade = elapsed > CONFETTI_MS - 900 ? Math.max(0, (CONFETTI_MS - elapsed) / 900) : 1
+      const fade = elapsed > CONFETTI_MS - 700 ? Math.max(0, (CONFETTI_MS - elapsed) / 700) : 1
 
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight)
       ctx.globalAlpha = fade
