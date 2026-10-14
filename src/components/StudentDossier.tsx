@@ -35,7 +35,13 @@ import {
 interface StudentDossierProps<T extends BaseRow> {
   row: T | null
   form: FormMeta
+  /** Regresa a la tabla de origen (breadcrumb). */
   onClose: () => void
+  /** Posición del alumno en la lista de la tabla y su tamaño, para el «n / total». */
+  index: number
+  total: number
+  onPrev?: () => void
+  onNext?: () => void
   /** Detalle del formulario desde el que se abrió, debajo del expediente. */
   children?: (row: T) => ReactNode
 }
@@ -54,6 +60,10 @@ export function StudentDossier<T extends BaseRow>({
   row,
   form,
   onClose,
+  index,
+  total,
+  onPrev,
+  onNext,
   children,
 }: StudentDossierProps<T>) {
   const studentId = row?.studentId ?? null
@@ -75,42 +85,71 @@ export function StudentDossier<T extends BaseRow>({
   }
 
   useEffect(() => {
-    if (!row) return
     const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null
+      if (target?.closest('input, textarea, select, [contenteditable]')) return
       if (event.key === 'Escape') onClose()
+      else if (event.key === 'ArrowLeft') onPrev?.()
+      else if (event.key === 'ArrowRight') onNext?.()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [row, onClose])
+  }, [onClose, onPrev, onNext])
+
+  // Al pasar a otro alumno se empieza desde arriba, y la corrección de semana
+  // del anterior no se arrastra.
+  useEffect(() => {
+    window.scrollTo({ top: 0 })
+    setWeekFixKey(0)
+  }, [studentId])
 
   if (!row) return null
 
-  return (
-    <div className="fixed inset-0 z-40 overflow-y-auto">
-      <div
-        className="fixed inset-0 bg-ink-950/40"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+  const studentName = dossier?.fullName ?? row.fullName
 
-      <div className="relative mx-auto my-6 w-full max-w-7xl px-4">
+  return (
+    <div>
+      <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <nav aria-label="Ruta" className="flex min-w-0 items-center gap-1.5 text-sm text-ink-500">
+          <button type="button" onClick={onClose} className="hover:text-ink-900 hover:underline">
+            Módulo {form.moduleCode}
+          </button>
+          <span aria-hidden="true">›</span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="font-medium text-accent-700 hover:underline"
+          >
+            {form.label} {form.name}
+          </button>
+          <span aria-hidden="true">›</span>
+          <span className="truncate text-ink-900" aria-current="page">
+            {studentName ?? 'ADN Profesional'}
+          </span>
+        </nav>
+
+        <div className="flex items-center gap-1.5">
+          <DossierNavButton onClick={onPrev} label="Alumno anterior">
+            ‹
+          </DossierNavButton>
+          <span className="tnum px-1 text-sm text-ink-600">
+            {index + 1} / {total}
+          </span>
+          <DossierNavButton onClick={onNext} label="Alumno siguiente">
+            ›
+          </DossierNavButton>
+        </div>
+      </header>
+
+      <div className="w-full">
         <article
-          role="dialog"
           aria-label="Expediente del alumno"
-          className="overflow-hidden rounded-xl border border-ink-200 bg-white shadow-2xl"
+          className="overflow-hidden rounded-xl border border-ink-200 bg-white shadow-sm"
         >
-          <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-ink-200 bg-white/95 px-6 py-4 backdrop-blur">
-            <h2 className="text-lg font-semibold tracking-tight text-ink-950">
+          <header className="border-b border-ink-200 bg-white px-6 py-4">
+            <h1 className="text-lg font-semibold tracking-tight text-ink-950">
               ADN Profesional
-            </h2>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Cerrar"
-              className="shrink-0 rounded-lg p-1.5 text-ink-400 hover:bg-ink-100 hover:text-ink-900"
-            >
-              ✕
-            </button>
+            </h1>
           </header>
 
           <div className="space-y-7 px-6 py-6">
@@ -166,6 +205,29 @@ export function StudentDossier<T extends BaseRow>({
         </article>
       </div>
     </div>
+  )
+}
+
+function DossierNavButton({
+  children,
+  onClick,
+  label,
+}: {
+  children: string
+  onClick?: () => void
+  label: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!onClick}
+      aria-label={label}
+      title={label}
+      className="h-8 w-8 rounded-lg border border-ink-200 bg-white text-base text-ink-700 hover:bg-ink-100 disabled:cursor-not-allowed disabled:text-ink-300 disabled:hover:bg-white"
+    >
+      {children}
+    </button>
   )
 }
 

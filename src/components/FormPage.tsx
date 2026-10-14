@@ -1,4 +1,5 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
+import { useSearchParams } from 'react-router-dom'
 
 import { useFormSummary } from '../data/hooks'
 import { repository } from '../data/repository'
@@ -10,6 +11,10 @@ import { DataTable, type Column } from './DataTable'
 import { FilterBar, useFilters } from './FilterBar'
 import { PageHeader } from './PageHeader'
 import { StudentDossier } from './StudentDossier'
+
+const DOSSIER_PARAM = 'alumno'
+
+const rowKey = (row: BaseRow) => row.submissionId || row.studentId
 
 interface FormPageProps<T extends BaseRow> {
   form: FormMeta
@@ -59,7 +64,48 @@ export function FormPage<T extends BaseRow>({
   const [filters, setFilter, clearFilters] = useFilters()
   const { data: rows, loading, error } = useRows(filters)
   const { data: summary } = useFormSummary(form.code, filters)
-  const [selectedRow, setSelectedRow] = useState<T | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // El expediente vive en la URL (`?alumno=`) junto a los filtros: «Atrás» del
+  // navegador regresa a la tabla y la vista se puede compartir.
+  const selectedKey = searchParams.get(DOSSIER_PARAM)
+  const selectedIndex = selectedKey ? rows.findIndex((row) => rowKey(row) === selectedKey) : -1
+  const selectedRow = selectedIndex >= 0 ? rows[selectedIndex] : null
+
+  const openRow = (row: T | null, replace = false) =>
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current)
+        if (row) next.set(DOSSIER_PARAM, rowKey(row))
+        else next.delete(DOSSIER_PARAM)
+        return next
+      },
+      { replace },
+    )
+
+  // Un `?alumno=` que ya no existe en la lista (filtros distintos, enlace viejo).
+  useEffect(() => {
+    if (selectedKey && !loading && selectedIndex < 0) openRow(null, true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedKey, loading, selectedIndex])
+
+  if (selectedRow) {
+    return (
+      <StudentDossier
+        row={selectedRow}
+        form={form}
+        onClose={() => openRow(null)}
+        index={selectedIndex}
+        total={rows.length}
+        onPrev={selectedIndex > 0 ? () => openRow(rows[selectedIndex - 1], true) : undefined}
+        onNext={
+          selectedIndex < rows.length - 1 ? () => openRow(rows[selectedIndex + 1], true) : undefined
+        }
+      >
+        {renderDetail}
+      </StudentDossier>
+    )
+  }
 
   return (
     <>
@@ -85,17 +131,13 @@ export function FormPage<T extends BaseRow>({
       <DataTable
         columns={columns}
         rows={rows}
-        rowKey={(row) => row.submissionId || row.studentId}
+        rowKey={rowKey}
         loading={loading}
         isConnected={repository.isConnected}
         error={error}
         pageSize={pageSize}
-        onRowClick={setSelectedRow}
+        onRowClick={(row) => openRow(row)}
       />
-
-      <StudentDossier row={selectedRow} form={form} onClose={() => setSelectedRow(null)}>
-        {renderDetail}
-      </StudentDossier>
     </>
   )
 }
