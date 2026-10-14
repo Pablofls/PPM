@@ -72,8 +72,8 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
     (updated: boolean, late: boolean) => {
       setRefreshKey((key) => key + 1)
       if (updated) setToast(`Actualizaste tu ${form.name}. Tu profesor ya puede verlo.`)
-      // Corregir la semana en curso no se celebra: ya se había entregado.
-      else setCelebration(celebrationKind(late))
+      // Corregir la semana en curso también se celebra (nunca es tardía).
+      setCelebration(celebrationKind(late))
     },
     [form.name],
   )

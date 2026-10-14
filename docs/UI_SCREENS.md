@@ -716,7 +716,7 @@ mantener en sincronía.
 bitácora** (no se le saca a Mis tareas) y ahí mismo sale `SubmissionCelebration`
 (`src/components/SubmissionCelebration.tsx`): **confeti** por toda la pantalla
 si fue a tiempo, o un **sello «ENTREGADO»** que se estampa con golpe y
-sacudida si fue tardía. Corregir la semana en curso no se celebra (solo un
+sacudida si fue tardía. Corregir la semana en curso también da confeti (además del
 aviso). No bloquea clics, no tiene sonido, se retira solo y respeta
 `prefers-reduced-motion`. Tras entregar se recargan las entregas y el
 formulario pasa a la semana siguiente. Es genérica: toda actividad nueva

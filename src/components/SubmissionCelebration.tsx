@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 
 import type { CelebrationKind } from '../lib/celebration'
 
-const CONFETTI_MS = 4200
+const CONFETTI_MS = 3600
 const STAMP_MS = 2800
 const COLORS = ['#f2e63d', '#e3d41c', '#343c48', '#6b7484', '#8b5cf6', '#22c55e', '#f97316', '#ef4444']
 
@@ -87,10 +87,16 @@ interface Piece {
   w: number
   h: number
   vy: number
+  /** Velocidad a la que el aire frena la caída. */
+  terminal: number
   drift: number
   phase: number
+  phaseSpeed: number
   angle: number
   spin: number
+  flip: number
+  flipSpeed: number
+  shape: 'rect' | 'circle' | 'strip'
   color: string
 }
 
@@ -116,19 +122,28 @@ function Confetti({ onDone }: { onDone: () => void }) {
     resize()
     window.addEventListener('resize', resize)
 
-    const pieces: Piece[] = Array.from({ length: 180 }, () => ({
-      x: Math.random() * window.innerWidth,
-      // Arrancan escalonadas por encima de la pantalla: cae como lluvia, no de golpe.
-      y: -20 - Math.random() * window.innerHeight * 0.6,
-      w: 6 + Math.random() * 6,
-      h: 10 + Math.random() * 8,
-      vy: 140 + Math.random() * 180,
-      drift: 20 + Math.random() * 40,
-      phase: Math.random() * Math.PI * 2,
-      angle: Math.random() * Math.PI * 2,
-      spin: (Math.random() - 0.5) * 10,
-      color: COLORS[Math.floor(Math.random() * COLORS.length)],
-    }))
+    const rand = (min: number, max: number) => min + Math.random() * (max - min)
+    const pieces: Piece[] = Array.from({ length: 360 }, () => {
+      const shape = (['rect', 'rect', 'circle', 'strip'] as const)[Math.floor(Math.random() * 4)]
+      return {
+        x: rand(0, window.innerWidth),
+        // Arrancan escalonadas por encima de la pantalla: cae como lluvia, no de golpe.
+        y: rand(-40, -window.innerHeight * 0.45),
+        w: shape === 'strip' ? rand(4, 6) : rand(7, 12),
+        h: shape === 'strip' ? rand(18, 30) : shape === 'circle' ? 0 : rand(10, 16),
+        vy: rand(150, 350),
+        terminal: rand(330, 560),
+        drift: rand(25, 70),
+        phase: rand(0, Math.PI * 2),
+        phaseSpeed: rand(3, 7),
+        angle: rand(0, Math.PI * 2),
+        spin: rand(-8, 8),
+        flip: rand(0, Math.PI * 2),
+        flipSpeed: rand(6, 14),
+        shape,
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      }
+    })
 
     let raf = 0
     let last = performance.now()
@@ -138,20 +153,33 @@ function Confetti({ onDone }: { onDone: () => void }) {
       const dt = Math.min((now - last) / 1000, 0.05)
       last = now
       const elapsed = now - start
-      const fade = elapsed > CONFETTI_MS - 800 ? Math.max(0, (CONFETTI_MS - elapsed) / 800) : 1
+      const fade = elapsed > CONFETTI_MS - 600 ? Math.max(0, (CONFETTI_MS - elapsed) / 600) : 1
 
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight)
       ctx.globalAlpha = fade
       for (const p of pieces) {
+        // Cae acelerando hasta su velocidad límite, como papel en el aire.
+        p.vy += (p.terminal - p.vy) * Math.min(1, dt * 2.2)
         p.y += p.vy * dt
-        p.phase += dt * 3
+        p.phase += dt * p.phaseSpeed
         p.angle += p.spin * dt
+        p.flip += dt * p.flipSpeed
         const x = p.x + Math.sin(p.phase) * p.drift
+        // El volteo en 3D: al girar de canto el pedazo se ve más delgado.
+        const flat = Math.cos(p.flip)
+
         ctx.save()
         ctx.translate(x, p.y)
         ctx.rotate(p.angle)
+        ctx.scale(1, flat)
         ctx.fillStyle = p.color
-        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h)
+        if (p.shape === 'circle') {
+          ctx.beginPath()
+          ctx.arc(0, 0, p.w / 2, 0, Math.PI * 2)
+          ctx.fill()
+        } else {
+          ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h)
+        }
         ctx.restore()
       }
 
