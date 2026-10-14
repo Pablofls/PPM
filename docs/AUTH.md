@@ -28,8 +28,8 @@ Desde `0035` una cuenta puede tener **varios roles** (`user_roles`); René es
 |---|---|
 | (sin roles) | Iniciar sesión y ver su propio perfil. **Nada más.** Así nace todo usuario |
 | `alumno` | Iniciar sesión, entregar sus dos bitácoras semanales, leer **sus propias** entregas, su propio expediente (ADN Profesional) y su propio estado de entregas. Nada de ningún otro alumno, nada de los otros trece formularios. **No se combina con otro rol** |
-| `maestro` | Leer el panel **de sus grupos**: sus alumnos y sus entregas. Sin escritura (`0036`) |
-| `coordinador` | Leer el panel de los grupos **de los maestros que tiene asignados** (`coordinator_teachers`). Sin escritura (`0036`) |
+| `maestro` | Leer el panel **de sus grupos**: sus alumnos y sus entregas (`0036`). Desde `0044` también **crea sus grupos** (solo a su nombre) y **da de alta a sus alumnos**, porque nace con «Puede editar» en *Alumnos registrados* y *Administrar grupos*; el admin puede quitárselo |
+| `coordinador` | Leer el panel de los grupos **de los maestros que tiene asignados** (`coordinator_teachers`) (`0036`). Desde `0044`, mismo «Puede editar» en esas dos pantallas, acotado a los grupos de sus maestros: puede crear grupos para ellos y registrar alumnos en ellos |
 | `admin` | Leer todo, escribir lo que el panel escribe (fechas, semanas, alumnos, grupos, sincronización) y administrar roles |
 
 ### «Ver como»
@@ -55,8 +55,9 @@ todo); la vista solo acota lo que la interfaz muestra. Se recuerda en el
 navegador (`ppm.vista`).
 
 Las pantallas **del panel** son para el staff (`ProtectedRoute` exige un rol
-de admin, coordinador o maestro); Configuración y Fechas de entrega además van
-dentro de `AdminRoute`. El alumno tiene su propio
+de admin, coordinador o maestro). *Alumnos registrados* y *Administrar grupos* van
+con `ScreenRoute` (permiso por pantalla, `0038`); *Usuarios y permisos* y Fechas de
+entrega van dentro de `AdminRoute`. El alumno tiene su propio
 árbol de rutas bajo `/alumno`, con su propia guardia (`StudentRoute`).
 
 ### Lo que el alumno puede hacer
@@ -255,6 +256,10 @@ Se aplica en la base, no solo en la interfaz: sin lectura de un formulario,
 RLS no devuelve sus respuestas; sin «Puede editar» en una bitácora, el alumno
 no puede entregarla; con «Puede editar», un maestro o coordinador escribe
 (registrar alumnos, grupos, corregir semanas) **solo dentro de sus grupos**.
+Desde `0044` maestro y coordinador traen «Puede editar» por defecto en
+*Alumnos registrados* y *Administrar grupos*; los alumnos **sin grupo** solo los
+ve y asigna el admin. Cuando varios maestros tienen un grupo con el mismo
+periodo, día e idioma, el alta recibe el `maestro_id` para distinguirlos.
 Fechas de entrega es la excepción: sus reglas son globales. La interfaz usa
 los permisos del rol elegido en «Ver como»; la base, la unión de los roles de
 la persona.
