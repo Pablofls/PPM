@@ -10,6 +10,17 @@ import { formatGroupLabel, formatLanguage, formatSessionDay } from '../lib/forma
 /** Adonde se entra si no se venía de ninguna pantalla en particular. */
 const DEFAULT_PATH = '/modulo1/datos-demograficos'
 
+/** El periodo que el profesor eligió la última vez (`''` = todos los periodos). */
+const PERIOD_KEY = 'ppm.periodo'
+
+function readStoredPeriod(): string | null {
+  try {
+    return localStorage.getItem(PERIOD_KEY)
+  } catch {
+    return null
+  }
+}
+
 const FIELD_INPUT =
   'rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 shadow-sm focus:border-ink-400 focus:ring-2 focus:ring-ink-900/5 focus:outline-none'
 
@@ -33,10 +44,22 @@ export function GroupPickerPage() {
     () => [...new Set(groups.map((group) => group.periodCode))],
     [groups],
   )
-  // `null` = el profesor no ha tocado el selector: se muestra el periodo más
-  // reciente, que es el que está dando clase.
-  const [period, setPeriod] = useState<string | null>(null)
-  const activePeriod = period ?? periods[0] ?? ''
+  // `null` = el profesor no ha elegido nunca: se muestra el periodo más
+  // reciente, que es el que está dando clase. Lo que elige se recuerda en el
+  // navegador (también «Todos los periodos»), para no tener que repetirlo.
+  const [period, setPeriod] = useState<string | null>(readStoredPeriod)
+  // Un periodo guardado que ya no existe en la lista cae al más reciente.
+  const activePeriod =
+    period !== null && (period === '' || periods.includes(period)) ? period : (periods[0] ?? '')
+
+  function choosePeriod(value: string) {
+    setPeriod(value)
+    try {
+      localStorage.setItem(PERIOD_KEY, value)
+    } catch {
+      // Sin almacenamiento la elección dura lo que dure la pantalla.
+    }
+  }
   const [search, setSearch] = useState('')
 
   const visible = useMemo(() => {
@@ -87,7 +110,7 @@ export function GroupPickerPage() {
         <select
           aria-label="Periodo"
           value={activePeriod}
-          onChange={(event) => setPeriod(event.target.value)}
+          onChange={(event) => choosePeriod(event.target.value)}
           className={FIELD_INPUT}
         >
           {periods.map((code) => (

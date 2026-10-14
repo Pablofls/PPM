@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 
 import type { FormCode } from '../lib/catalog'
 import { repository } from './repository'
+import { fetchEntry, getEntry, setSnapshot, stableStringify } from './queryCache'
 import type { FormSummary, PanelFilters, SyncStatus } from './types'
 
 interface QueryResult<T> {
@@ -17,53 +18,98 @@ interface QueryResult<T> {
    * no han contestado.
    */
   error: string | null
+  /**
+   * Reemplaza el dato en el caché sin volver a consultar, para reflejar una
+   * escritura que ya se guardó (p. ej. una calificación).
+   */
+  mutate: (update: (current: T) => T) => void
+}
+
+/**
+ * Calienta el caché de una consulta antes de que la pantalla la pida; por
+ * ejemplo, al pasar el cursor sobre su liga del menú. Con la misma `key` y
+ * `deps` que usará el hook.
+ */
+export function prefetchQuery<T>(key: string, query: () => Promise<T>, deps: unknown[]) {
+  if (!repository.isConnected) return
+  const entry = getEntry(`${key}${stableStringify(deps)}`)
+  if (entry.snapshot.hasData || entry.inFlight) return
+  void fetchEntry(entry, query)
+}
+
+/** `true` si algún filtro avisa que todavía no se sabe qué grupos ve la vista. */
+function waitingForScope(deps: unknown[]): boolean {
+  return deps.some(
+    (dep) =>
+      typeof dep === 'object' &&
+      dep !== null &&
+      (dep as Partial<PanelFilters>).scopeLoading === true,
+  )
 }
 
 /**
  * Ejecuta una consulta del repositorio y expone su resultado.
  *
  * `deps` controla cuándo se vuelve a consultar; normalmente son los filtros.
+ * La consulta se identifica por `key` (por omisión, el texto de la función) y
+ * `deps`: dos pantallas que piden lo mismo comparten el resultado.
  */
 export function useRepositoryQuery<T>(
   query: () => Promise<T>,
   fallback: T,
   deps: unknown[],
+  key: string = query.toString(),
 ): QueryResult<T> {
-  const [data, setData] = useState<T>(fallback)
-  const [loading, setLoading] = useState(repository.isConnected)
-  const [error, setError] = useState<string | null>(null)
+  const fullKey = `${key}${stableStringify(deps)}`
+  const entry = getEntry(fullKey)
+  const waiting = waitingForScope(deps)
+
+  const subscribe = useCallback(
+    (listener: () => void) => {
+      entry.listeners.add(listener)
+      return () => {
+        entry.listeners.delete(listener)
+      }
+    },
+    [entry],
+  )
+  const snapshot = useSyncExternalStore(subscribe, () => entry.snapshot)
 
   useEffect(() => {
-    let cancelled = false
-
-    // Sin base de datos no hay nada que consultar y `data` ya vale `fallback`.
-    // Volver a asignarlo provocaría un render infinito, porque las pantallas
-    // pasan un `fallback` literal ([]) que es un objeto nuevo en cada render.
-    if (!repository.isConnected) return
-
-    setLoading(true)
-    setError(null)
-
-    query()
-      .then((result) => {
-        if (cancelled) return
-        setData(result)
-        setLoading(false)
-      })
-      .catch((cause: unknown) => {
-        if (cancelled) return
-        setData(fallback)
-        setError(cause instanceof Error ? cause.message : 'Error desconocido')
-        setLoading(false)
-      })
-
-    return () => {
-      cancelled = true
-    }
+    // Sin base de datos no hay nada que consultar: `data` vale `fallback`.
+    if (!repository.isConnected || waiting) return
+    void fetchEntry(entry, query)
+    // `entry` cambia con la clave —y cuando una escritura vacía el caché—, que
+    // es justo cuándo hay que volver a consultar; `query` es una función nueva
+    // en cada render y no debe disparar nada.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps)
+  }, [entry, waiting])
 
-  return { data, loading, isConnected: repository.isConnected, error }
+  const mutate = useCallback(
+    (update: (current: T) => T) => {
+      if (!entry.snapshot.hasData) return
+      setSnapshot(entry, { ...entry.snapshot, data: update(entry.snapshot.data as T) })
+    },
+    [entry],
+  )
+
+  return useMemo(() => {
+    if (!repository.isConnected) {
+      return { data: fallback, loading: false, isConnected: false, error: null, mutate }
+    }
+    return {
+      data: snapshot.hasData ? (snapshot.data as T) : fallback,
+      // Con un dato en caché no se muestra "Cargando": se ve el dato mientras
+      // llega la versión nueva.
+      loading: !snapshot.hasData && snapshot.loading,
+      isConnected: true,
+      error: snapshot.error,
+      mutate,
+    }
+    // `fallback` es un literal nuevo en cada render; solo importa su valor
+    // cuando todavía no hay dato.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snapshot, mutate])
 }
 
 export function useFormSummary(formCode: FormCode, filters: PanelFilters) {
@@ -71,6 +117,7 @@ export function useFormSummary(formCode: FormCode, filters: PanelFilters) {
     () => repository.getSummary(formCode, filters),
     null,
     [formCode, filters],
+    'formSummary',
   )
 }
 
@@ -90,6 +137,7 @@ export function useSyncStatus() {
     () => repository.getLastSync(),
     null,
     [refreshToken],
+    'syncStatus',
   )
   const refetch = useCallback(() => setRefreshToken((token) => token + 1), [])
 

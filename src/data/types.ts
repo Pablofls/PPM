@@ -330,6 +330,12 @@ export interface PanelFilters {
    * elegida en «Ver como». Ver `GroupProvider`.
    */
   scopeGroups: string[] | null
+  /**
+   * `true` mientras `GroupProvider` aún no sabe qué grupos ve la vista:
+   * `scopeGroups` todavía es `[]` y consultar ahora devolvería nada, para
+   * luego repetir la consulta con los grupos reales. Las consultas esperan.
+   */
+  scopeLoading?: boolean
 }
 
 export const EMPTY_FILTERS: PanelFilters = {

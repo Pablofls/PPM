@@ -1,14 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback } from 'react'
 
 import { useRepositoryQuery } from '../../data/hooks'
 import { repository } from '../../data/repository'
 import type { GradeEntry, PanelFilters } from '../../data/types'
 import { entryKey, stateOf } from './gradeUtils'
 
-interface Edit {
-  score: number | null
-  comment: string | null
-}
+/** La clave del caché: la usan el hook y la precarga del menú. */
+export const GRADE_CENTER_KEY = 'gradeCenter'
 
 /**
  * Las calificaciones del grupo elegido (`v_grade_center`) con lo que el
@@ -16,33 +14,15 @@ interface Edit {
  *
  * Al calificar no se vuelve a consultar: la celda ya sabe qué guardó, y
  * recargar la tabla mientras el profesor avanza con Tab le quitaría el foco.
- * Las ediciones se descartan en cuanto llegan datos nuevos de la base.
+ * El cambio se escribe en el caché compartido, así que Calificar y el Centro
+ * de calificaciones lo ven igual y al volver no hay nada viejo.
  */
 export function useGradeEntries(filters: PanelFilters) {
-  const { data, loading, error, isConnected } = useRepositoryQuery(
+  const { data, loading, error, isConnected, mutate } = useRepositoryQuery(
     () => repository.getGradeCenter(filters),
     [] as GradeEntry[],
     [filters],
-  )
-  const [edits, setEdits] = useState<Record<string, Edit>>({})
-
-  useEffect(() => {
-    setEdits({})
-  }, [data])
-
-  const entries = useMemo(
-    () =>
-      data.map((entry) => {
-        const edit = edits[entryKey(entry.studentId, entry.weekNumber)]
-        if (!edit) return entry
-        return {
-          ...entry,
-          score: edit.score,
-          comment: edit.comment,
-          state: stateOf(edit.score, entry.submissionId),
-        }
-      }),
-    [data, edits],
+    GRADE_CENTER_KEY,
   )
 
   /** `score: null` quita la calificación. Lanza si la base no la guardó. */
@@ -56,13 +36,22 @@ export function useGradeEntries(filters: PanelFilters) {
         score,
         cleanComment,
       )
-      setEdits((current) => ({
-        ...current,
-        [entryKey(entry.studentId, entry.weekNumber)]: { score, comment: cleanComment },
-      }))
+      const key = entryKey(entry.studentId, entry.weekNumber)
+      mutate((current) =>
+        current.map((item) =>
+          entryKey(item.studentId, item.weekNumber) === key
+            ? {
+                ...item,
+                score,
+                comment: cleanComment,
+                state: stateOf(score, item.submissionId),
+              }
+            : item,
+        ),
+      )
     },
-    [],
+    [mutate],
   )
 
-  return { entries, loading, error, isConnected, save }
+  return { entries: data, loading, error, isConnected, save }
 }

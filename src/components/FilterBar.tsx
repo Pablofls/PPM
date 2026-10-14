@@ -13,7 +13,7 @@ import type { PanelFilters } from '../data/types'
 import { useGroups } from '../layouts/GroupProvider'
 
 /** Los filtros de la barra: todos salvo el grupo, que es global (`GroupProvider`). */
-type BarFilterKey = Exclude<keyof PanelFilters, 'group' | 'scopeGroups'>
+type BarFilterKey = Exclude<keyof PanelFilters, 'group' | 'scopeGroups' | 'scopeLoading'>
 
 /** Nombres de los parámetros en la URL. En español: el profesor los ve y los comparte. */
 const PARAM_NAMES: Record<BarFilterKey, string> = {
@@ -35,6 +35,7 @@ export function useFilters(): [PanelFilters, (key: BarFilterKey, value: string) 
   const groupContext = useGroups()
   const group = groupContext?.selectedGroupId ?? ''
   const scopeGroups = groupContext?.scopeGroupIds ?? null
+  const scopeLoading = groupContext?.loading ?? false
 
   // La identidad del objeto tiene que ser estable: es una dependencia de las
   // consultas al repositorio, y recrearlo en cada render provocaría un bucle.
@@ -49,8 +50,9 @@ export function useFilters(): [PanelFilters, (key: BarFilterKey, value: string) 
       period: params.get('periodo') ?? '',
       group,
       scopeGroups,
+      scopeLoading,
     }
-  }, [queryString, group, scopeGroups])
+  }, [queryString, group, scopeGroups, scopeLoading])
 
   // Forma funcional: parte siempre de los parámetros vigentes, no de los que
   // había al renderizar. Sin esto, dos filtros cambiados en el mismo ciclo de

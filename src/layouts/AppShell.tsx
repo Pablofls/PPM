@@ -1,6 +1,9 @@
 import { Link, Navigate, NavLink, Outlet, useLocation } from 'react-router-dom'
 
+import { prefetchQuery } from '../data/hooks'
 import { repository } from '../data/repository'
+import { EMPTY_FILTERS } from '../data/types'
+import { GRADE_CENTER_KEY } from '../pages/calificaciones/useGradeEntries'
 import { FORMS, MODULE_TITLES, UPCOMING_SECTIONS } from '../lib/catalog'
 import { formatGroupLabel } from '../lib/format'
 import { GroupCover } from '../components/GroupCover'
@@ -40,6 +43,20 @@ export function AppShell() {
   const groupContext = useGroups()
   const { activeRole } = useAuth()
 
+  // Las pantallas de calificaciones son las más pesadas: al pasar el cursor
+  // por su liga ya se pide lo que van a necesitar, con los mismos filtros que
+  // armará `useFilters` en ellas (sin filtros de la barra).
+  function prefetchGrades() {
+    if (!groupContext || groupContext.loading) return
+    const filters = {
+      ...EMPTY_FILTERS,
+      group: groupContext.selectedGroupId,
+      scopeGroups: groupContext.scopeGroupIds,
+      scopeLoading: false,
+    }
+    prefetchQuery(GRADE_CENTER_KEY, () => repository.getGradeCenter(filters), [filters])
+  }
+
   // Sin grupo elegido en esta sesión, primero «Mis grupos» (como entrar a
   // Blackboard). `volver` regresa a la pantalla que se había pedido, para que
   // un enlace guardado siga sirviendo.
@@ -78,8 +95,13 @@ export function AppShell() {
 
           {can('calificaciones') && (
             <NavGroup title="Calificaciones">
-              <NavItem to="/calificaciones/calificar" label="" name="Calificar" />
-              <NavItem to="/calificaciones/centro" label="" name="Centro de calificaciones" />
+              <NavItem to="/calificaciones/calificar" label="" name="Calificar" onHover={prefetchGrades} />
+              <NavItem
+                to="/calificaciones/centro"
+                label=""
+                name="Centro de calificaciones"
+                onHover={prefetchGrades}
+              />
               <NavItem to="/calificaciones/actividades" label="" name="Configurar actividades" />
             </NavGroup>
           )}
@@ -201,7 +223,17 @@ function NavGroup({ title, children }: { title: string; children: React.ReactNod
   )
 }
 
-function NavItem({ to, label, name }: { to: string; label: string; name: string }) {
+function NavItem({
+  to,
+  label,
+  name,
+  onHover,
+}: {
+  to: string
+  label: string
+  name: string
+  onHover?: () => void
+}) {
   return (
     <li>
       {/*
@@ -211,6 +243,8 @@ function NavItem({ to, label, name }: { to: string; label: string; name: string 
       */}
       <NavLink
         to={to}
+        onMouseEnter={onHover}
+        onFocus={onHover}
         className={({ isActive }) =>
           `relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
             isActive
