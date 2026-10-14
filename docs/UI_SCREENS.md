@@ -719,7 +719,9 @@ si fue a tiempo, o un **sello «ENTREGADO»** que se estampa con golpe y
 sacudida si fue tardía. Corregir la semana en curso también da confeti (además del
 aviso). No bloquea clics, no tiene sonido, se retira solo y respeta
 `prefers-reduced-motion`. Tras entregar se recargan las entregas y el
-formulario pasa a la semana siguiente. Es genérica: toda actividad nueva
+formulario pasa a la semana siguiente (al terminar la celebración, para no
+trabarla). Mientras dura, y 10 s después de cada entrega o actualización, el
+botón queda deshabilitado: así no se spamea para repetir el confeti. Es genérica: toda actividad nueva
 renderiza `<SubmissionCelebration kind={celebrationKind(esTardia)} …/>` al
 entregar (`src/lib/celebration.ts`).
 

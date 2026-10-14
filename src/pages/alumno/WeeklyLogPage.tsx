@@ -66,17 +66,21 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
     : allWeeks
 
   // Al entregar o corregir la alumna se queda en la bitácora: se celebra ahí
-  // mismo (sello o confeti) y ella decide cuándo salir. Se recargan las
-  // entregas y las semanas para que el formulario pase a la semana que sigue.
+  // mismo (sello o confeti) y ella decide cuándo salir. Las entregas y las
+  // semanas se recargan al terminar la celebración (`endCelebration`): hacerlo
+  // antes mete renders y red en medio de la animación y la traba.
   const onSubmitted = useCallback(
     (updated: boolean, late: boolean) => {
-      setRefreshKey((key) => key + 1)
       if (updated) setToast(`Actualizaste tu ${form.name}. Tu profesor ya puede verlo.`)
       // Corregir la semana en curso también se celebra (nunca es tardía).
       setCelebration(celebrationKind(late))
     },
     [form.name],
   )
+  const endCelebration = useCallback(() => {
+    setCelebration(null)
+    setRefreshKey((key) => key + 1)
+  }, [])
 
   // Sin acceso a esta bitácora, de vuelta a la lista de tareas.
   if (!loadingPermissions && !can(form.code)) return <Navigate to="/alumno" replace />
@@ -85,7 +89,7 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
     <>
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
       {celebration && (
-        <SubmissionCelebration kind={celebration} onDone={() => setCelebration(null)} />
+        <SubmissionCelebration kind={celebration} onDone={endCelebration} />
       )}
 
       <Link
@@ -122,6 +126,7 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
       <SubmissionForm
         form={form}
         onSubmitted={onSubmitted}
+        celebrating={celebration !== null}
         readOnly={portalReadOnly || !can(form.code, 'edicion')}
         weeks={studentWeeks}
         weeksLoading={weeksLoading}
@@ -145,9 +150,13 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
 // El formulario de entrega
 // ---------------------------------------------------------------------------
 
+/** Cuánto espera el alumno para volver a entregar o actualizar. */
+const SUBMIT_COOLDOWN_MS = 10_000
+
 function SubmissionForm({
   form,
   onSubmitted,
+  celebrating,
   weeks,
   weeksLoading,
   weeksError,
@@ -158,6 +167,8 @@ function SubmissionForm({
 }: {
   form: WeeklyFormMeta
   onSubmitted: (updated: boolean, late: boolean) => void
+  /** Mientras dura el sello o el confeti no se puede volver a entregar. */
+  celebrating: boolean
   /** «Ver como Alumno» del admin: se ve el formulario, pero no se entrega en su nombre. */
   readOnly: boolean
   weeks: SemesterWeek[]
@@ -171,6 +182,14 @@ function SubmissionForm({
   // escribir no debe cruzarse de una bitácora a la otra.
   const [values, setValues] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
+  // Enfriamiento tras entregar o actualizar: evita spamear el botón para
+  // disparar confeti una y otra vez.
+  const [cooling, setCooling] = useState(false)
+  useEffect(() => {
+    if (!cooling) return
+    const timer = window.setTimeout(() => setCooling(false), SUBMIT_COOLDOWN_MS)
+    return () => window.clearTimeout(timer)
+  }, [cooling])
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -191,6 +210,12 @@ function SubmissionForm({
       ? entries.find((entry) => entry.weekStart === currentWeek.weekStart)
       : undefined
 
+  // Al pasar a otra semana el formulario es nuevo. Va antes de la precarga:
+  // si esa semana ya tiene entrega, la precarga gana.
+  useEffect(() => {
+    setValues({})
+  }, [currentWeek?.weekNumber])
+
   // Precarga el formulario con lo ya entregado en cuanto se sabe cuál es esa
   // entrega -no antes, porque hasta que cargan `entries` no hay con qué-. Se
   // dispara por `submissionId` y no por el objeto para no rearmar los campos
@@ -208,7 +233,8 @@ function SubmissionForm({
   const faltantes = form.fields.filter(
     (field) => field.required && !values[field.key]?.trim(),
   )
-  const puedeEnviar = !readOnly && !saving && currentWeek !== undefined && !faltantes.length
+  const puedeEnviar =
+    !readOnly && !saving && !celebrating && !cooling && currentWeek !== undefined && !faltantes.length
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -223,9 +249,7 @@ function SubmissionForm({
       } else {
         await submit(form.code, currentWeek.weekNumber, values)
       }
-      // Se vacía: si sigue otra semana pendiente, el formulario es nuevo. Si
-      // fue la semana en curso, se precarga con lo recién entregado.
-      if (!existingEntry) setValues({})
+      setCooling(true)
       onSubmitted(Boolean(existingEntry), isLate)
     } catch (cause) {
       setError(
