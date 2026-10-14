@@ -19,6 +19,7 @@ import {
 import { formatGroupLabel, formatSessionDay } from '../../lib/format'
 import { useGroups } from '../../layouts/GroupProvider'
 import { usePermissions } from '../../auth/PermissionsProvider'
+import { useAuth } from '../../auth/AuthProvider'
 import {
   downloadRegistrationTemplate,
   parseRegistrationFile,
@@ -82,6 +83,17 @@ export function RegisteredStudentsPage() {
   const groups = groupContext?.groups
   // Registrar exige «Puede editar» (0038); con «Solo lectura» queda la lista.
   const canEdit = usePermissions().can('alumnos_registrados', 'edicion')
+  const { viewingAsAdmin } = useAuth()
+
+  // Maestros que se ven en esta vista (los grupos ya vienen acotados por rol).
+  const teacherOptions = useMemo<FilterOption[]>(() => {
+    const byId = new Map<string, string>()
+    for (const group of groups ?? []) {
+      byId.set(group.teacherId, group.teacherName ?? group.teacherEmail)
+    }
+    return [...byId].map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label))
+  }, [groups])
+  const [teacherFilter, setTeacherFilter] = useState('')
 
   const {
     data: students,
@@ -98,21 +110,31 @@ export function RegisteredStudentsPage() {
     return codes.length ? codes.map((code) => ({ value: code, label: code })) : PERIOD_OPTIONS
   }, [groups])
 
+  // «Ver como» maestro o coordinador: solo los alumnos de los grupos de esa vista.
+  const scoped = useMemo(() => {
+    if (viewingAsAdmin) return students
+    const ids = new Set((groups ?? []).map((group) => group.id))
+    return students.filter((student) => student.groupId && ids.has(student.groupId))
+  }, [students, groups, viewingAsAdmin])
+
   const visible = useMemo(() => {
     const needle = search.trim().toLowerCase()
-    if (!needle) return students
-    return students.filter((student) =>
-      [student.email, student.fullName ?? '', student.studentNumber ?? ''].some((text) =>
-        text.toLowerCase().includes(needle),
-      ),
+    return scoped.filter(
+      (student) =>
+        (!teacherFilter || student.teacherId === teacherFilter) &&
+        (!needle ||
+          [student.email, student.fullName ?? '', student.studentNumber ?? ''].some((text) =>
+            text.toLowerCase().includes(needle),
+          )),
     )
-  }, [students, search])
+  }, [scoped, search, teacherFilter])
 
-  const withoutDemographics = students.filter((student) => student.fullName === null).length
-  const withoutGroup = students.filter((student) => !student.groupId).length
+  const withoutDemographics = scoped.filter((student) => student.fullName === null).length
+  const withoutGroup = scoped.filter((student) => !student.groupId).length
+  const showTeacher = teacherOptions.length > 1
 
-  // Es una pantalla de Configuración, fuera de un grupo: lista a todos los
-  // alumnos, con la columna Grupo para ubicar a cada uno.
+  // Es una pantalla de Configuración, fuera de un grupo: lista a los alumnos
+  // que le tocan a quien mira, con la columna Grupo (y Maestro si ve a varios).
   const columns: Column<RegisteredStudent>[] = [
     ...BASE_COLUMNS,
     {
@@ -124,6 +146,16 @@ export function RegisteredStudentsPage() {
         return group ? formatGroupLabel(group) : <Badge tone="red">Sin grupo</Badge>
       },
     },
+    ...(showTeacher
+      ? [
+          {
+            key: 'teacher',
+            header: 'Maestro',
+            width: 'min-w-44',
+            render: (row: RegisteredStudent) => row.teacherName ?? <Dash />,
+          } satisfies Column<RegisteredStudent>,
+        ]
+      : []),
   ]
 
   /** Lo que comparten las dos ventanas al terminar: refrescar y mostrar el resultado. */
@@ -169,7 +201,7 @@ export function RegisteredStudentsPage() {
       </header>
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <Stat value={students.length} label="Alumnos" tone="text-ink-950" />
+        <Stat value={scoped.length} label="Alumnos" tone="text-ink-950" />
         <Stat value={withoutDemographics} label="Sin Datos Demográficos" tone="text-red-700" />
         <Stat value={withoutGroup} label="Sin grupo" tone="text-red-700" />
       </div>
@@ -196,6 +228,21 @@ export function RegisteredStudentsPage() {
           onChange={(event) => setSearch(event.target.value)}
           className={`${FIELD_INPUT} w-80`}
         />
+        {showTeacher && (
+          <select
+            aria-label="Filtrar por maestro"
+            value={teacherFilter}
+            onChange={(event) => setTeacherFilter(event.target.value)}
+            className={FIELD_INPUT}
+          >
+            <option value="">Todos los maestros</option>
+            {teacherOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        )}
         <p className="text-xs text-ink-500">
           En rojo, los alumnos que todavía no contestan los Datos Demográficos.
         </p>
@@ -214,11 +261,18 @@ export function RegisteredStudentsPage() {
       {dialog === 'single' && (
         <RegisterModal
           periodOptions={periodOptions}
+          teacherOptions={teacherOptions}
           onClose={() => setDialog(null)}
           onDone={afterRegister}
         />
       )}
-      {dialog === 'import' && <ImportModal onClose={() => setDialog(null)} onDone={afterRegister} />}
+      {dialog === 'import' && (
+        <ImportModal
+          teacherOptions={teacherOptions}
+          onClose={() => setDialog(null)}
+          onDone={afterRegister}
+        />
+      )}
     </>
   )
 }
@@ -265,10 +319,12 @@ function FieldSelect({
 /** «+ Registrar alumno»: un alumno a la vez. */
 function RegisterModal({
   periodOptions,
+  teacherOptions,
   onClose,
   onDone,
 }: {
   periodOptions: FilterOption[]
+  teacherOptions: FilterOption[]
   onClose: () => void
   onDone: (results: RegistrationResult[]) => void
 }) {
@@ -370,6 +426,15 @@ function RegisterModal({
           />
         </div>
 
+        {teacherOptions.length > 1 && (
+          <FieldSelect
+            label="Maestro (si varios tienen el mismo grupo)"
+            value={form.teacherId ?? ''}
+            options={teacherOptions}
+            onChange={(value) => setField('teacherId', value)}
+          />
+        )}
+
         <p className="text-xs text-ink-500">
           Su usuario será el correo y su contraseña inicial la matrícula. Periodo, frecuencia e
           idioma lo inscriben en el grupo que coincide.
@@ -390,13 +455,16 @@ function RegisterModal({
 
 /** «Importar Excel»: plantilla, archivo, vista previa y registro de las filas válidas. */
 function ImportModal({
+  teacherOptions,
   onClose,
   onDone,
 }: {
+  teacherOptions: FilterOption[]
   onClose: () => void
   onDone: (results: RegistrationResult[]) => void
 }) {
   const [preview, setPreview] = useState<ParsedRegistrationRow[] | null>(null)
+  const [teacherId, setTeacherId] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
@@ -418,7 +486,9 @@ function ImportModal({
     setSaving(true)
     setError(null)
     try {
-      onDone(await repository.registerStudents(validRows.map((row) => row.input)))
+      onDone(await repository.registerStudents(
+          validRows.map((row) => (teacherId ? { ...row.input, teacherId } : row.input)),
+        ))
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'No se pudo registrar a los alumnos.')
       setSaving(false)
@@ -462,6 +532,17 @@ function ImportModal({
           Descargar plantilla
         </button>
       </div>
+
+      {teacherOptions.length > 1 && (
+        <div className="mt-4 max-w-sm">
+          <FieldSelect
+            label="Maestro de todos los alumnos (opcional)"
+            value={teacherId}
+            options={teacherOptions}
+            onChange={setTeacherId}
+          />
+        </div>
+      )}
 
       <input
         ref={fileInput}

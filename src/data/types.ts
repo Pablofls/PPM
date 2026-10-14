@@ -459,6 +459,8 @@ export interface StudentRegistrationInput {
   periodCode: string
   sessionDay: string
   language: string
+  /** Maestro del grupo; solo hace falta si el mismo grupo existe con varios maestros (`0044`). */
+  teacherId?: string
 }
 
 /** Lo que pasó con una fila. La matrícula no se devuelve: es la contraseña inicial. */
@@ -483,6 +485,9 @@ export interface RegisteredStudent {
   language: Language | null
   /** Su grupo vigente; `null` si todavía no tiene. Ver `0032`. */
   groupId: string | null
+  /** Maestro de su grupo (`0044`); `null` sin grupo. */
+  teacherId: string | null
+  teacherName: string | null
 }
 
 /**

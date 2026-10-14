@@ -685,6 +685,7 @@ export const supabaseRepository: PanelRepository = {
         periodo: row.periodCode,
         frecuencia: row.sessionDay,
         idioma: row.language,
+        maestro_id: row.teacherId ?? null,
       })),
     })
 
@@ -705,7 +706,7 @@ export const supabaseRepository: PanelRepository = {
   async getRegisteredStudents(): Promise<RegisteredStudent[]> {
     const { data, error } = await supabase
       .from('v_students_directory')
-      .select('student_id, institutional_email, full_name, student_number, period_code, session_day, language, group_id')
+      .select('student_id, institutional_email, full_name, student_number, period_code, session_day, language, group_id, teacher_id, teacher_name')
       .order('institutional_email')
 
     if (error) throw new Error(`No se pudieron cargar los alumnos: ${error.message}`)
@@ -719,6 +720,8 @@ export const supabaseRepository: PanelRepository = {
       sessionDay: (str(record.session_day) as 'lunes' | 'miercoles' | null) ?? null,
       language: (str(record.language) as 'es' | 'en' | null) ?? null,
       groupId: str(record.group_id),
+      teacherId: str(record.teacher_id),
+      teacherName: str(record.teacher_name),
     }))
   },
 

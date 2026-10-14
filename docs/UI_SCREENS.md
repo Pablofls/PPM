@@ -491,6 +491,7 @@ Da de alta alumnos sin que contesten el 1.0: correo UDEM, matrícula, periodo,
 frecuencia e idioma. Como en Usuarios, la pantalla es la lista y las altas se
 hacen en **ventanas emergentes**:
 
+- Maestro y coordinador la ven por defecto (`0044`), acotada a sus alumnos; con varios maestros aparece la columna **Maestro** y un filtro por maestro, y al registrar se puede elegir el maestro cuando hay grupos homónimos.
 - Arriba a la derecha, **Importar Excel** y **+ Registrar alumno**; debajo,
   contadores de alumnos, sin Datos Demográficos y sin grupo.
 - **+ Registrar alumno:** correo UDEM, matrícula, periodo (los que tienen

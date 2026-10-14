@@ -10,7 +10,7 @@
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
 - **Última migración aplicada:** `0042_grade_center_fast.sql` (2026-10-14).
-  `0043_weekly_log_sequential.sql` (2026-10-14).
+  `0043_weekly_log_sequential.sql` (2026-10-14); `0044_teacher_group_admin.sql` (2026-10-14).
   `0019_student_dossier_read.sql` está escrita y documentada aquí pero
   **todavía no se pega en Supabase**.
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
@@ -1055,8 +1055,7 @@ hay políticas de escritura ni `DELETE`**: la única vía es la función de abaj
 
 ### `admin_register_students(p_rows jsonb)`
 
-`SECURITY DEFINER`, empieza comprobando `is_admin()` (patrón de
-`admin_run_sheet_sync()`). Recibe un arreglo de
+`SECURITY DEFINER`, empieza comprobando `is_admin()` o `can_edit_screen('alumnos_registrados')` (desde `0038`; el resto, acotado a `visible_group_ids()`). Recibe un arreglo de
 `{correo, matricula, periodo, frecuencia, idioma}` (máx. 500) y devuelve
 `[{fila, correo, resultado, cuenta}]`. Normaliza y valida cada fila (correo
 `@udem.edu`, matrícula alfanumérica, periodo `XX-NN`, frecuencia lunes/miércoles,
@@ -1100,8 +1099,8 @@ maestro tiene **N** grupos.
 | `teacher_id` | `uuid` NOT NULL FK `profiles(id)` | el maestro. Mientras no haya roles de maestro (fase 2), un perfil admin activo |
 | `created_at` | `timestamptz` NOT NULL DEFAULT `now()` | |
 
-`UNIQUE (period_code, session_day, language, teacher_id)`; índice en
-`teacher_id`. RLS: `select`, `delete` y `update` con `is_admin()`; además el
+`UNIQUE (period_code, session_day, language, teacher_id)` (dos maestros pueden tener un grupo con el mismo nombre); índice en
+`teacher_id`. RLS: `select`, `delete` y `update` con `is_admin()` (desde `0038`, también con «Puede editar» sobre `grupos` dentro del alcance); además el
 `GRANT` de `update` es **solo de la columna `teacher_id`** —cambiar periodo,
 frecuencia o idioma sería otro grupo—. No hay política de `INSERT`: el alta pasa
 por `admin_create_group()`. Borrar un grupo con alumnos lo impide la FK de
@@ -1665,6 +1664,10 @@ grupo. Si el profesor mueve a un alumno de grupo, sus filtros lo siguen; lo que
 contestó en el 1.0 queda intacto en `demographics`. Columnas nuevas al final:
 `group_id`, `teacher_id`.
 
+Desde `0044` agrega al final `teacher_name` (nombre + apellido del maestro del
+grupo vigente, derivado de `profiles`; no se guarda). Una fila por alumno, así que
+la pantalla Alumnos Registrados muestra de quién es cada uno.
+
 > Ambas vistas llevan `security_invoker = on`. Sin eso se ejecutarían con los
 > permisos de su propietario y **serían una puerta trasera que se salta RLS**.
 
@@ -1936,6 +1939,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0040_grades.sql` | `grade_activities`, `grades`, `guard_grade_week()`, `set_grade()`, `set_grade_activity_points()`, `v_grade_center`; pantalla `calificaciones` y sus permisos iniciales | ✅ 2026-10-14 |
 | `0041_grades_report_points.sql` | `grade_activities` pasa a `(group_id)` (los puntos son del reporte, no de cada semana); `set_grade_activity_points(group, points)`; se rehace `v_grade_center` sin leer las vistas de bitácoras | ✅ 2026-10-14 |
 | `0042_grade_center_fast.sql` | se rehace `v_grade_center` (mismas columnas): las entregas semanales se leen una vez con su semana resuelta, en vez de un `LATERAL` por alumno × semana | ✅ 2026-10-14 |
+| `0044_teacher_group_admin.sql` | semilla `maestro`/`coordinador` = «Puede editar» en `alumnos_registrados` y `grupos`; `v_students_directory.teacher_name`; `admin_register_students` acepta `maestro_id` por fila para distinguir grupos homónimos | ✅ 2026-10-14 |
 | `0043_weekly_log_sequential.sql` | entrega secuencial de bitácoras: `next_weekly_week_number()`, `new_weekly_submission` exige la primera semana pendiente, y `v_grade_center` agrega `is_late` (derivada) | ✅ 2026-10-14 |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un

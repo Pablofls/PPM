@@ -59,7 +59,7 @@ export function GroupsPage() {
   const [createError, setCreateError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
 
-  const { viewingAsAdmin, profile, activeRole } = useAuth()
+  const { viewingAsAdmin, profile, activeRole, viewUserId } = useAuth()
   // Crear, mover, reasignar y borrar exigen «Puede editar» (0038); quien no es
   // admin lo hace solo con sus grupos y alumnos (la base lo hace cumplir).
   const canEdit = usePermissions().can('grupos', 'edicion')
@@ -73,11 +73,11 @@ export function GroupsPage() {
   // tengan ninguno: se leen sus cuentas (profiles_select_scope, 0036).
   const { data: coordinatedTeachers } = useRepositoryQuery(
     async () =>
-      !viewingAsAdmin && activeRole === 'coordinador' && profile
-        ? repository.getUsersByIds(await repository.getCoordinatedTeacherIds(profile.id))
+      !viewingAsAdmin && activeRole === 'coordinador' && (viewUserId ?? profile?.id)
+        ? repository.getUsersByIds(await repository.getCoordinatedTeacherIds((viewUserId ?? profile?.id)!))
         : ([] as Teacher[]),
     [] as Teacher[],
-    [viewingAsAdmin, activeRole, profile?.id],
+    [viewingAsAdmin, activeRole, profile?.id, viewUserId],
   )
 
   // Fuera de la vista de admin no se leen los roles de los demás: los maestros
@@ -112,20 +112,25 @@ export function GroupsPage() {
   ])
 
   const groupById = useMemo(() => new Map(groups.map((group) => [group.id, group])), [groups])
-  const unassignedCount = students.filter((student) => !student.groupId).length
+  // «Ver como» maestro o coordinador: solo los alumnos de los grupos de esa vista.
+  const scopedStudents = useMemo(
+    () => (viewingAsAdmin ? students : students.filter((student) => student.groupId && groupById.has(student.groupId))),
+    [students, groupById, viewingAsAdmin],
+  )
+  const unassignedCount = scopedStudents.filter((student) => !student.groupId).length
   // Sin alumnos sin grupo, «solo sin grupo» dejaría la tabla vacía: se ignora.
   const showOnlyUnassigned = onlyUnassigned && unassignedCount > 0
 
   const visibleStudents = useMemo(() => {
     const needle = search.trim().toLowerCase()
-    return students.filter(
+    return scopedStudents.filter(
       (student) =>
         (!showOnlyUnassigned || !student.groupId) &&
         (!needle ||
           student.email.toLowerCase().includes(needle) ||
           (student.fullName ?? '').toLowerCase().includes(needle)),
     )
-  }, [students, showOnlyUnassigned, search])
+  }, [scopedStudents, showOnlyUnassigned, search])
 
   // Con un solo maestro, ya está elegido.
   const teacherId = form.teacherId || (teachers.length === 1 ? teachers[0].id : '')
@@ -377,7 +382,7 @@ export function GroupsPage() {
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <Stat value={groups.length} label="Grupos" tone="text-ink-950" />
-        <Stat value={students.length - unassignedCount} label="Alumnos con grupo" tone="text-emerald-700" />
+        <Stat value={scopedStudents.length - unassignedCount} label="Alumnos con grupo" tone="text-emerald-700" />
         <Stat value={unassignedCount} label="Sin grupo" tone="text-red-700" />
       </div>
 
