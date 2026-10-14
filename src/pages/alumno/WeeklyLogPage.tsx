@@ -12,6 +12,7 @@ import type {
 } from '../../data/types'
 import type { WeeklyField, WeeklyFormCode, WeeklyFormMeta } from '../../lib/catalog'
 import { formatDate, formatDateTime, formatWeekRange } from '../../lib/format'
+import { celebrationState } from '../../lib/celebration'
 import { targetWeek } from '../../lib/weeks'
 import { Badge } from '../../components/Badge'
 import { useStudentDossier } from '../../components/StudentDossier'
@@ -65,13 +66,15 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
   // formulario, que se parece demasiado a que no pasó nada; volver al índice
   // es además donde ve su contador de entregas actualizado.
   const onSubmitted = useCallback(
-    (updated: boolean) => {
+    (updated: boolean, late: boolean) => {
       navigate('/alumno', {
         replace: true,
         state: {
           toast: updated
             ? `Actualizaste tu ${form.name}. Tu profesor ya puede verlo.`
             : `Entregaste tu ${form.name}. Tu profesor ya puede verlo.`,
+          // Corregir la semana en curso no se celebra: ya se había entregado.
+          ...(updated ? {} : celebrationState(late)),
         },
       })
     },
@@ -152,7 +155,7 @@ function SubmissionForm({
   readOnly,
 }: {
   form: WeeklyFormMeta
-  onSubmitted: (updated: boolean) => void
+  onSubmitted: (updated: boolean, late: boolean) => void
   /** «Ver como Alumno» del admin: se ve el formulario, pero no se entrega en su nombre. */
   readOnly: boolean
   weeks: SemesterWeek[]
@@ -220,7 +223,7 @@ function SubmissionForm({
       }
       // No se limpia el formulario: `onSubmitted` navega y esta pantalla se
       // desmonta. Limpiarlo antes solo haría parpadear los campos vacíos.
-      onSubmitted(Boolean(existingEntry))
+      onSubmitted(Boolean(existingEntry), isLate)
     } catch (cause) {
       setError(
         cause instanceof Error

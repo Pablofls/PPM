@@ -45,6 +45,57 @@ body {
   font-feature-settings: 'cv11', 'ss01';
 }
 
+/*
+ * Sello de «ENTREGADO» (SubmissionCelebration): entra grande y transparente,
+ * golpea la pantalla, se queda un momento y se desvanece.
+ */
+@keyframes stamp {
+  0% {
+    opacity: 0;
+    transform: scale(2.6) rotate(-4deg);
+  }
+  14% {
+    opacity: 1;
+    transform: scale(0.92) rotate(-12deg);
+  }
+  20% {
+    transform: scale(1.04) rotate(-12deg);
+  }
+  26%,
+  80% {
+    opacity: 1;
+    transform: scale(1) rotate(-12deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1) rotate(-12deg);
+  }
+}
+
+.stamp-animation {
+  animation: stamp 2.6s ease-out both;
+  background-color: rgb(255 255 255 / 0.6);
+  box-shadow: 0 0 0 4px rgb(255 255 255 / 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp-animation {
+    animation-name: stamp-fade;
+  }
+
+  @keyframes stamp-fade {
+    0%,
+    80% {
+      opacity: 1;
+      transform: rotate(-12deg);
+    }
+    100% {
+      opacity: 0;
+      transform: rotate(-12deg);
+    }
+  }
+}
+
 /* Los números de las tablas y los contadores se leen en columna. */
 .tnum {
   font-variant-numeric: tabular-nums;

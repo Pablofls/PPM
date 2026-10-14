@@ -711,6 +711,15 @@ mantener en sincronía.
 
 \* obligatorio.
 
+**Celebración al entregar.** Al regresar a *Mis tareas* tras una **primera**
+entrega (corregir la semana en curso no cuenta), `SubmissionCelebration`
+(`src/components/SubmissionCelebration.tsx`) muestra **confeti** por toda la
+pantalla si fue a tiempo, o un **sello «ENTREGADO»** si fue tardía. No bloquea
+clics, se retira solo y respeta `prefers-reduced-motion`. Es genérica: toda
+actividad nueva que se entregue en el portal manda
+`...celebrationState(esTardia)` (`src/lib/celebration.ts`) en el `state` con el
+que navega a `/alumno`, igual que el `toast`.
+
 **El alumno no escribe fechas ni elige semana.** Las semanas son las que el
 profesor definió para el periodo ([Semanas del semestre](#semanas-del-semestre)).
 Desde `0043_weekly_log_sequential.sql` **se entregan en orden**: para llenar la

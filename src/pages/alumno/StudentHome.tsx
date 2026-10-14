@@ -10,7 +10,9 @@ import {
   WeeklyLogStatusGrid,
 } from '../../components/SubmissionStatusGrid'
 import { DossierProfile, useStudentDossier } from '../../components/StudentDossier'
+import { SubmissionCelebration } from '../../components/SubmissionCelebration'
 import { Toast } from '../../components/Toast'
+import type { CelebrationKind } from '../../lib/celebration'
 import { repository } from '../../data/repository'
 import { WEEKLY_FORMS, type WeeklyFormMeta } from '../../lib/catalog'
 import { formatRelativeTime, formatWeekRange } from '../../lib/format'
@@ -27,7 +29,7 @@ import { targetWeek } from '../../lib/weeks'
 export function StudentHome() {
   const { profile, session, portalStudentId, portalReadOnly } = useAuth()
   const studentId = portalStudentId
-  const [toast, dismissToast] = useHandoffToast()
+  const [toast, dismissToast, celebration, endCelebration] = useHandoffToast()
   const { dossier } = useStudentDossier(studentId)
   // El nombre del alumno vive en su 1.0 (`demographics`), no en su cuenta
   // (`0034`): sin 1.0 contestado, el saludo usa el correo.
@@ -46,6 +48,7 @@ export function StudentHome() {
   return (
     <>
       {toast && <Toast message={toast} onDismiss={dismissToast} />}
+      {celebration && <SubmissionCelebration kind={celebration} onDone={endCelebration} />}
 
       {(can('alumno_adn') || can('alumno_estado')) && (
         <section className="rounded-xl border border-ink-200 bg-white p-6 shadow-sm">
@@ -210,20 +213,25 @@ function useLastEntry(form: WeeklyFormMeta) {
  * Se limpia del historial en cuanto se lee. Sin eso, recargar la página
  * volvería a anunciar una entrega que se hizo hace rato.
  */
-function useHandoffToast(): [string | null, () => void] {
+function useHandoffToast(): [string | null, () => void, CelebrationKind | null, () => void] {
   const location = useLocation()
   const navigate = useNavigate()
-  const entrante = (location.state as { toast?: string } | null)?.toast ?? null
+  const state = location.state as { toast?: string; celebrate?: CelebrationKind } | null
+  const entrante = state?.toast ?? null
+  const celebracionEntrante = state?.celebrate ?? null
 
   const [toast, setToast] = useState<string | null>(entrante)
+  const [celebration, setCelebration] = useState<CelebrationKind | null>(celebracionEntrante)
 
   useEffect(() => {
     if (!entrante) return
     setToast(entrante)
+    setCelebration(celebracionEntrante)
     navigate(location.pathname, { replace: true, state: null })
-  }, [entrante, location.pathname, navigate])
+  }, [entrante, celebracionEntrante, location.pathname, navigate])
 
   const dismiss = useCallback(() => setToast(null), [])
+  const endCelebration = useCallback(() => setCelebration(null), [])
 
-  return [toast, dismiss]
+  return [toast, dismiss, celebration, endCelebration]
 }
