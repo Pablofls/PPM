@@ -46,7 +46,6 @@ import type {
   PanelFilters,
   ReflectionRow,
   SemesterWeek,
-  GradeActivityPoints,
   GradeEntry,
   WeeklyReport,
   SkillsRow,
@@ -1150,18 +1149,15 @@ export const supabaseRepository: PanelRepository = {
     return reports
   },
 
-  async getGradeActivityPoints(groupId: string): Promise<GradeActivityPoints[]> {
+  async getGradeActivityPoints(groupId: string): Promise<number | null> {
     const { data, error } = await supabase
       .from('grade_activities')
-      .select('week_number, points_possible')
+      .select('points_possible')
       .eq('group_id', groupId)
+      .maybeSingle()
 
-    if (error) throw new Error(`No se pudieron cargar los puntos de las actividades: ${error.message}`)
-
-    return ((data ?? []) as PanelRecord[]).map((record) => ({
-      weekNumber: num(record.week_number) ?? 0,
-      pointsPossible: num(record.points_possible) ?? DEFAULT_POINTS_POSSIBLE,
-    }))
+    if (error) throw new Error(`No se pudieron cargar los puntos del reporte: ${error.message}`)
+    return num((data as PanelRecord | null)?.points_possible)
   },
 
   async setGrade(studentId, groupId, weekNumber, score, comment): Promise<void> {
@@ -1176,10 +1172,9 @@ export const supabaseRepository: PanelRepository = {
     if (error) throw new Error(`No se pudo guardar la calificación: ${error.message}`)
   },
 
-  async setGradeActivityPoints(groupId, weekNumber, points): Promise<void> {
+  async setGradeActivityPoints(groupId, points): Promise<void> {
     const { error } = await supabase.rpc('set_grade_activity_points', {
       p_group_id: groupId,
-      p_week_number: weekNumber,
       p_points: points,
     })
 

@@ -45,7 +45,6 @@ import type {
   PanelFilters,
   ReflectionRow,
   SemesterWeek,
-  GradeActivityPoints,
   GradeEntry,
   WeeklyReport,
   SkillsRow,
@@ -300,8 +299,8 @@ export interface PanelRepository {
   /** Lo que contestaron los alumnos en su reporte de una semana, para calificarlo. */
   getWeeklyReports(weekNumber: number, studentIds: string[]): Promise<WeeklyReport[]>
 
-  /** Los puntos posibles configurados de un grupo (las semanas sin fila valen 100). */
-  getGradeActivityPoints(groupId: string): Promise<GradeActivityPoints[]>
+  /** Los puntos posibles del reporte semanal de un grupo; `null` = sin configurar (vale 100). */
+  getGradeActivityPoints(groupId: string): Promise<number | null>
 
   /** Califica a un alumno en una semana. `score: null` quita la calificación. */
   setGrade(
@@ -312,12 +311,8 @@ export interface PanelRepository {
     comment: string | null,
   ): Promise<void>
 
-  /** Puntos posibles de una semana en un grupo. `null` vuelve a los 100 predeterminados. */
-  setGradeActivityPoints(
-    groupId: string,
-    weekNumber: number,
-    points: number | null,
-  ): Promise<void>
+  /** Puntos posibles del reporte semanal de un grupo. `null` vuelve a los 100 predeterminados. */
+  setGradeActivityPoints(groupId: string, points: number | null): Promise<void>
 
   /**
    * Genera las semanas de un periodo: la 1 empieza en `firstWeekStart` y las
@@ -503,7 +498,7 @@ export const emptyRepository: PanelRepository = {
     return []
   },
   async getGradeActivityPoints() {
-    return []
+    return null
   },
   async setGrade() {
     throw new Error('No hay conexión con la base de datos. La calificación no se guardó.')

@@ -9,9 +9,9 @@ formularios de Google. Reemplaza la implementación actual en Google Apps Script
 El profesor autorizó el proyecto el 10 de septiembre de 2026.
 
 - Supabase configurado (ref `sovinakodrmgxytgapry`) y Vercel desplegado.
-- Las migraciones `0001`–`0040` **ya se ejecutaron** (salvo `0019`, ver
+- Las migraciones `0001`–`0041` **ya se ejecutaron** (salvo `0019`, ver
   `docs/DATABASE_SCHEMA.md`). Un archivo ejecutado no se vuelve a editar: el
-  siguiente cambio es `0041_…`.
+  siguiente cambio es `0042_…`.
 - Alcance del esquema: **autenticación + los 11 formularios de Módulo 1 y 2 +
   los dos apéndices + las dos bitácoras semanales**. Las hojas `alumnos` y
   `fechas_entrega` quedan para después.
@@ -70,8 +70,8 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   rail antes de Entregas, estilo Blackboard. *Calificar* (una actividad =
   Reporte semana N; navegación alumno por alumno con las respuestas y la
   calificación a la derecha), *Centro de calificaciones* (alumno × semana,
-  total y %) y *Configurar actividades* (puntos posibles por semana y por
-  grupo, 100 por defecto). Primera fase: solo los reportes semanales; el
+  total y %) y *Configurar actividades* (lo que vale el reporte semanal, una
+  cifra por grupo, 100 por defecto; `0041`, ejecutada el 2026-10-14). Primera fase: solo los reportes semanales; el
   alumno todavía no ve sus calificaciones. Ver
   [docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md#calificaciones).
 - **Mi perfil** (`0034`, ejecutada el 2026-10-07): nombre y apellido por

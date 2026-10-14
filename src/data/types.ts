@@ -581,11 +581,5 @@ export interface WeeklyReport {
   answers: Record<string, string | number | null>
 }
 
-/** Los puntos posibles de una semana en un grupo, cuando no son los 100 predeterminados. */
-export interface GradeActivityPoints {
-  weekNumber: number
-  pointsPossible: number
-}
-
 /** Puntos posibles cuando el profesor no configura otra cosa. */
 export const DEFAULT_POINTS_POSSIBLE = 100

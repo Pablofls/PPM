@@ -535,7 +535,7 @@ El expediente del alumno muestra su grupo junto a la matrícula.
 
 ## Calificaciones
 
-> `0040_grades.sql` (✅ ejecutada 2026-10-14). Ver
+> `0040_grades.sql` (✅ ejecutada 2026-10-14) y `0041_grades_report_points.sql` (✅ ejecutadas 2026-10-14). Ver
 > [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#calificaciones). Permiso:
 > pantalla `calificaciones` (maestro edita, coordinador lee). Modeladas en el
 > Grade Center de Blackboard. Rutas: `/calificaciones/calificar`,
@@ -571,9 +571,11 @@ El total solo cuenta las actividades ya calificadas.
 
 ### Configurar actividades
 
-Los puntos posibles de cada semana **del grupo elegido** (cada maestro pone los
-de sus grupos). Sin configurar valen 100; el campo vacío vuelve a 100. Pide
-elegir un grupo si está en «Todos mis grupos».
+Lo que vale el reporte en el **grupo elegido** (cada maestro pone el de sus
+grupos). El reporte de Búsqueda y el de Prácticas son **una sola actividad**
+que vale lo mismo y se repite cada semana, así que es una sola cifra, no una
+por semana. Sin configurar vale 100. Pide elegir un grupo si está en «Todos mis
+grupos».
 
 ## Estado de Entregas y Fechas de entrega
 
