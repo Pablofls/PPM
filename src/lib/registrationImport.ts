@@ -29,7 +29,8 @@ export function validateRegistration(input: StudentRegistrationInput): string | 
   if (!UDEM_EMAIL.test(input.email.trim())) return 'Correo institucional inválido'
   if (!/^[A-Za-z0-9]+$/.test(input.studentNumber.trim())) return 'Matrícula inválida'
   if (!/^[A-Za-z]{2}-[0-9]{2}$/.test(input.periodCode.trim())) return 'Periodo inválido (formato PR-26)'
-  if (!['lunes', 'miercoles'].includes(plain(input.sessionDay))) return 'Frecuencia inválida (lunes o miércoles)'
+  if (!['lunes', 'martes', 'miercoles', 'jueves', 'viernes'].includes(plain(input.sessionDay)))
+    return 'Frecuencia inválida (de lunes a viernes)'
   if (!['es', 'espanol', 'en', 'ingles', 'english'].includes(plain(input.language))) {
     return 'Idioma inválido (español o inglés)'
   }

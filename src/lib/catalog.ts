@@ -327,7 +327,10 @@ export const LANGUAGE_OPTIONS: FilterOption[] = [
 
 export const SESSION_DAY_OPTIONS: FilterOption[] = [
   { value: 'lunes', label: 'Lunes' },
+  { value: 'martes', label: 'Martes' },
   { value: 'miercoles', label: 'Miércoles' },
+  { value: 'jueves', label: 'Jueves' },
+  { value: 'viernes', label: 'Viernes' },
 ]
 
 /** Se leerán de `degree_programs` cuando exista la base de datos. */

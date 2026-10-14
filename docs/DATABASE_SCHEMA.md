@@ -10,7 +10,7 @@
 - **Motor:** PostgreSQL 15+ (Supabase, proyecto `sovinakodrmgxytgapry`)
 - **Estado:** ✅ **ejecutado en Supabase**
 - **Última migración aplicada:** `0042_grade_center_fast.sql` (2026-10-14).
-  `0043_weekly_log_sequential.sql` (2026-10-14); `0044_teacher_group_admin.sql` (2026-10-14).
+  `0043_weekly_log_sequential.sql` (2026-10-14); `0044_teacher_group_admin.sql` (2026-10-14); `0045_session_days_weekdays.sql` (2026-10-14).
   `0019_student_dossier_read.sql` está escrita y documentada aquí pero
   **todavía no se pega en Supabase**.
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
@@ -624,7 +624,7 @@ viven en `user_roles`, donde nadie escribe desde el navegador, y
 |---|---|---|
 | `app_role` | `admin`, `pendiente` | — (propio de la app) |
 | `language` | `es`, `en` | `Español`, `Inglés` |
-| `session_day` | `lunes`, `miercoles` | `Lunes`, `Miércoles` |
+| `session_day` | `lunes`, `martes`, `miercoles`, `jueves`, `viernes` (desde `0045`; el 1.0 solo ofrece lunes/miércoles) | `Lunes` … `Viernes` |
 | `gender` | `femenino`, `masculino`, `otro`, `no_especificado` | `Femenino`, `Femenine`, `Masculino` |
 | `skill_level` | `novato`, `principiante`, `intermedio`, `avanzado`, `experto` | idénticos |
 | `holland_type` | `R`, `I`, `A`, `S`, `E`, `C` | `R (Realista)`, … |
@@ -1058,7 +1058,7 @@ hay políticas de escritura ni `DELETE`**: la única vía es la función de abaj
 `SECURITY DEFINER`, empieza comprobando `is_admin()` o `can_edit_screen('alumnos_registrados')` (desde `0038`; el resto, acotado a `visible_group_ids()`). Recibe un arreglo de
 `{correo, matricula, periodo, frecuencia, idioma}` (máx. 500) y devuelve
 `[{fila, correo, resultado, cuenta}]`. Normaliza y valida cada fila (correo
-`@udem.edu`, matrícula alfanumérica, periodo `XX-NN`, frecuencia lunes/miércoles,
+`@udem.edu`, matrícula alfanumérica, periodo `XX-NN`, frecuencia de lunes a viernes (`0045`),
 idioma español/inglés), hace upsert de `students` y de la inscripción, y al
 final llama una vez a `create_student_accounts()`. Una fila inválida no aborta
 las demás. Una matrícula que ya es de otro alumno, o que contradice la del
@@ -1939,6 +1939,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0040_grades.sql` | `grade_activities`, `grades`, `guard_grade_week()`, `set_grade()`, `set_grade_activity_points()`, `v_grade_center`; pantalla `calificaciones` y sus permisos iniciales | ✅ 2026-10-14 |
 | `0041_grades_report_points.sql` | `grade_activities` pasa a `(group_id)` (los puntos son del reporte, no de cada semana); `set_grade_activity_points(group, points)`; se rehace `v_grade_center` sin leer las vistas de bitácoras | ✅ 2026-10-14 |
 | `0042_grade_center_fast.sql` | se rehace `v_grade_center` (mismas columnas): las entregas semanales se leen una vez con su semana resuelta, en vez de un `LATERAL` por alumno × semana | ✅ 2026-10-14 |
+| `0045_session_days_weekdays.sql` | `session_day` suma `martes`, `jueves`, `viernes`; `admin_register_students` los acepta | ✅ 2026-10-14 |
 | `0044_teacher_group_admin.sql` | semilla `maestro`/`coordinador` = «Puede editar» en `alumnos_registrados` y `grupos`; `v_students_directory.teacher_name`; `admin_register_students` acepta `maestro_id` por fila para distinguir grupos homónimos | ✅ 2026-10-14 |
 | `0043_weekly_log_sequential.sql` | entrega secuencial de bitácoras: `next_weekly_week_number()`, `new_weekly_submission` exige la primera semana pendiente, y `v_grade_center` agrega `is_late` (derivada) | ✅ 2026-10-14 |
 

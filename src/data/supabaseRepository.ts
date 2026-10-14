@@ -18,6 +18,7 @@ import type { PanelRepository } from './repository'
 import { supabase } from './supabaseClient'
 import type {
   CompanyRow,
+  SessionDay,
   DemographicsRow,
   DiscRow,
   FormDeadline,
@@ -159,7 +160,7 @@ function baseRow(record: PanelRecord) {
     institutionalEmail: str(record.institutional_email) ?? '',
     fullName: str(record.full_name),
     language: (str(record.language) as 'es' | 'en' | null) ?? null,
-    sessionDay: (str(record.session_day) as 'lunes' | 'miercoles' | null) ?? null,
+    sessionDay: (str(record.session_day) as SessionDay | null) ?? null,
     degreeCode: str(record.degree_code),
     semester: num(record.semester),
     periodCode: str(record.period_code),
@@ -443,7 +444,7 @@ export const supabaseRepository: PanelRepository = {
       institutionalEmail: str(record.institutional_email) ?? '',
       fullName: str(record.full_name),
       language: null,
-      sessionDay: (str(record.session_day) as 'lunes' | 'miercoles' | null) ?? null,
+      sessionDay: (str(record.session_day) as SessionDay | null) ?? null,
       degreeCode: str(record.degree_code),
       semester: num(record.semester),
       periodCode: str(record.period_code),
@@ -653,7 +654,7 @@ export const supabaseRepository: PanelRepository = {
       id: str(record.id) ?? '',
       formCode: record.form_code as FormCode,
       language: (str(record.language) as 'es' | 'en' | null) ?? null,
-      sessionDay: (str(record.session_day) as 'lunes' | 'miercoles' | null) ?? null,
+      sessionDay: (str(record.session_day) as SessionDay | null) ?? null,
       periodCode: str(record.period_code),
       dueAt: str(record.due_at) ?? '',
       createdAt: str(record.created_at) ?? '',
@@ -717,7 +718,7 @@ export const supabaseRepository: PanelRepository = {
       fullName: str(record.full_name),
       studentNumber: str(record.student_number),
       periodCode: str(record.period_code),
-      sessionDay: (str(record.session_day) as 'lunes' | 'miercoles' | null) ?? null,
+      sessionDay: (str(record.session_day) as SessionDay | null) ?? null,
       language: (str(record.language) as 'es' | 'en' | null) ?? null,
       groupId: str(record.group_id),
       teacherId: str(record.teacher_id),
@@ -984,7 +985,7 @@ export const supabaseRepository: PanelRepository = {
           degreeCode: str(record.degree_code),
           semester: num(record.semester),
           periodCode: str(record.period_code),
-          sessionDay: (str(record.session_day) as 'lunes' | 'miercoles' | null) ?? null,
+          sessionDay: (str(record.session_day) as SessionDay | null) ?? null,
           statuses: {},
         }
         rows.set(studentId, row)

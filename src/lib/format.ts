@@ -81,9 +81,17 @@ export function formatSemester(value: number | null): string {
   return suffixes[value] ?? String(value)
 }
 
+const SESSION_DAY_LABELS: Record<string, string> = {
+  lunes: 'Lunes',
+  martes: 'Martes',
+  miercoles: 'Miércoles',
+  jueves: 'Jueves',
+  viernes: 'Viernes',
+}
+
 export function formatSessionDay(value: string | null): string {
   if (!value) return ''
-  return value === 'miercoles' ? 'Miércoles' : 'Lunes'
+  return SESSION_DAY_LABELS[value] ?? value
 }
 
 export function formatGender(value: string | null): string {

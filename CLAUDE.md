@@ -81,6 +81,7 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   no se guarda. Ver
   [docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md#entrega-secuencial-de-las-bitácoras).
 - **Maestros y coordinadores administran** (`0044`, ejecutada el 2026-10-14): por defecto «Puede editar» en *Alumnos registrados* y *Administrar grupos*, acotados a sus grupos (maestro) o a los de sus maestros (coordinador); columna y filtro **Maestro**; `admin_register_students` acepta `maestro_id`.
+- **Frecuencia de lunes a viernes** (`0045`, ejecutada el 2026-10-14): el enum `session_day` suma martes, jueves y viernes. El maestro crea grupos solo a su nombre (campo de solo lectura). Aviso de versión nueva rediseñado.
 - **Mi perfil** (`0034`, ejecutada el 2026-10-07): nombre y apellido por
   separado en `profiles` (se elimina `full_name`), correo y rol de solo
   lectura, y cambio de contraseña. Las tarjetas muestran el nombre del maestro.

@@ -132,8 +132,12 @@ export function GroupsPage() {
     )
   }, [scopedStudents, showOnlyUnassigned, search])
 
+  // Un maestro solo crea grupos para sí mismo: el campo es de solo lectura.
+  const ownTeacherId = activeRole === 'maestro' ? (viewUserId ?? profile?.id ?? '') : ''
+  const ownTeacher = teachers.find((teacher) => teacher.id === ownTeacherId)
   // Con un solo maestro, ya está elegido.
-  const teacherId = form.teacherId || (teachers.length === 1 ? teachers[0].id : '')
+  const teacherId =
+    ownTeacherId || form.teacherId || (teachers.length === 1 ? teachers[0].id : '')
   const periodCode = form.periodCode.trim().toUpperCase()
   const formError = !PERIOD_FORMAT.test(periodCode)
     ? 'El periodo lleva el formato OT-26.'
@@ -430,15 +434,26 @@ export function GroupsPage() {
                   ))}
                 </datalist>
               </label>
-              <FieldSelect
-                label="Maestro"
-                value={teacherId}
-                options={teachers.map((teacher) => ({
-                  value: teacher.id,
-                  label: teacher.name ?? teacher.email,
-                }))}
-                onChange={(value) => setForm({ ...form, teacherId: value })}
-              />
+              {ownTeacherId ? (
+                <label className="block">
+                  <span className={LABEL}>Maestro</span>
+                  <input
+                    readOnly
+                    value={ownTeacher ? (ownTeacher.name ?? ownTeacher.email) : ''}
+                    className={`${FIELD_INPUT} mt-1.5 w-full cursor-not-allowed bg-ink-50 text-ink-600`}
+                  />
+                </label>
+              ) : (
+                <FieldSelect
+                  label="Maestro"
+                  value={teacherId}
+                  options={teachers.map((teacher) => ({
+                    value: teacher.id,
+                    label: teacher.name ?? teacher.email,
+                  }))}
+                  onChange={(value) => setForm({ ...form, teacherId: value })}
+                />
+              )}
               <FieldSelect
                 label="Frecuencia"
                 value={form.sessionDay}

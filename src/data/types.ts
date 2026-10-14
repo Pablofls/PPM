@@ -9,7 +9,7 @@
 import type { FormCode, SkillLevel, WeeklyFormCode } from '../lib/catalog'
 
 export type Language = 'es' | 'en'
-export type SessionDay = 'lunes' | 'miercoles'
+export type SessionDay = 'lunes' | 'martes' | 'miercoles' | 'jueves' | 'viernes'
 export type Gender = 'femenino' | 'masculino' | 'otro' | 'no_especificado'
 export type SubmissionState = 'a_tiempo' | 'tarde' | 'pendiente' | 'sin_fecha'
 /** Los roles de `roles` (`0035`). Una persona puede tener varios, salvo el alumno. */

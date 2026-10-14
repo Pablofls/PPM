@@ -7,7 +7,7 @@ const CHECK_EVERY_MS = 5 * 60 * 1000
  *
  * Cada build publica `/version.json` con el id del despliegue; el JS que el
  * navegador ya tiene lleva el suyo incrustado. Si difieren, el usuario sigue
- * con la versión vieja y se le ofrece recargar. Se revisa cada 5 minutos y al
+ * con la versión vieja y se le ofrece recargar (o cerrar el aviso). Se revisa cada 5 minutos y al
  * volver a la pestaña, que es cuando una pestaña olvidada suele quedarse atrás.
  */
 export function UpdateToast() {
@@ -45,30 +45,35 @@ export function UpdateToast() {
 
   if (!outdated || dismissed) return null
 
-  // Arriba a la derecha, debajo de la barra superior del panel.
+  // Arriba a la derecha, casi pegado a la barra superior; entra deslizándose.
   return (
     <div
       role="status"
       aria-live="polite"
-      className="fixed top-48 right-6 z-50 w-80 max-w-[calc(100vw-3rem)] rounded-xl border border-ink-200 bg-white px-5 py-4 shadow-lg"
+      className="update-toast fixed top-[4.75rem] right-4 z-50 flex max-w-[calc(100vw-2rem)] items-center gap-4 rounded-xl bg-ink-900 py-3 pr-3 pl-4 text-white shadow-lg"
     >
-      <p className="text-sm text-ink-900">Hay una nueva versión del panel disponible.</p>
-      <div className="mt-3 flex items-center justify-end gap-2">
-        <button
-          type="button"
-          onClick={() => setDismissed(true)}
-          className="rounded-lg px-2 py-1 text-sm text-ink-500 hover:bg-ink-100"
-        >
-          Después
-        </button>
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          className="rounded-lg bg-ink-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-ink-800"
-        >
-          Actualizar
-        </button>
-      </div>
+      <p className="text-sm leading-snug">
+        <span className="font-semibold">Salió una versión nueva del panel.</span>
+        <br />
+        Recarga la página para continuar.
+      </p>
+      <button
+        type="button"
+        onClick={() => window.location.reload()}
+        className="shrink-0 rounded-lg bg-accent-400 px-3.5 py-1.5 text-sm font-semibold text-ink-950 transition-colors hover:bg-accent-300"
+      >
+        Recargar
+      </button>
+      <button
+        type="button"
+        aria-label="Cerrar aviso"
+        onClick={() => setDismissed(true)}
+        className="shrink-0 rounded-md p-1 text-white/80 transition-colors hover:bg-white/15 hover:text-white"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      </button>
     </div>
   )
 }
