@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 
 import { useAuth } from '../../auth/AuthProvider'
@@ -508,6 +508,7 @@ function useMyLogs(code: WeeklyFormCode, studentId: string | null, refreshKey: n
   const [entries, setEntries] = useState<Entry[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const loadedFor = useRef<string | null>(null)
 
   useEffect(() => {
     if (!studentId) {
@@ -516,7 +517,11 @@ function useMyLogs(code: WeeklyFormCode, studentId: string | null, refreshKey: n
     }
 
     let cancelled = false
-    setLoading(true)
+    // Una recarga tras entregar es silenciosa: mostrar «Cargando…» encogería
+    // la página y movería el scroll de quien acaba de entregar.
+    const silent = loadedFor.current === `${code}:${studentId}`
+    loadedFor.current = `${code}:${studentId}`
+    if (!silent) setLoading(true)
     setError(null)
 
     const query =
