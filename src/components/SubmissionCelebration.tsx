@@ -26,52 +26,10 @@ export function SubmissionCelebration({
   return kind === 'on_time' ? <Confetti onDone={onDone} /> : <Stamp onDone={onDone} />
 }
 
-/** El golpe del sello contra la mesa: un thump grave y un chasquido corto. */
-function playStampThud() {
-  try {
-    const ctx = new AudioContext()
-    const t = ctx.currentTime
-    const master = ctx.createGain()
-    master.gain.value = 0.7
-    master.connect(ctx.destination)
-
-    const thump = ctx.createOscillator()
-    const thumpGain = ctx.createGain()
-    thump.frequency.setValueAtTime(170, t)
-    thump.frequency.exponentialRampToValueAtTime(45, t + 0.16)
-    thumpGain.gain.setValueAtTime(1, t)
-    thumpGain.gain.exponentialRampToValueAtTime(0.001, t + 0.22)
-    thump.connect(thumpGain).connect(master)
-    thump.start(t)
-    thump.stop(t + 0.25)
-
-    const length = Math.floor(ctx.sampleRate * 0.06)
-    const buffer = ctx.createBuffer(1, length, ctx.sampleRate)
-    const data = buffer.getChannelData(0)
-    for (let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / length)
-    const click = ctx.createBufferSource()
-    const clickFilter = ctx.createBiquadFilter()
-    clickFilter.type = 'lowpass'
-    clickFilter.frequency.value = 1800
-    click.buffer = buffer
-    click.connect(clickFilter).connect(master)
-    click.start(t)
-
-    window.setTimeout(() => void ctx.close(), 600)
-  } catch {
-    // Sin audio disponible, el sello se ve igual.
-  }
-}
-
 function Stamp({ onDone }: { onDone: () => void }) {
   useEffect(() => {
-    // El golpe cae al ~5 % de la animación.
-    const thud = window.setTimeout(playStampThud, STAMP_MS * 0.05)
     const timer = window.setTimeout(onDone, STAMP_MS)
-    return () => {
-      window.clearTimeout(thud)
-      window.clearTimeout(timer)
-    }
+    return () => window.clearTimeout(timer)
   }, [onDone])
 
   return (

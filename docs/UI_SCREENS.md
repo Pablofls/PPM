@@ -712,14 +712,16 @@ mantener en sincronía.
 
 \* obligatorio.
 
-**Celebración al entregar.** Al regresar a *Mis tareas* tras una **primera**
-entrega (corregir la semana en curso no cuenta), `SubmissionCelebration`
-(`src/components/SubmissionCelebration.tsx`) muestra **confeti** por toda la
-pantalla si fue a tiempo, o un **sello «ENTREGADO»** si fue tardía. No bloquea
-clics, se retira solo y respeta `prefers-reduced-motion`. Es genérica: toda
-actividad nueva que se entregue en el portal manda
-`...celebrationState(esTardia)` (`src/lib/celebration.ts`) en el `state` con el
-que navega a `/alumno`, igual que el `toast`.
+**Celebración al entregar.** Al entregar, el alumno **se queda en la
+bitácora** (no se le saca a Mis tareas) y ahí mismo sale `SubmissionCelebration`
+(`src/components/SubmissionCelebration.tsx`): **confeti** por toda la pantalla
+si fue a tiempo, o un **sello «ENTREGADO»** que se estampa con golpe y
+sacudida si fue tardía. Corregir la semana en curso no se celebra (solo un
+aviso). No bloquea clics, no tiene sonido, se retira solo y respeta
+`prefers-reduced-motion`. Tras entregar se recargan las entregas y el
+formulario pasa a la semana siguiente. Es genérica: toda actividad nueva
+renderiza `<SubmissionCelebration kind={celebrationKind(esTardia)} …/>` al
+entregar (`src/lib/celebration.ts`).
 
 **El alumno no escribe fechas ni elige semana.** Las semanas son las que el
 profesor definió para el periodo ([Semanas del semestre](#semanas-del-semestre)).

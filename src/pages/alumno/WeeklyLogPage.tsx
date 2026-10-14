@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 
 import { useAuth } from '../../auth/AuthProvider'
 import { useRepositoryQuery } from '../../data/hooks'
@@ -12,9 +12,11 @@ import type {
 } from '../../data/types'
 import type { WeeklyField, WeeklyFormCode, WeeklyFormMeta } from '../../lib/catalog'
 import { formatDate, formatDateTime, formatWeekRange } from '../../lib/format'
-import { celebrationState } from '../../lib/celebration'
+import { celebrationKind, type CelebrationKind } from '../../lib/celebration'
 import { targetWeek } from '../../lib/weeks'
 import { Badge } from '../../components/Badge'
+import { SubmissionCelebration } from '../../components/SubmissionCelebration'
+import { Toast } from '../../components/Toast'
 import { useStudentDossier } from '../../components/StudentDossier'
 import { useWeeklyLogStatus } from '../../components/SubmissionStatusGrid'
 import { usePermissions } from '../../auth/PermissionsProvider'
@@ -42,16 +44,18 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
   // Entregar exige «Puede editar» en esta bitácora (0038); con «Solo
   // lectura» se ven las entregas anteriores y el formulario deshabilitado.
   const { can, loading: loadingPermissions } = usePermissions()
-  const navigate = useNavigate()
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [celebration, setCelebration] = useState<CelebrationKind | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
   // El admin en «Ver como Alumno» recibe las semanas de TODOS los grupos
   // (RLS de admin); el alumno, solo las del suyo. Se acotan al grupo del
   // alumno que se está viendo para calcular la misma semana que él ve.
   const { dossier } = useStudentDossier(portalReadOnly ? studentId : null)
 
-  const { entries, loading, error } = useMyLogs(form.code, studentId)
+  const { entries, loading, error } = useMyLogs(form.code, studentId, refreshKey)
   // Qué semanas están entregadas (con cualquiera de las dos bitácoras): de ahí
   // sale la semana que toca. `entries` solo trae las de esta bitácora.
-  const { weeks: statusCells, loaded: statusLoaded } = useWeeklyLogStatus(studentId)
+  const { weeks: statusCells, loaded: statusLoaded } = useWeeklyLogStatus(studentId, refreshKey)
   const {
     data: allWeeks,
     loading: weeksLoading,
@@ -61,24 +65,17 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
     ? allWeeks.filter((week) => week.groupId === dossier?.groupId)
     : allWeeks
 
-  // Al entregar o corregir se regresa a la lista de tareas, con el aviso de
-  // que salió bien. Quedarse aquí dejaría al alumno frente al mismo
-  // formulario, que se parece demasiado a que no pasó nada; volver al índice
-  // es además donde ve su contador de entregas actualizado.
+  // Al entregar o corregir la alumna se queda en la bitácora: se celebra ahí
+  // mismo (sello o confeti) y ella decide cuándo salir. Se recargan las
+  // entregas y las semanas para que el formulario pase a la semana que sigue.
   const onSubmitted = useCallback(
     (updated: boolean, late: boolean) => {
-      navigate('/alumno', {
-        replace: true,
-        state: {
-          toast: updated
-            ? `Actualizaste tu ${form.name}. Tu profesor ya puede verlo.`
-            : `Entregaste tu ${form.name}. Tu profesor ya puede verlo.`,
-          // Corregir la semana en curso no se celebra: ya se había entregado.
-          ...(updated ? {} : celebrationState(late)),
-        },
-      })
+      setRefreshKey((key) => key + 1)
+      if (updated) setToast(`Actualizaste tu ${form.name}. Tu profesor ya puede verlo.`)
+      // Corregir la semana en curso no se celebra: ya se había entregado.
+      else setCelebration(celebrationKind(late))
     },
-    [navigate, form.name],
+    [form.name],
   )
 
   // Sin acceso a esta bitácora, de vuelta a la lista de tareas.
@@ -86,6 +83,11 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
 
   return (
     <>
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
+      {celebration && (
+        <SubmissionCelebration kind={celebration} onDone={() => setCelebration(null)} />
+      )}
+
       <Link
         to="/alumno"
         className="text-sm font-medium text-ink-500 transition-colors hover:text-ink-900"
@@ -221,8 +223,9 @@ function SubmissionForm({
       } else {
         await submit(form.code, currentWeek.weekNumber, values)
       }
-      // No se limpia el formulario: `onSubmitted` navega y esta pantalla se
-      // desmonta. Limpiarlo antes solo haría parpadear los campos vacíos.
+      // Se vacía: si sigue otra semana pendiente, el formulario es nuevo. Si
+      // fue la semana en curso, se precarga con lo recién entregado.
+      if (!existingEntry) setValues({})
       onSubmitted(Boolean(existingEntry), isLate)
     } catch (cause) {
       setError(
@@ -501,7 +504,7 @@ interface Entry {
   values: Record<string, unknown>
 }
 
-function useMyLogs(code: WeeklyFormCode, studentId: string | null) {
+function useMyLogs(code: WeeklyFormCode, studentId: string | null, refreshKey: number) {
   const [entries, setEntries] = useState<Entry[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -541,7 +544,7 @@ function useMyLogs(code: WeeklyFormCode, studentId: string | null) {
     return () => {
       cancelled = true
     }
-  }, [code, studentId])
+  }, [code, studentId, refreshKey])
 
   return { entries, loading, error }
 }
