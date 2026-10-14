@@ -353,6 +353,18 @@ export const PERIOD_OPTIONS: FilterOption[] = [
   { value: 'OT-26', label: 'OT-26' },
 ]
 
+/**
+ * Los periodos en los que se puede crear un grupo: el actual y el siguiente.
+ * PR (primavera) corre de enero a julio y OT (otoño) de agosto a diciembre,
+ * así que en octubre de 2026 son OT-26 y PR-27, y en febrero de 2027, PR-27 y OT-27.
+ */
+export function creatablePeriods(today: Date = new Date()): FilterOption[] {
+  const yy = (offset: number) => String((today.getFullYear() + offset) % 100).padStart(2, '0')
+  const codes =
+    today.getMonth() <= 6 ? [`PR-${yy(0)}`, `OT-${yy(0)}`] : [`OT-${yy(0)}`, `PR-${yy(1)}`]
+  return codes.map((code) => ({ value: code, label: code }))
+}
+
 // ---------------------------------------------------------------------------
 // Etiquetas de dominio
 // ---------------------------------------------------------------------------

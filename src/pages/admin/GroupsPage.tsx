@@ -10,7 +10,7 @@ import type { Group, Language, RegisteredStudent, SessionDay, Teacher } from '..
 import { ALL_GROUPS, useGroups } from '../../layouts/GroupProvider'
 import { useAuth } from '../../auth/AuthProvider'
 import { usePermissions } from '../../auth/PermissionsProvider'
-import { LANGUAGE_OPTIONS, SESSION_DAY_OPTIONS, type FilterOption } from '../../lib/catalog'
+import { LANGUAGE_OPTIONS, SESSION_DAY_OPTIONS, creatablePeriods, type FilterOption } from '../../lib/catalog'
 import { formatGroupLabel, formatLanguage, formatSessionDay } from '../../lib/format'
 
 const FIELD_INPUT =
@@ -145,10 +145,7 @@ export function GroupsPage() {
       ? 'Elige frecuencia, idioma y maestro.'
       : null
 
-  const knownPeriods = useMemo(
-    () => [...new Set(groups.map((group) => group.periodCode))],
-    [groups],
-  )
+  const periodOptions = useMemo(() => creatablePeriods(), [])
 
   function refresh() {
     setRefreshKey((key) => key + 1)
@@ -418,22 +415,12 @@ export function GroupsPage() {
             className="space-y-5"
           >
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block">
-                <span className={LABEL}>Periodo</span>
-                <input
-                  placeholder="OT-26"
-                  list="periodos-conocidos"
-                  value={form.periodCode}
-                  onChange={(event) => setForm({ ...form, periodCode: event.target.value })}
-                  autoComplete="off"
-                  className={`${FIELD_INPUT} mt-1.5 w-full`}
-                />
-                <datalist id="periodos-conocidos">
-                  {knownPeriods.map((period) => (
-                    <option key={period} value={period} />
-                  ))}
-                </datalist>
-              </label>
+              <FieldSelect
+                label="Periodo"
+                value={form.periodCode}
+                options={periodOptions}
+                onChange={(value) => setForm({ ...form, periodCode: value })}
+              />
               {ownTeacherId ? (
                 <label className="block">
                   <span className={LABEL}>Maestro</span>
