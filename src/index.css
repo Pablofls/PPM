@@ -46,36 +46,47 @@ body {
 }
 
 /*
- * Sello de «ENTREGADO» (SubmissionCelebration): entra grande y transparente,
- * golpea la pantalla, se queda un momento y se desvanece.
+ * Sello de «ENTREGADO» (SubmissionCelebration): alguien lo estampa. Cae desde
+ * arriba rápido y pesado (ease-in), se detiene en seco al tocar el papel, se
+ * sacude un poco, se queda y se desvanece.
  */
 @keyframes stamp {
   0% {
     opacity: 0;
-    transform: scale(2.6) rotate(-4deg);
+    transform: translate(0, 0) scale(2.4) rotate(-12deg);
+    animation-timing-function: cubic-bezier(0.7, 0, 0.9, 0.5);
+  }
+  5% {
+    opacity: 1;
+    transform: translate(0, 0) scale(0.93) rotate(-12deg);
+    animation-timing-function: ease-out;
+  }
+  8% {
+    transform: translate(-7px, 4px) scale(1.02) rotate(-13.5deg);
+  }
+  11% {
+    transform: translate(6px, -3px) scale(0.99) rotate(-10.8deg);
   }
   14% {
-    opacity: 1;
-    transform: scale(0.92) rotate(-12deg);
+    transform: translate(-4px, 2px) scale(1) rotate(-12.8deg);
   }
-  20% {
-    transform: scale(1.04) rotate(-12deg);
+  17% {
+    transform: translate(2px, -1px) scale(1) rotate(-11.7deg);
   }
-  26%,
+  20%,
   80% {
     opacity: 1;
-    transform: scale(1) rotate(-12deg);
+    transform: translate(0, 0) scale(1) rotate(-12deg);
   }
   100% {
     opacity: 0;
-    transform: scale(1) rotate(-12deg);
+    transform: translate(0, 0) scale(1) rotate(-12deg);
   }
 }
 
 .stamp-animation {
-  animation: stamp 2.6s ease-out both;
-  background-color: rgb(255 255 255 / 0.6);
-  box-shadow: 0 0 0 4px rgb(255 255 255 / 0.6);
+  animation: stamp 2.8s both;
+  filter: drop-shadow(0 1px 1px rgb(185 28 28 / 0.35));
 }
 
 @media (prefers-reduced-motion: reduce) {

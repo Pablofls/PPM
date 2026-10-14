@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react'
 import type { CelebrationKind } from '../lib/celebration'
 
 const CONFETTI_MS = 4200
-const STAMP_MS = 2600
+const STAMP_MS = 2800
 const COLORS = ['#f2e63d', '#e3d41c', '#343c48', '#6b7484', '#8b5cf6', '#22c55e', '#f97316', '#ef4444']
 
 const prefersReducedMotion = () =>
@@ -26,23 +26,99 @@ export function SubmissionCelebration({
   return kind === 'on_time' ? <Confetti onDone={onDone} /> : <Stamp onDone={onDone} />
 }
 
+/** El golpe del sello contra la mesa: un thump grave y un chasquido corto. */
+function playStampThud() {
+  try {
+    const ctx = new AudioContext()
+    const t = ctx.currentTime
+    const master = ctx.createGain()
+    master.gain.value = 0.7
+    master.connect(ctx.destination)
+
+    const thump = ctx.createOscillator()
+    const thumpGain = ctx.createGain()
+    thump.frequency.setValueAtTime(170, t)
+    thump.frequency.exponentialRampToValueAtTime(45, t + 0.16)
+    thumpGain.gain.setValueAtTime(1, t)
+    thumpGain.gain.exponentialRampToValueAtTime(0.001, t + 0.22)
+    thump.connect(thumpGain).connect(master)
+    thump.start(t)
+    thump.stop(t + 0.25)
+
+    const length = Math.floor(ctx.sampleRate * 0.06)
+    const buffer = ctx.createBuffer(1, length, ctx.sampleRate)
+    const data = buffer.getChannelData(0)
+    for (let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / length)
+    const click = ctx.createBufferSource()
+    const clickFilter = ctx.createBiquadFilter()
+    clickFilter.type = 'lowpass'
+    clickFilter.frequency.value = 1800
+    click.buffer = buffer
+    click.connect(clickFilter).connect(master)
+    click.start(t)
+
+    window.setTimeout(() => void ctx.close(), 600)
+  } catch {
+    // Sin audio disponible, el sello se ve igual.
+  }
+}
+
 function Stamp({ onDone }: { onDone: () => void }) {
   useEffect(() => {
+    // El golpe cae al ~5 % de la animación.
+    const thud = window.setTimeout(playStampThud, STAMP_MS * 0.05)
     const timer = window.setTimeout(onDone, STAMP_MS)
-    return () => window.clearTimeout(timer)
+    return () => {
+      window.clearTimeout(thud)
+      window.clearTimeout(timer)
+    }
   }, [onDone])
 
   return (
     <div
       role="status"
+      aria-label="Entregado"
       className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center"
     >
-      <div
-        className="stamp-animation rounded-lg border-[6px] border-double border-red-600 px-8 py-3 text-5xl font-extrabold tracking-[0.2em] text-red-600 uppercase sm:text-7xl"
-        style={{ animationDuration: `${STAMP_MS}ms` }}
+      <svg
+        viewBox="0 0 560 200"
+        className="stamp-animation w-[min(88vw,560px)] text-red-700"
+        aria-hidden="true"
       >
-        Entregado
-      </div>
+        <defs>
+          {/* Tinta irregular: el ruido le abre huecos como a un sello de goma. */}
+          <filter id="stamp-ink" x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.45" numOctaves="2" seed="7" result="noise" />
+            <feColorMatrix
+              in="noise"
+              type="matrix"
+              values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -11 7.5"
+              result="holes"
+            />
+            <feComposite in="SourceGraphic" in2="holes" operator="in" result="speckled" />
+            <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" seed="3" result="warp" />
+            <feDisplacementMap in="speckled" in2="warp" scale="3" />
+          </filter>
+        </defs>
+        <g filter="url(#stamp-ink)" fill="none" stroke="currentColor">
+          <rect x="8" y="8" width="544" height="184" rx="26" strokeWidth="9" />
+          <rect x="26" y="26" width="508" height="148" rx="14" strokeWidth="3" />
+          <text
+            x="280"
+            y="124"
+            textAnchor="middle"
+            fill="currentColor"
+            stroke="none"
+            fontSize="80"
+            fontWeight="900"
+            textLength="440"
+            lengthAdjust="spacingAndGlyphs"
+            fontFamily="Inter, system-ui, sans-serif"
+          >
+            ENTREGADO
+          </text>
+        </g>
+      </svg>
     </div>
   )
 }
