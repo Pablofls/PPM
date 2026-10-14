@@ -43,8 +43,8 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
   // lectura» se ven las entregas anteriores y el formulario deshabilitado.
   const { can, loading: loadingPermissions } = usePermissions()
   const navigate = useNavigate()
-  // El admin en «Ver como Alumno» recibe las semanas de TODOS los periodos
-  // (RLS de admin); el alumno, solo las del suyo. Se acotan al periodo del
+  // El admin en «Ver como Alumno» recibe las semanas de TODOS los grupos
+  // (RLS de admin); el alumno, solo las del suyo. Se acotan al grupo del
   // alumno que se está viendo para calcular la misma semana que él ve.
   const { dossier } = useStudentDossier(portalReadOnly ? studentId : null)
 
@@ -58,7 +58,7 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
     error: weeksError,
   } = useRepositoryQuery(() => repository.getSemesterWeeks(), [] as SemesterWeek[], [])
   const studentWeeks = portalReadOnly
-    ? allWeeks.filter((week) => week.periodCode === dossier?.periodCode)
+    ? allWeeks.filter((week) => week.groupId === dossier?.groupId)
     : allWeeks
 
   // Al entregar o corregir se regresa a la lista de tareas, con el aviso de

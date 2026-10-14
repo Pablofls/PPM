@@ -22,7 +22,6 @@ import type {
   DemographicsRow,
   DiscRow,
   FormDeadline,
-  FormDeadlineInput,
   Group,
   GroupInput,
   RegisteredStudent,
@@ -642,39 +641,37 @@ export const supabaseRepository: PanelRepository = {
     return { recordsSynced, accountsCreated }
   },
 
-  async getFormDeadlines(): Promise<FormDeadline[]> {
+  async getFormDeadlines(groupId: string): Promise<FormDeadline[]> {
     const { data, error } = await supabase
-      .from('form_deadlines')
+      .from('group_deadlines')
       .select('*')
-      .order('created_at', { ascending: false })
+      .eq('group_id', groupId)
+      .order('due_at', { ascending: true })
 
     if (error) throw new Error(`No se pudieron cargar las fechas límite: ${error.message}`)
 
     return ((data ?? []) as PanelRecord[]).map((record) => ({
-      id: str(record.id) ?? '',
+      groupId: str(record.group_id) ?? '',
       formCode: record.form_code as FormCode,
-      language: (str(record.language) as 'es' | 'en' | null) ?? null,
-      sessionDay: (str(record.session_day) as SessionDay | null) ?? null,
-      periodCode: str(record.period_code),
       dueAt: str(record.due_at) ?? '',
-      createdAt: str(record.created_at) ?? '',
     }))
   },
 
-  async createFormDeadline(input: FormDeadlineInput): Promise<void> {
-    const { error } = await supabase.from('form_deadlines').insert({
-      form_code: input.formCode,
-      language: input.language,
-      session_day: input.sessionDay,
-      period_code: input.periodCode,
-      due_at: input.dueAt,
+  async setFormDeadlines(groupId: string, formCodes: string[], dueAt: string): Promise<void> {
+    const { error } = await supabase.rpc('set_group_deadlines', {
+      p_group_id: groupId,
+      p_form_codes: formCodes,
+      p_due_at: dueAt,
     })
 
     if (error) throw new Error(`No se pudo guardar la fecha límite: ${error.message}`)
   },
 
-  async deleteFormDeadline(id: string): Promise<void> {
-    const { error } = await supabase.from('form_deadlines').delete().eq('id', id)
+  async deleteFormDeadline(groupId: string, formCode: string): Promise<void> {
+    const { error } = await supabase.rpc('delete_group_deadline', {
+      p_group_id: groupId,
+      p_form_code: formCode,
+    })
     if (error) throw new Error(`No se pudo borrar la fecha límite: ${error.message}`)
   },
 
@@ -1054,17 +1051,17 @@ export const supabaseRepository: PanelRepository = {
    * el admin, solo las de su periodo para el alumno—, así que la consulta es
    * la misma para las dos pantallas.
    */
-  async getSemesterWeeks(): Promise<SemesterWeek[]> {
-    const { data, error } = await supabase
-      .from('semester_weeks')
-      .select('*')
-      .order('period_code', { ascending: false })
+  async getSemesterWeeks(groupId?: string): Promise<SemesterWeek[]> {
+    let query = supabase.from('group_weeks').select('*')
+    if (groupId) query = query.eq('group_id', groupId)
+    const { data, error } = await query
+      .order('group_id', { ascending: true })
       .order('week_number', { ascending: true })
 
     if (error) throw new Error(`No se pudieron cargar las semanas: ${error.message}`)
 
     return ((data ?? []) as PanelRecord[]).map((record) => ({
-      periodCode: str(record.period_code) ?? '',
+      groupId: str(record.group_id) ?? '',
       weekNumber: num(record.week_number) ?? 0,
       weekStart: str(record.week_start) ?? '',
       weekEnd: str(record.week_end) ?? '',
@@ -1189,62 +1186,24 @@ export const supabaseRepository: PanelRepository = {
   },
 
   async createSemesterWeeks(
-    periodCode: string,
+    groupId: string,
     firstWeekStart: string,
     weekCount: number,
   ): Promise<void> {
-    const weeks = buildSemesterWeeks(periodCode, firstWeekStart, weekCount)
-    const { error } = await supabase.from('semester_weeks').insert(weeks)
+    const { error } = await supabase.rpc('create_group_weeks', {
+      p_group_id: groupId,
+      p_first_monday: firstWeekStart,
+      p_count: weekCount,
+    })
 
-    if (error) {
-      if (/duplicate key|unique/i.test(error.message)) {
-        throw new Error(
-          `Ese periodo ya tiene semanas configuradas. Bórralas primero si quieres cambiar la fecha de inicio.`,
-        )
-      }
-      throw new Error(`No se pudieron guardar las semanas: ${error.message}`)
-    }
+    if (error) throw new Error(error.message)
   },
 
-  async deleteSemesterWeeksForPeriod(periodCode: string): Promise<void> {
-    const { error } = await supabase
-      .from('semester_weeks')
-      .delete()
-      .eq('period_code', periodCode)
+  async deleteSemesterWeeks(groupId: string): Promise<void> {
+    const { error } = await supabase.rpc('delete_group_weeks', { p_group_id: groupId })
 
     if (error) throw new Error(`No se pudieron borrar las semanas: ${error.message}`)
   },
-}
-
-/**
- * Arma las N filas de un periodo: la semana 1 empieza en `firstWeekStart` y
- * cada una suma 7 días a la anterior. El `CHECK` de la base vuelve a validar
- * esto mismo (semana de 7 días, empieza en lunes); aquí se construye igual
- * para que el admin vea el resumen correcto antes de guardar.
- */
-function buildSemesterWeeks(periodCode: string, firstWeekStart: string, weekCount: number) {
-  const first = new Date(`${firstWeekStart}T00:00:00`)
-
-  return Array.from({ length: weekCount }, (_, index) => {
-    const start = new Date(first)
-    start.setDate(first.getDate() + index * 7)
-    const end = new Date(start)
-    end.setDate(start.getDate() + 6)
-
-    return {
-      period_code: periodCode,
-      week_number: index + 1,
-      week_start: isoDate(start),
-      week_end: isoDate(end),
-    }
-  })
-}
-
-/** `YYYY-MM-DD` en la zona local. */
-function isoDate(value: Date): string {
-  const mes = String(value.getMonth() + 1).padStart(2, '0')
-  const dia = String(value.getDate()).padStart(2, '0')
-  return `${value.getFullYear()}-${mes}-${dia}`
 }
 
 /**

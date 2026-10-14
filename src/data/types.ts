@@ -239,10 +239,10 @@ export interface InternshipLogRow extends WeeklyLogBase {
  * Una semana del semestre (`semester_weeks`), definida por el admin.
  *
  * El alumno elige `weekNumber` de una lista de estas; el profesor las genera
- * desde el Panel de Administrador. Cada periodo tiene las suyas.
+ * desde Fechas de entrega. Cada grupo tiene las suyas.
  */
 export interface SemesterWeek {
-  periodCode: string
+  groupId: string
   weekNumber: number
   weekStart: string
   weekEnd: string
@@ -349,28 +349,10 @@ export const EMPTY_FILTERS: PanelFilters = {
   scopeGroups: null,
 }
 
-/**
- * Una regla de fecha límite (`form_deadlines`).
- *
- * `language`/`sessionDay`/`periodCode` en `null` significan "todos": el mismo
- * significado que un select vacío en los filtros compartidos.
- */
+/** La fecha límite de un formulario en un grupo (`group_deadlines`, 0046). */
 export interface FormDeadline {
-  id: string
+  groupId: string
   formCode: FormCode
-  language: Language | null
-  sessionDay: SessionDay | null
-  periodCode: string | null
-  dueAt: string
-  createdAt: string
-}
-
-/** Lo que el admin manda al crear una regla. `id`/`createdAt` los pone la base. */
-export interface FormDeadlineInput {
-  formCode: FormCode
-  language: Language | null
-  sessionDay: SessionDay | null
-  periodCode: string | null
   dueAt: string
 }
 

@@ -11,6 +11,7 @@
 - **Estado:** ✅ **ejecutado en Supabase**
 - **Última migración aplicada:** `0042_grade_center_fast.sql` (2026-10-14).
   `0043_weekly_log_sequential.sql` (2026-10-14); `0044_teacher_group_admin.sql` (2026-10-14); `0045_session_days_weekdays.sql` (2026-10-14).
+  `0046_group_deadlines.sql` (2026-10-14).
   `0019_student_dossier_read.sql` está escrita y documentada aquí pero
   **todavía no se pega en Supabase**.
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
@@ -575,8 +576,8 @@ Todas `SECURITY DEFINER`.
   `*_logs_screen_write` (update), restrictivas, exigen «Puede editar» en la
   bitácora. Solo muerden a una sesión de alumno.
 - **Escritura del staff con «Puede editar»**, siempre dentro de sus grupos y
-  alumnos: `form_deadlines`/`semester_weeks` (insert/delete; las fechas son
-  globales), `groups` (delete/update), y las funciones
+  alumnos: `group_weeks`/`group_deadlines` (`0046`, vía funciones `create_group_weeks()`,
+  `set_group_deadlines()`… acotadas por grupo), `groups` (delete/update), y las funciones
   `admin_register_students()`, `admin_create_group()`, `admin_move_student()`
   y `admin_set_weekly_log_week_number()` redefinidas con el permiso en vez de
   `is_admin()`. `guard_user_roles()` deja que quien registra alumnos les dé el
@@ -1150,8 +1151,51 @@ funciones de abajo escriben.
 - **`v_groups`** — cada grupo con `teacher_name`, `teacher_email` y
   `student_count`. Alimenta la pantalla Grupos y el selector del encabezado.
 
+## Fechas de entrega por grupo
+
+> Migración `0046_group_deadlines.sql` — ✅ ejecutada en Supabase (2026-10-14).
+> Sustituye a `semester_weeks` y `form_deadlines` (secciones de abajo, que
+> describen el modelo anterior). Cada maestro fija el calendario y las fechas
+> límite de **cada uno de sus grupos**; nada se comparte entre grupos ni entre
+> maestros.
+
+| Tabla | Llave | Columnas |
+|---|---|---|
+| `group_weeks` | PK `(group_id, week_number)` | `group_id` → `groups` (cascade), `week_number` 1–53, `week_start` (lunes), `week_end = week_start + 6` |
+| `group_deadlines` | PK `(group_id, form_code)` | `group_id` → `groups` (cascade), `form_code` → `forms`, `due_at timestamptz` |
+
+4FN: el grupo ya contiene periodo, frecuencia e idioma, así que desaparecen esas
+columnas y la regla «la más específica gana» (`resolve_form_deadline`).
+
+**RLS.** Lectura: `*_select_admin`, `*_select_scope` (`group_id in visible_group_ids()`)
+y `*_select_own` (`group_id = current_student_group_id()`). Sin restrictiva de
+pantalla: son datos sin información personal y las vistas (`security_invoker`)
+de Estado de Entregas, Calificaciones y el portal las necesitan aunque quien las
+lee no tenga «Fechas de entrega». **No hay INSERT/UPDATE/DELETE directo**; se
+escribe con funciones `SECURITY DEFINER` que validan `can_edit_group_dates(group)`
+(admin, o «Puede editar» en `fechas_entrega` y el grupo dentro de su alcance):
+`create_group_weeks(group, primer_lunes, n)` (falla si ya hay semanas),
+`delete_group_weeks(group)`, `set_group_deadlines(group, formularios[], due_at)`
+(upsert) y `delete_group_deadline(group, form)`.
+
+**Nuevas funciones.** `current_student_group_id()`, `group_form_deadline(group, form)`,
+y las sobrecargas por grupo de `best_matching_week_number(uuid, date, date)` y
+`resolved_week_number(uuid, date, date, smallint)`.
+
+**Reescritos para unir por `group_id`** (en vez de `period_code`):
+`v_student_job_search_logs`, `v_student_internship_logs`,
+`v_weekly_submission_status`, `v_submission_status`, `v_grade_center`,
+`next_weekly_week_number()`, `new_weekly_submission()` y `guard_grade_week()`.
+
+**Datos.** Las semanas existentes se copian a cada grupo de su periodo; las
+fechas límite se resuelven con la regla vieja para cada grupo (su idioma,
+frecuencia y periodo). Los grupos nuevos nacen **sin fechas**. Un alumno sin
+grupo no tiene calendario. `semester_weeks`/`form_deadlines` quedan sin uso y sin
+políticas de escritura; se eliminarán en una migración posterior.
+
 ## Semanas del semestre
 
+> ⚠️ Reemplazado por `group_weeks` en `0046` (ver arriba).
 > Migración `0018_semester_weeks.sql` — ✅ ejecutada en Supabase (2026-09-25).
 > Alimenta la sección "Semanas del semestre" del Panel de Administrador y el
 > selector de semana de las dos bitácoras en el portal del alumno.
@@ -1300,6 +1344,8 @@ baja el porcentaje.
 
 ## Fechas de entrega y estado de las entregas
 
+> ⚠️ Desde `0046` las fechas límite son `group_deadlines` (por grupo); `form_deadlines` y
+> `resolve_form_deadline()` quedan sin uso.
 > Migración `0017_form_deadlines.sql` — ✅ ejecutada en Supabase (2026-09-25).
 > Alimenta las pantallas "Panel de Administrador" y "Estado de Entregas". Ver
 > también [FORMS_CATALOG.md](FORMS_CATALOG.md#fechas-de-entrega) y
@@ -1939,6 +1985,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0040_grades.sql` | `grade_activities`, `grades`, `guard_grade_week()`, `set_grade()`, `set_grade_activity_points()`, `v_grade_center`; pantalla `calificaciones` y sus permisos iniciales | ✅ 2026-10-14 |
 | `0041_grades_report_points.sql` | `grade_activities` pasa a `(group_id)` (los puntos son del reporte, no de cada semana); `set_grade_activity_points(group, points)`; se rehace `v_grade_center` sin leer las vistas de bitácoras | ✅ 2026-10-14 |
 | `0042_grade_center_fast.sql` | se rehace `v_grade_center` (mismas columnas): las entregas semanales se leen una vez con su semana resuelta, en vez de un `LATERAL` por alumno × semana | ✅ 2026-10-14 |
+| `0046_group_deadlines.sql` | `group_weeks`, `group_deadlines` por grupo (reemplazan `semester_weeks`/`form_deadlines`), funciones de escritura por alcance, `current_student_group_id()`, y vistas/funciones de bitácoras, estado y calificaciones unidas por `group_id` | ✅ 2026-10-14 |
 | `0045_session_days_weekdays.sql` | `session_day` suma `martes`, `jueves`, `viernes`; `admin_register_students` los acepta | ✅ 2026-10-14 |
 | `0044_teacher_group_admin.sql` | semilla `maestro`/`coordinador` = «Puede editar» en `alumnos_registrados` y `grupos`; `v_students_directory.teacher_name`; `admin_register_students` acepta `maestro_id` por fila para distinguir grupos homónimos | ✅ 2026-10-14 |
 | `0043_weekly_log_sequential.sql` | entrega secuencial de bitácoras: `next_weekly_week_number()`, `new_weekly_submission` exige la primera semana pendiente, y `v_grade_center` agrega `is_late` (derivada) | ✅ 2026-10-14 |

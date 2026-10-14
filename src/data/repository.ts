@@ -22,7 +22,6 @@ import type {
   DemographicsRow,
   DiscRow,
   FormDeadline,
-  FormDeadlineInput,
   Group,
   GroupInput,
   RegisteredStudent,
@@ -160,17 +159,14 @@ export interface PanelRepository {
    */
   runSheetSync(): Promise<SyncRunResult>
 
-  /**
-   * Reglas de fecha límite vigentes, de la más reciente a la más antigua.
-   * Alimenta la tabla "Fechas asignadas" del Panel de Administrador.
-   */
-  getFormDeadlines(): Promise<FormDeadline[]>
+  /** Fechas límite de un grupo (`group_deadlines`, 0046). */
+  getFormDeadlines(groupId: string): Promise<FormDeadline[]>
 
-  /** Crea una regla de fecha límite. Nunca sobrescribe una existente. */
-  createFormDeadline(input: FormDeadlineInput): Promise<void>
+  /** Fija (o cambia) la misma fecha límite para varios formularios de un grupo. */
+  setFormDeadlines(groupId: string, formCodes: string[], dueAt: string): Promise<void>
 
-  /** Borra una regla. Corregir una fecha es borrarla y crear otra. */
-  deleteFormDeadline(id: string): Promise<void>
+  /** Quita la fecha límite de un formulario en un grupo. */
+  deleteFormDeadline(groupId: string, formCode: string): Promise<void>
 
   /**
    * Da de alta alumnos sin que contesten el 1.0 (`admin_register_students()`,
@@ -284,11 +280,11 @@ export interface PanelRepository {
   getWeeklyLogStatusForStudent(studentId: string): Promise<WeeklyLogStatusCell[]>
 
   /**
-   * Las semanas configuradas. RLS decide cuáles: el admin ve las de todos los
-   * periodos, el alumno solo las del suyo — el mismo método sirve a las dos
-   * pantallas.
+   * Las semanas configuradas (`group_weeks`). RLS decide cuáles: el admin ve
+   * las de todos los grupos, el staff las de su alcance y el alumno las de su
+   * grupo. Con `groupId` se acota a un grupo.
    */
-  getSemesterWeeks(): Promise<SemesterWeek[]>
+  getSemesterWeeks(groupId?: string): Promise<SemesterWeek[]>
 
   /**
    * Calificaciones (`0040`): una fila por alumno y semana, con la bitácora que
@@ -316,18 +312,14 @@ export interface PanelRepository {
   setGradeActivityPoints(groupId: string, points: number | null): Promise<void>
 
   /**
-   * Genera las semanas de un periodo: la 1 empieza en `firstWeekStart` y las
-   * siguientes suman 7 días, `weekCount` veces. Falla si el periodo ya tiene
-   * semanas — hay que borrarlas primero (`deleteSemesterWeeksForPeriod`).
+   * Genera las semanas de un grupo: la 1 empieza en `firstWeekStart` y las
+   * siguientes suman 7 días, `weekCount` veces. Falla si el grupo ya tiene
+   * semanas — hay que borrarlas primero (`deleteSemesterWeeks`).
    */
-  createSemesterWeeks(
-    periodCode: string,
-    firstWeekStart: string,
-    weekCount: number,
-  ): Promise<void>
+  createSemesterWeeks(groupId: string, firstWeekStart: string, weekCount: number): Promise<void>
 
-  /** Borra todas las semanas de un periodo, para volver a generarlas. */
-  deleteSemesterWeeksForPeriod(periodCode: string): Promise<void>
+  /** Borra todas las semanas de un grupo, para volver a generarlas. */
+  deleteSemesterWeeks(groupId: string): Promise<void>
 }
 
 /** Respaldo sin base de datos, para cuando faltan las variables de entorno. */
@@ -405,7 +397,7 @@ export const emptyRepository: PanelRepository = {
   async getFormDeadlines() {
     return []
   },
-  async createFormDeadline() {
+  async setFormDeadlines() {
     throw new Error('No hay conexión con la base de datos. La fecha no se guardó.')
   },
   async deleteFormDeadline() {
@@ -510,7 +502,7 @@ export const emptyRepository: PanelRepository = {
   async createSemesterWeeks() {
     throw new Error('No hay conexión con la base de datos. Las semanas no se guardaron.')
   },
-  async deleteSemesterWeeksForPeriod() {
+  async deleteSemesterWeeks() {
     throw new Error('No hay conexión con la base de datos. Las semanas no se borraron.')
   },
 }

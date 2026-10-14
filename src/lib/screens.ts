@@ -91,7 +91,7 @@ export const SCREENS: ScreenMeta[] = [
     maxAccess: 'edicion',
     audience: 'panel',
     path: '/entregas/fechas-de-entrega',
-    editHint: 'Asignar fechas y semanas (para todos los grupos)',
+    editHint: 'Asignar fechas y semanas de sus grupos',
   },
   {
     code: 'alumnos_registrados',
