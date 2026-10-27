@@ -90,6 +90,8 @@ interface FilterBarProps {
   /** `'solo-busqueda'` oculta los cinco selectores compartidos. */
   mode?: 'completos' | 'solo-busqueda'
   searchPlaceholder?: string
+  /** El selector de columnas de la tabla (`useColumnPreferences`), después del buscador. */
+  columnPicker?: React.ReactNode
   /** Controles adicionales de una pantalla específica, p. ej. el grupo de habilidades. */
   children?: React.ReactNode
 }
@@ -100,6 +102,7 @@ export function FilterBar({
   onClear,
   mode = 'completos',
   searchPlaceholder = 'Buscar por correo institucional…',
+  columnPicker,
   children,
 }: FilterBarProps) {
   // El grupo no cuenta: «Limpiar» no lo quita, así que no debe aparecer por él.
@@ -117,6 +120,8 @@ export function FilterBar({
           className="w-72 rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 shadow-sm placeholder:text-ink-400 focus:border-ink-400 focus:ring-2 focus:ring-ink-900/5 focus:outline-none"
         />
       </div>
+
+      {columnPicker}
 
       {showSelectors && (
         <>

@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type FormEvent } from 'react'
 
 import { Badge, Dash, LanguageBadge } from '../../components/Badge'
+import { useColumnPreferences } from '../../components/ColumnPicker'
 import { DataTable, type Column } from '../../components/DataTable'
 import { Modal } from '../../components/Modal'
 import { useRepositoryQuery } from '../../data/hooks'
@@ -176,6 +177,8 @@ export function RegisteredStudentsPage() {
     }
   }
 
+  const { visibleColumns, picker } = useColumnPreferences('alumnos-registrados', columns)
+
   return (
     <>
       <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
@@ -227,6 +230,7 @@ export function RegisteredStudentsPage() {
           onChange={(event) => setSearch(event.target.value)}
           className={`${FIELD_INPUT} w-80`}
         />
+        {picker}
         {showTeacher && (
           <select
             aria-label="Filtrar por maestro"
@@ -247,7 +251,7 @@ export function RegisteredStudentsPage() {
         </p>
       </div>
       <DataTable
-        columns={columns}
+        columns={visibleColumns}
         rows={visible}
         rowKey={(row) => row.studentId}
         // El nombre solo llega con el formulario 1.0: sin él, el alumno no lo ha contestado.

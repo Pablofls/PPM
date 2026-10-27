@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 
 import { usePermissions } from '../../auth/PermissionsProvider'
 import { Dash } from '../../components/Badge'
+import { useColumnPreferences } from '../../components/ColumnPicker'
 import { DataTable, type Column } from '../../components/DataTable'
 import { FilterBar, useFilters } from '../../components/FilterBar'
 import { Toast } from '../../components/Toast'
@@ -130,6 +131,8 @@ export function GradeCenterPage() {
     },
   ]
 
+  const { visibleColumns, picker } = useColumnPreferences('centro-calificaciones', columns)
+
   return (
     <>
       <header className="mb-6">
@@ -146,10 +149,15 @@ export function GradeCenterPage() {
         </p>
       </header>
 
-      <FilterBar filters={filters} onChange={setFilter} onClear={clearFilters} />
+      <FilterBar
+        filters={filters}
+        onChange={setFilter}
+        onClear={clearFilters}
+        columnPicker={picker}
+      />
 
       <DataTable
-        columns={columns}
+        columns={visibleColumns}
         rows={students}
         rowKey={(row) => row.studentId}
         loading={loading}

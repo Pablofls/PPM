@@ -212,11 +212,32 @@ Todas las pantallas de formulario comparten el mismo esqueleto:
    tarde. Sin base de datos muestran `—`.
 3. **Barra de filtros** — idéntica en todas las pantallas:
    - Búsqueda por correo institucional
+   - **Columnas** — qué columnas se ven y en qué orden (ver abajo)
    - Idioma · Frecuencia · Carrera · Semestre · Período
 4. **Tabla de datos** — una fila por alumno (la respuesta más reciente, vía
    `latest_submissions`). Encabezados fijos y scroll horizontal propio.
 5. **Expediente del alumno** — al hacer clic en una fila se abre con todo lo que
    se sabe del alumno, sin importar desde qué pantalla se abrió.
+
+### Selector de columnas
+
+Todas las tablas con buscador tienen el botón **Columnas** justo después de él.
+Eso incluye los formularios, los apéndices, Estado de Entregas, Calificar, el
+Centro de calificaciones, Alumnos registrados, la tabla de alumnos de
+Administrar grupos y Usuarios. El botón abre una lista donde se marcan las
+columnas a la vista y se cambia su orden, arrastrando o con ↑ ↓. *Mostrar todas*
+vuelve a mostrar las ocultas y *Restablecer* regresa al orden de fábrica.
+Mientras la tabla no se vea como de fábrica, el botón se pinta como un filtro
+puesto y dice cuántas columnas están ocultas.
+
+- La columna fija (el nombre, o la actividad en Calificar) no se oculta ni se
+  mueve: es la que identifica la fila al hacer scroll horizontal.
+- La preferencia se guarda **en el navegador** (`localStorage`,
+  `ppm.columnas.<usuario>.<tabla>`), por usuario y por tabla. No está en la base
+  de datos y no sigue a la cuenta a otra computadora.
+- Las columnas que cambian (los grupos de 1.4, las semanas del Centro de
+  calificaciones) se combinan con lo guardado. Una columna nueva aparece visible
+  en su lugar natural, y una que ya no existe se ignora.
 
 ### Estado vacío
 

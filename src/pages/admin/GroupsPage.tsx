@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { Badge, Dash } from '../../components/Badge'
+import { useColumnPreferences } from '../../components/ColumnPicker'
 import { DataTable, type Column } from '../../components/DataTable'
 import { Modal } from '../../components/Modal'
 import { useRepositoryQuery } from '../../data/hooks'
@@ -345,6 +346,10 @@ export function GroupsPage() {
       ),
     },
   ]
+  const { visibleColumns: visibleStudentColumns, picker } = useColumnPreferences(
+    'grupos-alumnos',
+    studentColumns,
+  )
 
   return (
     <>
@@ -507,6 +512,7 @@ export function GroupsPage() {
               onChange={(event) => setSearch(event.target.value)}
               className={`${FIELD_INPUT} w-64`}
             />
+            {picker}
             {unassignedCount > 0 && (
               <label className="flex items-center gap-2 text-sm text-ink-600">
                 <input
@@ -520,7 +526,7 @@ export function GroupsPage() {
           </div>
         </div>
         <DataTable
-          columns={studentColumns}
+          columns={visibleStudentColumns}
           rows={visibleStudents}
           rowKey={(row) => row.studentId}
           rowAlert={(row) => !row.groupId}

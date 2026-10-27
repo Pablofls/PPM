@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react'
 
 import { ROLE_LABELS, STAFF_ROLES, useAuth } from '../../auth/AuthProvider'
 import { Badge, Dash } from '../../components/Badge'
+import { useColumnPreferences } from '../../components/ColumnPicker'
 import { DataTable, type Column } from '../../components/DataTable'
 import { Modal } from '../../components/Modal'
 import { ACCESS_TONES, PermissionsMatrix, levelsFor, sectionsOf } from './PermissionsMatrix'
@@ -143,6 +144,7 @@ export function UsersPage() {
       ),
     },
   ]
+  const { visibleColumns, picker } = useColumnPreferences('usuarios', columns)
 
   return (
     <>
@@ -225,10 +227,11 @@ export function UsersPage() {
               onChange={(event) => setSearch(event.target.value)}
               className={`${FIELD_INPUT} w-72`}
             />
-            <p className="text-sm text-ink-500">{visible.length}</p>
+            {picker}
+            <p className="ml-auto text-sm text-ink-500">{visible.length}</p>
           </div>
           <DataTable
-            columns={columns}
+            columns={visibleColumns}
             rows={visible}
             rowKey={(user) => user.id}
             rowAlert={(user) => !user.isActive || user.roles.length === 0}

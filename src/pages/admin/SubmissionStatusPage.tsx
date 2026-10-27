@@ -1,3 +1,4 @@
+import { useColumnPreferences } from '../../components/ColumnPicker'
 import { DataTable, type Column } from '../../components/DataTable'
 import { FilterBar, useFilters } from '../../components/FilterBar'
 import {
@@ -56,6 +57,7 @@ export function SubmissionStatusPage() {
     loading,
     error,
   } = useRepositoryQuery(() => repository.getSubmissionStatus(filters), [], [filters])
+  const { visibleColumns, picker } = useColumnPreferences('estado-entregas', columns)
 
   return (
     <>
@@ -71,10 +73,15 @@ export function SubmissionStatusPage() {
         <SubmissionStatusLegend />
       </header>
 
-      <FilterBar filters={filters} onChange={setFilter} onClear={clearFilters} />
+      <FilterBar
+        filters={filters}
+        onChange={setFilter}
+        onClear={clearFilters}
+        columnPicker={picker}
+      />
 
       <DataTable
-        columns={columns}
+        columns={visibleColumns}
         rows={rows}
         rowKey={(row) => row.studentId}
         loading={loading}

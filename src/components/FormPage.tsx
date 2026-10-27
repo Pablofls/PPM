@@ -7,6 +7,7 @@ import type { BaseRow } from '../data/types'
 import type { FormMeta } from '../lib/catalog'
 import { formatDateTime, formatSemester, formatSessionDay } from '../lib/format'
 import { Dash, LanguageBadge } from './Badge'
+import { useColumnPreferences } from './ColumnPicker'
 import { DataTable, type Column } from './DataTable'
 import { FilterBar, useFilters } from './FilterBar'
 import { PageHeader } from './PageHeader'
@@ -65,6 +66,7 @@ export function FormPage<T extends BaseRow>({
   const { data: rows, loading, error } = useRows(filters)
   const { data: summary } = useFormSummary(form.code, filters)
   const [searchParams, setSearchParams] = useSearchParams()
+  const { visibleColumns, picker } = useColumnPreferences(form.code, columns)
 
   // El expediente vive en la URL (`?alumno=`) junto a los filtros: «Atrás» del
   // navegador regresa a la tabla y la vista se puede compartir.
@@ -124,12 +126,13 @@ export function FormPage<T extends BaseRow>({
         onClear={clearFilters}
         mode={filterMode}
         searchPlaceholder={searchPlaceholder}
+        columnPicker={picker}
       >
         {filterControls}
       </FilterBar>
 
       <DataTable
-        columns={columns}
+        columns={visibleColumns}
         rows={rows}
         rowKey={rowKey}
         loading={loading}

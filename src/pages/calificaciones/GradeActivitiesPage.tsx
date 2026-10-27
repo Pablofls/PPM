@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 
 import { usePermissions } from '../../auth/PermissionsProvider'
 import { Badge, Dash } from '../../components/Badge'
+import { useColumnPreferences } from '../../components/ColumnPicker'
 import { DataTable, type Column } from '../../components/DataTable'
 import { FilterBar, useFilters } from '../../components/FilterBar'
 import { DossierNavButton } from '../../components/StudentDossier'
@@ -39,6 +40,7 @@ export function GradeActivitiesPage() {
   const [searchParams] = useSearchParams()
   const { entries, loading, error, isConnected, save } = useGradeEntries(filters)
   const canEdit = usePermissions().can('calificaciones', 'edicion')
+  const { visibleColumns, picker } = useColumnPreferences('calificar', ACTIVITY_COLUMNS)
 
   const week = Number(searchParams.get(WEEK_PARAM))
   if (week > 0) {
@@ -63,9 +65,20 @@ export function GradeActivitiesPage() {
         </p>
       </header>
 
-      <FilterBar filters={filters} onChange={setFilter} onClear={clearFilters} />
+      <FilterBar
+        filters={filters}
+        onChange={setFilter}
+        onClear={clearFilters}
+        columnPicker={picker}
+      />
 
-      <ActivityList entries={entries} loading={loading} error={error} isConnected={isConnected} />
+      <ActivityList
+        columns={visibleColumns}
+        entries={entries}
+        loading={loading}
+        error={error}
+        isConnected={isConnected}
+      />
     </>
   )
 }
@@ -115,12 +128,65 @@ function summarize(entries: GradeEntry[]): ActivitySummary[] {
   return [...byWeek.values()].sort((a, b) => a.weekNumber - b.weekNumber)
 }
 
+const ACTIVITY_COLUMNS: Column<ActivitySummary>[] = [
+  {
+    key: 'activity',
+    header: 'Actividad',
+    width: 'min-w-52',
+    sticky: true,
+    render: (row) => (
+      <span className="font-medium text-ink-900">Reporte semana {row.weekNumber}</span>
+    ),
+  },
+  {
+    key: 'week',
+    header: 'Semana del',
+    render: (row) => (
+      <span className="tnum text-xs text-ink-500">{formatWeekRange(row.weekStart, row.weekEnd)}</span>
+    ),
+  },
+  {
+    key: 'points',
+    header: 'Puntos',
+    render: (row) =>
+      row.points === null ? <span className="text-ink-500">Varía</span> : formatPoints(row.points),
+  },
+  {
+    key: 'submitted',
+    header: 'Entregados',
+    render: (row) => (
+      <span className="tnum">
+        {row.submitted} <span className="text-ink-400">de {row.students}</span>
+        {row.late > 0 && (
+          <>
+            {' '}
+            <Badge tone="red">{row.late} tardía{row.late === 1 ? '' : 's'}</Badge>
+          </>
+        )}
+      </span>
+    ),
+  },
+  {
+    key: 'graded',
+    header: 'Calificados',
+    render: (row) => <span className="tnum">{row.graded}</span>,
+  },
+  {
+    key: 'pending',
+    header: 'Por calificar',
+    render: (row) =>
+      row.pending > 0 ? <Badge tone="amber">{row.pending} por calificar</Badge> : <Dash />,
+  },
+]
+
 function ActivityList({
+  columns,
   entries,
   loading,
   error,
   isConnected,
 }: {
+  columns: Column<ActivitySummary>[]
   entries: GradeEntry[]
   loading: boolean
   error: string | null
@@ -128,57 +194,6 @@ function ActivityList({
 }) {
   const [, setSearchParams] = useSearchParams()
   const rows = useMemo(() => summarize(entries), [entries])
-
-  const columns: Column<ActivitySummary>[] = [
-    {
-      key: 'activity',
-      header: 'Actividad',
-      width: 'min-w-52',
-      sticky: true,
-      render: (row) => (
-        <span className="font-medium text-ink-900">Reporte semana {row.weekNumber}</span>
-      ),
-    },
-    {
-      key: 'week',
-      header: 'Semana del',
-      render: (row) => (
-        <span className="tnum text-xs text-ink-500">{formatWeekRange(row.weekStart, row.weekEnd)}</span>
-      ),
-    },
-    {
-      key: 'points',
-      header: 'Puntos',
-      render: (row) =>
-        row.points === null ? <span className="text-ink-500">Varía</span> : formatPoints(row.points),
-    },
-    {
-      key: 'submitted',
-      header: 'Entregados',
-      render: (row) => (
-        <span className="tnum">
-          {row.submitted} <span className="text-ink-400">de {row.students}</span>
-          {row.late > 0 && (
-            <>
-              {' '}
-              <Badge tone="red">{row.late} tardía{row.late === 1 ? '' : 's'}</Badge>
-            </>
-          )}
-        </span>
-      ),
-    },
-    {
-      key: 'graded',
-      header: 'Calificados',
-      render: (row) => <span className="tnum">{row.graded}</span>,
-    },
-    {
-      key: 'pending',
-      header: 'Por calificar',
-      render: (row) =>
-        row.pending > 0 ? <Badge tone="amber">{row.pending} por calificar</Badge> : <Dash />,
-    },
-  ]
 
   return (
     <DataTable
