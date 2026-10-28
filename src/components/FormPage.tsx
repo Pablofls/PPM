@@ -1,5 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import type { ReactNode } from 'react'
 
 import { useFormSummary } from '../data/hooks'
 import { repository } from '../data/repository'
@@ -11,9 +10,7 @@ import { useColumnPreferences } from './ColumnPicker'
 import { DataTable, type Column } from './DataTable'
 import { FilterBar, useFilters } from './FilterBar'
 import { PageHeader } from './PageHeader'
-import { StudentDossier } from './StudentDossier'
-
-const DOSSIER_PARAM = 'alumno'
+import { StudentDossier, useDossierParam } from './StudentDossier'
 
 const rowKey = (row: BaseRow) => row.submissionId || row.studentId
 
@@ -65,44 +62,19 @@ export function FormPage<T extends BaseRow>({
   const [filters, setFilter, clearFilters] = useFilters()
   const { data: rows, loading, error } = useRows(filters)
   const { data: summary } = useFormSummary(form.code, filters)
-  const [searchParams, setSearchParams] = useSearchParams()
   const { visibleColumns, picker } = useColumnPreferences(form.code, columns)
+  const dossier = useDossierParam(rows, rowKey, loading)
 
-  // El expediente vive en la URL (`?alumno=`) junto a los filtros: «Atrás» del
-  // navegador regresa a la tabla y la vista se puede compartir.
-  const selectedKey = searchParams.get(DOSSIER_PARAM)
-  const selectedIndex = selectedKey ? rows.findIndex((row) => rowKey(row) === selectedKey) : -1
-  const selectedRow = selectedIndex >= 0 ? rows[selectedIndex] : null
-
-  const openRow = (row: T | null, replace = false) =>
-    setSearchParams(
-      (current) => {
-        const next = new URLSearchParams(current)
-        if (row) next.set(DOSSIER_PARAM, rowKey(row))
-        else next.delete(DOSSIER_PARAM)
-        return next
-      },
-      { replace },
-    )
-
-  // Un `?alumno=` que ya no existe en la lista (filtros distintos, enlace viejo).
-  useEffect(() => {
-    if (selectedKey && !loading && selectedIndex < 0) openRow(null, true)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedKey, loading, selectedIndex])
-
-  if (selectedRow) {
+  if (dossier.selected) {
     return (
       <StudentDossier
-        row={selectedRow}
-        form={form}
-        onClose={() => openRow(null)}
-        index={selectedIndex}
-        total={rows.length}
-        onPrev={selectedIndex > 0 ? () => openRow(rows[selectedIndex - 1], true) : undefined}
-        onNext={
-          selectedIndex < rows.length - 1 ? () => openRow(rows[selectedIndex + 1], true) : undefined
-        }
+        row={dossier.selected}
+        trail={[`Módulo ${form.moduleCode}`, `${form.label} ${form.name}`]}
+        onClose={dossier.close}
+        index={dossier.index}
+        total={dossier.total}
+        onPrev={dossier.onPrev}
+        onNext={dossier.onNext}
       >
         {renderDetail}
       </StudentDossier>
@@ -139,7 +111,7 @@ export function FormPage<T extends BaseRow>({
         isConnected={repository.isConnected}
         error={error}
         pageSize={pageSize}
-        onRowClick={(row) => openRow(row)}
+        onRowClick={dossier.open}
       />
     </>
   )

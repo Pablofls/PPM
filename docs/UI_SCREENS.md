@@ -265,6 +265,14 @@ Es la misma idea de la tarjeta **ADN Profesional** de la plataforma anterior, co
 las mismas secciones romanas. Ahí se armaba leyendo ocho hojas del Sheets en cada
 clic; aquí la arma `v_student_dossier` en una sola consulta.
 
+Se abre desde las pantallas de formulario (clic en la fila), desde **Estado de
+Entregas** (clic en la fila, en las dos vistas) y desde el **Centro de
+calificaciones** (clic en el nombre: las celdas se editan). El breadcrumb
+nombra la sección y la pantalla de origen —`Módulo 1 › 1.1 Intereses`,
+`Entregas › Estado de Entregas`, `Calificaciones › Centro de calificaciones`—
+y los dos eslabones regresan a la tabla. El alumno va en `?alumno=`
+(`useDossierParam`), y `‹ n / total ›` recorre la tabla tal como está filtrada.
+
 | Sección | De dónde sale |
 |---|---|
 | Identidad, edad y datos académicos | 1.0 |

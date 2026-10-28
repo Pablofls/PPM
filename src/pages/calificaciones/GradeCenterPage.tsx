@@ -5,6 +5,7 @@ import { Dash } from '../../components/Badge'
 import { useColumnPreferences } from '../../components/ColumnPicker'
 import { DataTable, type Column } from '../../components/DataTable'
 import { FilterBar, useFilters } from '../../components/FilterBar'
+import { StudentDossier, useDossierParam } from '../../components/StudentDossier'
 import { Toast } from '../../components/Toast'
 import type { GradeEntry } from '../../data/types'
 import { formatSemester } from '../../lib/format'
@@ -98,15 +99,24 @@ export function GradeCenterPage() {
     }
   }, [entries])
 
+  const dossier = useDossierParam(students, (row) => row.studentId, loading)
+
   const columns: Column<StudentRow>[] = [
     {
       key: 'name',
       header: 'Estudiante',
       width: 'min-w-56',
       sticky: true,
+      // Solo el nombre abre el expediente: las celdas se editan con clic.
       render: (row) => (
         <div>
-          <p className="font-medium text-ink-900">{studentLabel(row)}</p>
+          <button
+            type="button"
+            onClick={() => dossier.open(row)}
+            className="text-left font-medium text-ink-900 underline-offset-2 hover:underline"
+          >
+            {studentLabel(row)}
+          </button>
           <p className="text-xs text-ink-500">
             {[row.degreeCode, formatSemester(row.semester)].filter(Boolean).join(' · ')}
           </p>
@@ -161,6 +171,20 @@ export function GradeCenterPage() {
   ]
 
   const { visibleColumns, picker } = useColumnPreferences('centro-calificaciones', columns)
+
+  if (dossier.selected) {
+    return (
+      <StudentDossier
+        row={dossier.selected}
+        trail={['Calificaciones', 'Centro de calificaciones']}
+        onClose={dossier.close}
+        index={dossier.index}
+        total={dossier.total}
+        onPrev={dossier.onPrev}
+        onNext={dossier.onNext}
+      />
+    )
+  }
 
   return (
     <>

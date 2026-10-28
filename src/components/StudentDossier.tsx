@@ -1,14 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { useSearchParams } from 'react-router-dom'
 
 import { repository } from '../data/repository'
 import type {
-  BaseRow,
   InternshipLogRow,
   JobSearchLogRow,
   SessionDay,
   StudentDossier as Dossier,
 } from '../data/types'
-import type { FormMeta } from '../lib/catalog'
 import {
   formatDate,
   formatDateTime,
@@ -32,9 +31,17 @@ import {
   WeeklyLogStatusGrid,
 } from './SubmissionStatusGrid'
 
-interface StudentDossierProps<T extends BaseRow> {
+/** Lo que el expediente necesita de la fila de la tabla desde la que se abrió. */
+export type DossierRow = { studentId: string } & IdentityFallback
+
+interface StudentDossierProps<T extends DossierRow> {
   row: T | null
-  form: FormMeta
+  /**
+   * Los dos primeros eslabones del breadcrumb: la sección y la pantalla de
+   * origen (`Módulo 1 › 1.1 Intereses`, `Entregas › Estado de Entregas`).
+   * Los dos regresan a la tabla.
+   */
+  trail: [string, string]
   /** Regresa a la tabla de origen (breadcrumb). */
   onClose: () => void
   /** Posición del alumno en la lista de la tabla y su tamaño, para el «n / total». */
@@ -56,9 +63,9 @@ interface StudentDossierProps<T extends BaseRow> {
  * plataforma anterior, que armaba esto leyendo ocho hojas del Sheets en cada
  * clic; aquí lo arma `v_student_dossier`.
  */
-export function StudentDossier<T extends BaseRow>({
+export function StudentDossier<T extends DossierRow>({
   row,
-  form,
+  trail,
   onClose,
   index,
   total,
@@ -112,7 +119,7 @@ export function StudentDossier<T extends BaseRow>({
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <nav aria-label="Ruta" className="flex min-w-0 items-center gap-1.5 text-sm text-ink-500">
           <button type="button" onClick={onClose} className="hover:text-ink-900 hover:underline">
-            Módulo {form.moduleCode}
+            {trail[0]}
           </button>
           <span aria-hidden="true">›</span>
           <button
@@ -120,7 +127,7 @@ export function StudentDossier<T extends BaseRow>({
             onClick={onClose}
             className="font-medium text-accent-700 hover:underline"
           >
-            {form.label} {form.name}
+            {trail[1]}
           </button>
           <span aria-hidden="true">›</span>
           <span className="truncate text-ink-900" aria-current="page">
@@ -171,7 +178,7 @@ export function StudentDossier<T extends BaseRow>({
             )}
 
             {children && (
-              <Section title={`${form.label} ${form.name}`}>{children(row)}</Section>
+              <Section title={trail[1]}>{children(row)}</Section>
             )}
 
             <Section title="Estado de Entregas" hint="todos los formularios y las semanas de bitácora">
@@ -206,6 +213,47 @@ export function StudentDossier<T extends BaseRow>({
       </div>
     </div>
   )
+}
+
+const DOSSIER_PARAM = 'alumno'
+
+/**
+ * El alumno abierto en el expediente, en la URL (`?alumno=`) junto a los
+ * filtros: «Atrás» del navegador regresa a la tabla y la vista se puede
+ * compartir. `‹ ›` recorren `rows` tal como está filtrada.
+ */
+export function useDossierParam<T>(rows: T[], rowKey: (row: T) => string, loading: boolean) {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const selectedKey = searchParams.get(DOSSIER_PARAM)
+  const index = selectedKey ? rows.findIndex((row) => rowKey(row) === selectedKey) : -1
+  const selected = index >= 0 ? rows[index] : null
+
+  const open = (row: T | null, replace = false) =>
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current)
+        if (row) next.set(DOSSIER_PARAM, rowKey(row))
+        else next.delete(DOSSIER_PARAM)
+        return next
+      },
+      { replace },
+    )
+
+  // Un `?alumno=` que ya no existe en la lista (filtros distintos, enlace viejo).
+  useEffect(() => {
+    if (selectedKey && !loading && index < 0) open(null, true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedKey, loading, index])
+
+  return {
+    selected,
+    index,
+    total: rows.length,
+    open: (row: T) => open(row),
+    close: () => open(null),
+    onPrev: index > 0 ? () => open(rows[index - 1], true) : undefined,
+    onNext: index >= 0 && index < rows.length - 1 ? () => open(rows[index + 1], true) : undefined,
+  }
 }
 
 export function DossierNavButton({

@@ -9,6 +9,7 @@ import {
   SubmissionStatusLegend,
   SubmissionStatusSquare,
 } from '../../components/SubmissionStatusGrid'
+import { StudentDossier, useDossierParam } from '../../components/StudentDossier'
 import { ViewToggle, type ViewOption } from '../../components/ViewToggle'
 import { useRepositoryQuery } from '../../data/hooks'
 import { repository } from '../../data/repository'
@@ -36,7 +37,12 @@ const studentColumns: Column<SubmissionStatusRow>[] = [
     header: 'Nombre',
     width: 'min-w-52',
     sticky: true,
-    render: (row) => <span className="font-medium text-ink-900">{row.fullName ?? '—'}</span>,
+    // La fila entera abre el expediente; el nombre se ve como liga.
+    render: (row) => (
+      <span className="font-medium text-ink-900 underline-offset-2 hover:underline">
+        {row.fullName ?? '—'}
+      </span>
+    ),
   },
   {
     key: 'degreeCode',
@@ -115,6 +121,8 @@ export function SubmissionStatusPage() {
     [rows, weeksByStudent],
   )
   const hasWeeks = Object.values(weeksByStudent).some((weeks) => weeks.length > 0)
+  // Las dos vistas tienen los mismos alumnos en el mismo orden.
+  const dossier = useDossierParam(rows, (row) => row.studentId, loading)
 
   const chooseView = (next: StatusView) =>
     setSearchParams(
@@ -126,6 +134,20 @@ export function SubmissionStatusPage() {
       },
       { replace: true },
     )
+
+  if (dossier.selected) {
+    return (
+      <StudentDossier
+        row={dossier.selected}
+        trail={['Entregas', 'Estado de Entregas']}
+        onClose={dossier.close}
+        index={dossier.index}
+        total={dossier.total}
+        onPrev={dossier.onPrev}
+        onNext={dossier.onNext}
+      />
+    )
+  }
 
   return (
     <>
@@ -167,6 +189,7 @@ export function SubmissionStatusPage() {
             loading={loading || loadingWeeks}
             isConnected={repository.isConnected}
             error={error ?? weeksError}
+            onRowClick={dossier.open}
           />
         </>
       ) : (
@@ -177,6 +200,7 @@ export function SubmissionStatusPage() {
           loading={loading}
           isConnected={repository.isConnected}
           error={error}
+          onRowClick={dossier.open}
         />
       )}
     </>
