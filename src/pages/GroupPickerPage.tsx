@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { useColumnPreferences } from '../components/ColumnPicker'
 import { DataTable, type Column } from '../components/DataTable'
 import { GroupCover } from '../components/GroupCover'
+import { ViewToggle, type ViewOption } from '../components/ViewToggle'
 import { repository } from '../data/repository'
 import type { Group } from '../data/types'
 import { ALL_GROUPS, useGroups } from '../layouts/GroupProvider'
@@ -173,7 +174,7 @@ export function GroupPickerPage() {
           ))}
           <option value="">Todos los periodos</option>
         </select>
-        <ViewToggle value={view} onChange={chooseView} />
+        <ViewToggle options={VIEW_OPTIONS} value={view} onChange={chooseView} />
         {view === 'tabla' && picker}
         {!context?.loading && (
           <p className="text-sm text-ink-500">
@@ -245,34 +246,10 @@ export function GroupPickerPage() {
 }
 
 /** Tarjetas o tabla, al lado del periodo. */
-function ViewToggle({ value, onChange }: { value: PickerView; onChange: (value: PickerView) => void }) {
-  const options: { value: PickerView; label: string; icon: string }[] = [
-    { value: 'tarjetas', label: 'Tarjetas', icon: 'M2.5 2.5h4.5v4.5h-4.5zM9 2.5h4.5v4.5H9zM2.5 9h4.5v4.5h-4.5zM9 9h4.5v4.5H9z' },
-    { value: 'tabla', label: 'Tabla', icon: 'M2.5 3h11M2.5 6.33h11M2.5 9.67h11M2.5 13h11' },
-  ]
-  return (
-    <div role="group" aria-label="Vista" className="flex rounded-lg border border-ink-200 bg-white p-0.5 shadow-sm">
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          aria-pressed={value === option.value}
-          onClick={() => onChange(option.value)}
-          className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm ${
-            value === option.value
-              ? 'bg-ink-900 font-medium text-white'
-              : 'text-ink-500 hover:bg-ink-100 hover:text-ink-900'
-          }`}
-        >
-          <svg viewBox="0 0 16 16" aria-hidden="true" className="size-4 fill-none stroke-current" strokeWidth={1.5}>
-            <path d={option.icon} />
-          </svg>
-          {option.label}
-        </button>
-      ))}
-    </div>
-  )
-}
+const VIEW_OPTIONS: ViewOption<PickerView>[] = [
+  { value: 'tarjetas', label: 'Tarjetas', icon: 'M2.5 2.5h4.5v4.5h-4.5zM9 2.5h4.5v4.5H9zM2.5 9h4.5v4.5h-4.5zM9 9h4.5v4.5H9z' },
+  { value: 'tabla', label: 'Tabla', icon: 'M2.5 3h11M2.5 6.33h11M2.5 9.67h11M2.5 13h11' },
+]
 
 const CARD =
   'group flex h-full w-full flex-col overflow-hidden rounded-xl border border-ink-200 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-ink-900 focus-visible:outline-none'

@@ -280,6 +280,13 @@ export interface PanelRepository {
   getWeeklyLogStatusForStudent(studentId: string): Promise<WeeklyLogStatusCell[]>
 
   /**
+   * La misma matriz de semanas para varios alumnos a la vez, por `studentId`:
+   * la vista Reportes de Estado de Entregas. Los alumnos salen de la consulta
+   * ya filtrada de la pantalla, porque la vista no trae columnas de filtro.
+   */
+  getWeeklyLogStatus(studentIds: string[]): Promise<Record<string, WeeklyLogStatusCell[]>>
+
+  /**
    * Las semanas configuradas (`group_weeks`). RLS decide cuáles: el admin ve
    * las de todos los grupos, el staff las de su alcance y el alumno las de su
    * grupo. Con `groupId` se acota a un grupo.
@@ -480,6 +487,9 @@ export const emptyRepository: PanelRepository = {
   },
   async getWeeklyLogStatusForStudent() {
     return []
+  },
+  async getWeeklyLogStatus() {
+    return {}
   },
   async getSemesterWeeks() {
     return []

@@ -88,6 +88,18 @@ function applyFilters<T extends PostgrestFilterBuilder<any, any, any, any, any>>
   return next
 }
 
+/** Una fila de `v_weekly_submission_status` (`0027`, `0046`). */
+function toWeeklyLogStatusCell(record: PanelRecord): WeeklyLogStatusCell {
+  return {
+    weekNumber: num(record.week_number) ?? 0,
+    weekStart: str(record.week_start) ?? '',
+    weekEnd: str(record.week_end) ?? '',
+    state: (str(record.state) as SubmissionState) ?? 'sin_fecha',
+    submittedAt: str(record.submitted_at),
+    dueAt: str(record.due_at),
+  }
+}
+
 /** Las cuentas activas con un rol (`v_users`, `0035`), por nombre. */
 async function fetchUsersWithRole(role: string): Promise<Teacher[]> {
   const { data, error } = await supabase
@@ -1036,14 +1048,26 @@ export const supabaseRepository: PanelRepository = {
 
     if (error) throw new Error(`No se pudo cargar el estado de las semanas: ${error.message}`)
 
-    return (data ?? []).map((record: PanelRecord) => ({
-      weekNumber: num(record.week_number) ?? 0,
-      weekStart: str(record.week_start) ?? '',
-      weekEnd: str(record.week_end) ?? '',
-      state: (str(record.state) as SubmissionState) ?? 'sin_fecha',
-      submittedAt: str(record.submitted_at),
-      dueAt: str(record.due_at),
-    }))
+    return (data ?? []).map(toWeeklyLogStatusCell)
+  },
+
+  async getWeeklyLogStatus(studentIds: string[]): Promise<Record<string, WeeklyLogStatusCell[]>> {
+    if (studentIds.length === 0) return {}
+
+    const { data, error } = await supabase
+      .from('v_weekly_submission_status')
+      .select('student_id, week_number, week_start, week_end, state, submitted_at, due_at')
+      .in('student_id', studentIds)
+      .order('week_number', { ascending: true })
+
+    if (error) throw new Error(`No se pudo cargar el estado de las semanas: ${error.message}`)
+
+    const byStudent: Record<string, WeeklyLogStatusCell[]> = {}
+    for (const record of (data ?? []) as PanelRecord[]) {
+      const studentId = str(record.student_id) ?? ''
+      ;(byStudent[studentId] ??= []).push(toWeeklyLogStatusCell(record))
+    }
+    return byStudent
   },
 
   /**

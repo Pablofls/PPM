@@ -691,6 +691,20 @@ Semestre, Período), igual que las pantallas de Módulo 1.
 | una por cada uno de los 12 formularios | un cuadro de color: verde *a tiempo* (o entregado, si el formulario no tiene fecha límite), ámbar *tarde*, rojo *no entregado y la fecha ya pasó*, gris *sin entregar y sin nada que reprocharle todavía* |
 | Resumen | conteo de verdes/ámbares/rojos de esa fila |
 
+Un toggle **Formularios | Reportes** en el encabezado (`?vista=reportes`)
+cambia a la matriz alumno × semana de las bitácoras
+(`v_weekly_submission_status`, la misma de `WeeklyLogStatusGrid` en el
+expediente). Esa vista no trae columnas de filtro, así que los alumnos salen
+de la consulta ya filtrada de la vista Formularios y sus semanas se piden por
+`student_id`. Cada vista guarda su propio selector de columnas.
+
+| Columna (Reportes) | Contenido |
+|---|---|
+| Nombre · Carrera · Sem. | las mismas |
+| Reporte | Búsqueda o Prácticas: la bitácora que entregó más recientemente |
+| Sem. 1 … N | un cuadro por semana, mismo color y tooltip; N son todas las semanas de los grupos a la vista, y «—» si el grupo del alumno no tiene esa semana |
+| Resumen | conteo de verdes/ámbares/rojos de sus semanas |
+
 El color de cada cuadro trae un tooltip con la marca temporal exacta de la
 entrega, o si no ha entregado: "No entregado" (rojo, ya venció), "Todavía no
 vence: `fecha`" (gris, tiene fecha pero no ha llegado) o "Sin fecha límite
