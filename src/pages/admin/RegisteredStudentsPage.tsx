@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type FormEvent } from 'react'
+import { useMemo, useRef, useState } from 'react'
 
 import { Badge, Dash, LanguageBadge } from '../../components/Badge'
 import { useColumnPreferences } from '../../components/ColumnPicker'
@@ -37,14 +37,6 @@ const ACCENT_BUTTON =
 
 const LABEL = 'text-[11px] font-semibold tracking-wider text-ink-500 uppercase'
 
-const EMPTY_FORM: StudentRegistrationInput = {
-  email: '',
-  studentNumber: '',
-  periodCode: '',
-  sessionDay: '',
-  language: '',
-}
-
 const BASE_COLUMNS: Column<RegisteredStudent>[] = [
   { key: 'email', header: 'Correo', width: 'min-w-64', sticky: true, render: (row) => row.email },
   { key: 'name', header: 'Nombre', width: 'min-w-48', render: (row) => row.fullName ?? <Dash /> },
@@ -62,10 +54,10 @@ type Message = { tone: 'red' | 'green'; text: string } | null
 
 /**
  * Alumnos Registrados: el profesor da de alta alumnos sin que contesten el 1.0,
- * uno por uno o con un Excel. Cada alta crea también la cuenta de acceso
+ * de uno a n en una tabla o con un Excel. Cada alta crea también la cuenta de acceso
  * (usuario = correo, contraseña inicial = matrícula). Ver `0031`.
  *
- * La pantalla es la lista: registrar uno («+ Registrar alumno») e importar el
+ * La pantalla es la lista: registrar («+ Registrar alumnos») e importar el
  * Excel se hacen en ventanas emergentes, como en Usuarios.
  */
 export function RegisteredStudentsPage() {
@@ -123,7 +115,7 @@ export function RegisteredStudentsPage() {
   const withoutGroup = scoped.filter((student) => !student.groupId).length
   const showTeacher = teacherOptions.length > 1
 
-  // «Registrar alumno» elige un grupo existente; con varios maestros se aclara de quién es.
+  // «Registrar alumnos» elige un grupo existente; con varios maestros se aclara de quién es.
   const groupOptions = useMemo<FilterOption[]>(
     () =>
       (groups ?? []).map((group) => ({
@@ -158,11 +150,15 @@ export function RegisteredStudentsPage() {
       : []),
   ]
 
+  /** La lista y los conteos de alumnos por grupo cambiaron. */
+  function refreshRegistered() {
+    setRefreshKey((key) => key + 1)
+    groupContext?.refetch()
+  }
+
   /** Lo que comparten las dos ventanas al terminar: refrescar y mostrar el resultado. */
   function afterRegister(rows: RegistrationResult[]) {
-    setRefreshKey((key) => key + 1)
-    // Los conteos de alumnos por grupo cambiaron.
-    groupContext?.refetch()
+    refreshRegistered()
     setDialog(null)
     const failed = rows.filter((row) => row.outcome.startsWith('error')).length
     if (rows.length === 1 && failed === 0) {
@@ -196,7 +192,7 @@ export function RegisteredStudentsPage() {
               Importar Excel
             </button>
             <button type="button" onClick={() => setDialog('single')} className={ACCENT_BUTTON}>
-              + Registrar alumno
+              + Registrar alumnos
             </button>
           </div>
         )}
@@ -265,6 +261,7 @@ export function RegisteredStudentsPage() {
         <RegisterModal
           groupOptions={groupOptions}
           onClose={() => setDialog(null)}
+          onRegistered={refreshRegistered}
           onDone={afterRegister}
         />
       )}
@@ -318,65 +315,136 @@ function FieldSelect({
   )
 }
 
-/** «+ Registrar alumno»: un alumno a la vez. */
+/** Una fila de «Registrar alumnos», mientras se captura. */
+interface DraftRow {
+  id: number
+  email: string
+  studentNumber: string
+  groupId: string
+  /** Motivo de la base si esta fila falló al registrar. */
+  serverError?: string
+}
+
+let nextDraftId = 1
+
+function emptyDraft(groupId = ''): DraftRow {
+  return { id: nextDraftId++, email: '', studentNumber: '', groupId }
+}
+
+const isBlank = (row: DraftRow) => !row.email.trim() && !row.studentNumber.trim()
+
+/**
+ * «+ Registrar alumnos»: una tabla a la que se le van agregando filas, de uno
+ * a n alumnos en un solo envío. La fila nueva hereda el grupo de la anterior,
+ * porque casi siempre se captura a varios del mismo grupo.
+ */
 function RegisterModal({
   groupOptions,
   onClose,
+  onRegistered,
   onDone,
 }: {
   groupOptions: FilterOption[]
   onClose: () => void
+  /** Algunas filas entraron y otras no: refrescar la lista sin cerrar. */
+  onRegistered: () => void
   onDone: (results: RegistrationResult[]) => void
 }) {
   const groupContext = useGroups()
-  const [form, setForm] = useState<StudentRegistrationInput>(EMPTY_FORM)
-  const [groupId, setGroupId] = useState('')
+  const [rows, setRows] = useState<DraftRow[]>(() => [emptyDraft()])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [touched, setTouched] = useState(false)
+  const focusId = useRef<number | null>(null)
 
   // El grupo elegido pone periodo, frecuencia, idioma y maestro.
-  const group = groupContext?.groups.find((candidate) => candidate.id === groupId)
-  const input: StudentRegistrationInput = {
-    ...form,
-    periodCode: group?.periodCode ?? '',
-    sessionDay: group?.sessionDay ?? '',
-    language: group?.language ?? '',
-    teacherId: group?.teacherId,
-  }
-  const formError = !group && form.email && form.studentNumber ? 'Elige un grupo.' : validateRegistration(input)
-
-  function setField(key: keyof StudentRegistrationInput, value: string) {
-    setForm((current) => ({ ...current, [key]: value }))
+  function toInput(row: DraftRow): StudentRegistrationInput {
+    const group = groupContext?.groups.find((candidate) => candidate.id === row.groupId)
+    return {
+      email: row.email.trim(),
+      studentNumber: row.studentNumber.trim(),
+      periodCode: group?.periodCode ?? '',
+      sessionDay: group?.sessionDay ?? '',
+      language: group?.language ?? '',
+      teacherId: group?.teacherId,
+    }
   }
 
-  async function handleSubmit(event?: FormEvent) {
-    event?.preventDefault()
+  const filled = rows.filter((row) => !isBlank(row))
+  const emailCounts = new Map<string, number>()
+  for (const row of filled) {
+    const key = row.email.trim().toLowerCase()
+    emailCounts.set(key, (emailCounts.get(key) ?? 0) + 1)
+  }
+
+  function rowError(row: DraftRow): string | null {
+    if (isBlank(row)) return null
+    const local = validateRegistration(toInput(row))
+    if (local === 'Correo institucional inválido' || local === 'Matrícula inválida') return local
+    if (!row.groupId) return 'Elige un grupo'
+    if (local) return local
+    if ((emailCounts.get(row.email.trim().toLowerCase()) ?? 0) > 1) return 'Correo repetido en la lista'
+    return row.serverError ?? null
+  }
+
+  const hasErrors = filled.some((row) => rowError(row))
+
+  function update(id: number, patch: Partial<DraftRow>) {
+    setRows((current) =>
+      current.map((row) => (row.id === id ? { ...row, ...patch, serverError: undefined } : row)),
+    )
+  }
+
+  function addRow() {
+    setRows((current) => {
+      const draft = emptyDraft(current[current.length - 1]?.groupId ?? '')
+      focusId.current = draft.id
+      return [...current, draft]
+    })
+  }
+
+  function removeRow(id: number) {
+    setRows((current) => (current.length > 1 ? current.filter((row) => row.id !== id) : current))
+  }
+
+  async function handleSubmit() {
     setTouched(true)
-    if (formError) return
+    if (filled.length === 0 || hasErrors) return
     setSaving(true)
     setError(null)
     try {
-      const results = await repository.registerStudents([input])
-      // Un error de la base (sin grupo, matrícula repetida) deja la ventana
-      // abierta con el motivo, para corregir sin volver a capturar todo.
-      const failed = results.find((result) => result.outcome.startsWith('error'))
-      if (failed) {
-        setError(failed.outcome.replace(/^error:\s*/, ''))
-        setSaving(false)
+      const results = await repository.registerStudents(filled.map(toInput))
+      const failedByRow = new Map(
+        results
+          .filter((result) => result.outcome.startsWith('error'))
+          .map((result) => [result.row, result.outcome.replace(/^error:\s*/, '')]),
+      )
+      if (failedByRow.size === 0) {
+        onDone(results)
         return
       }
-      onDone(results)
+      // Las que entraron se van; las que fallaron se quedan con el motivo,
+      // para corregirlas sin volver a capturar las demás.
+      const failedRows = filled.flatMap((row, index) => {
+        const reason = failedByRow.get(index + 1)
+        return reason ? [{ ...row, serverError: reason }] : []
+      })
+      setRows(failedRows)
+      if (failedRows.length < filled.length) onRegistered()
+      setSaving(false)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'No se pudo registrar al alumno.')
+      setError(cause instanceof Error ? cause.message : 'No se pudo registrar a los alumnos.')
       setSaving(false)
     }
   }
 
+  const count = filled.length
+
   return (
     <Modal
-      title="Registrar alumno"
+      title="Registrar alumnos"
       onClose={onClose}
+      width="max-w-4xl"
       footer={
         <>
           <button type="button" onClick={onClose} className={SECONDARY_BUTTON}>
@@ -384,60 +452,132 @@ function RegisterModal({
           </button>
           <button
             type="button"
-            disabled={saving || (touched && !!formError)}
+            disabled={saving || count === 0 || (touched && hasErrors)}
             onClick={() => void handleSubmit()}
             className={PRIMARY_BUTTON}
           >
-            {saving ? 'Registrando…' : 'Registrar'}
+            {saving
+              ? 'Registrando…'
+              : count > 0
+                ? `Registrar ${count} ${count === 1 ? 'alumno' : 'alumnos'}`
+                : 'Registrar'}
           </button>
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="grid gap-4 sm:grid-cols-[1fr_10rem]">
-          <label className="block">
-            <span className={LABEL}>Correo UDEM</span>
-            <input
-              type="email"
-              value={form.email}
-              onChange={(event) => setField('email', event.target.value)}
-              placeholder="alumno.ejemplo@udem.edu"
-              autoComplete="off"
-              className={`${FIELD_INPUT} mt-1.5 w-full`}
-            />
-          </label>
-          <label className="block">
-            <span className={LABEL}>Matrícula</span>
-            <input
-              value={form.studentNumber}
-              onChange={(event) => setField('studentNumber', event.target.value)}
-              autoComplete="off"
-              className={`${FIELD_INPUT} mt-1.5 w-full`}
-            />
-          </label>
-        </div>
+      <div className="overflow-x-auto rounded-lg border border-ink-200">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-ink-200 bg-ink-50 text-left text-[11px] font-semibold tracking-wider text-ink-500 uppercase">
+              <th className="w-10 px-3 py-2">#</th>
+              <th className="px-2 py-2">Correo UDEM</th>
+              <th className="w-36 px-2 py-2">Matrícula</th>
+              <th className="px-2 py-2">Grupo</th>
+              <th className="w-10 px-2 py-2">
+                <span className="sr-only">Quitar</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => {
+              const message = touched || row.serverError ? rowError(row) : null
+              const isLast = index === rows.length - 1
+              // Enter en la última fila agrega otra; en las demás no hace nada.
+              const onKeyDown = (event: React.KeyboardEvent) => {
+                if (event.key !== 'Enter') return
+                event.preventDefault()
+                if (isLast) addRow()
+              }
+              const invalid = message ? 'border-red-300 bg-red-50' : ''
+              return (
+                <tr key={row.id} className="border-b border-ink-100 align-top last:border-0">
+                  <td className="tnum px-3 py-3 text-ink-400">{index + 1}</td>
+                  <td className="px-2 py-2">
+                    <input
+                      // La fila recién agregada recibe el foco en su correo.
+                      ref={(element) => {
+                        if (element && focusId.current === row.id) {
+                          element.focus()
+                          focusId.current = null
+                        }
+                      }}
+                      type="email"
+                      aria-label={`Correo del alumno ${index + 1}`}
+                      value={row.email}
+                      onChange={(event) => update(row.id, { email: event.target.value })}
+                      onKeyDown={onKeyDown}
+                      placeholder="alumno.ejemplo@udem.edu"
+                      autoComplete="off"
+                      className={`${FIELD_INPUT} w-full ${invalid}`}
+                    />
+                    {message && <p className="mt-1 text-xs text-red-700">{message}</p>}
+                  </td>
+                  <td className="px-2 py-2">
+                    <input
+                      aria-label={`Matrícula del alumno ${index + 1}`}
+                      value={row.studentNumber}
+                      onChange={(event) => update(row.id, { studentNumber: event.target.value })}
+                      onKeyDown={onKeyDown}
+                      autoComplete="off"
+                      className={`${FIELD_INPUT} w-full ${invalid}`}
+                    />
+                  </td>
+                  <td className="px-2 py-2">
+                    <select
+                      aria-label={`Grupo del alumno ${index + 1}`}
+                      value={row.groupId}
+                      onChange={(event) => update(row.id, { groupId: event.target.value })}
+                      onKeyDown={onKeyDown}
+                      className={`${FIELD_INPUT} w-full ${invalid}`}
+                    >
+                      <option value="">Elige…</option>
+                      {groupOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="px-2 py-2">
+                    {rows.length > 1 && (
+                      <button
+                        type="button"
+                        aria-label={`Quitar al alumno ${index + 1}`}
+                        onClick={() => removeRow(row.id)}
+                        className="rounded-md px-2 py-1.5 text-lg leading-none text-ink-400 hover:bg-ink-100 hover:text-ink-900"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
 
-        <FieldSelect label="Grupo" value={groupId} options={groupOptions} onChange={setGroupId} />
-        {groupOptions.length === 0 && (
-          <p className="text-xs text-red-700">
-            Todavía no hay grupos. Créalo en Configuración → Administrar grupos.
-          </p>
-        )}
+      <button type="button" onClick={addRow} className={`${SECONDARY_BUTTON} mt-3`}>
+        + Agregar alumno
+      </button>
 
-        <p className="text-xs text-ink-500">
-          Su usuario será el correo y su contraseña inicial la matrícula. Queda inscrito en el
-          grupo que elijas.
+      {groupOptions.length === 0 && (
+        <p className="mt-3 text-xs text-red-700">
+          Todavía no hay grupos. Créalo en Configuración → Administrar grupos.
         </p>
+      )}
 
-        {(error || (touched && formError)) && (
-          <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">
-            {error ?? formError}
-          </p>
-        )}
+      <p className="mt-4 text-xs text-ink-500">
+        Enter en la última fila agrega otra. Las filas vacías no se toman en cuenta. El usuario de
+        cada alumno será su correo y su contraseña inicial la matrícula; queda inscrito en el grupo
+        de su fila.
+      </p>
 
-        {/* Enter en cualquier campo registra. */}
-        <button type="submit" hidden />
-      </form>
+      {error && (
+        <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">
+          {error}
+        </p>
+      )}
     </Modal>
   )
 }

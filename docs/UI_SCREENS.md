@@ -522,11 +522,19 @@ frecuencia e idioma. Como en Usuarios, la pantalla es la lista y las altas se
 hacen en **ventanas emergentes**:
 
 - Maestro y coordinador la ven por defecto (`0044`), acotada a sus alumnos; con varios maestros aparece la columna **Maestro** y un filtro por maestro, y al registrar se puede elegir el maestro cuando hay grupos homónimos.
-- Arriba a la derecha, **Importar Excel** y **+ Registrar alumno**; debajo,
+- Arriba a la derecha, **Importar Excel** y **+ Registrar alumnos**; debajo,
   contadores de alumnos, sin Datos Demográficos y sin grupo.
-- **+ Registrar alumno:** correo UDEM, matrícula, periodo (los que tienen
-  grupo), frecuencia e idioma. Si la base rechaza la fila (sin grupo,
-  matrícula repetida), el motivo sale dentro de la ventana, que sigue abierta.
+- **+ Registrar alumnos:** una tabla de 1 a n filas, cada una con correo UDEM,
+  matrícula y grupo (el grupo pone periodo, frecuencia, idioma y maestro).
+  - *+ Agregar alumno* o Enter en la última fila agregan una fila. La fila
+    nueva hereda el grupo de la anterior y recibe el foco en su correo.
+  - × quita una fila. Las filas vacías se ignoran.
+  - Los errores salen debajo de su fila: correo o matrícula inválidos, falta
+    el grupo, o un correo repetido en la lista.
+  - *Registrar N alumnos* manda todas las filas en un solo envío.
+  - Si la base rechaza algunas (por ejemplo, una matrícula repetida), las que
+    entraron se quitan de la tabla y las rechazadas se quedan con su motivo,
+    con la ventana abierta.
 - **Importar Excel:** *Descargar plantilla* (hoja «Alumnos» con los
   encabezados y hoja «Instrucciones»), el archivo `.xlsx`, la vista previa con
   el error de cada fila y *Registrar N alumnos* (solo las válidas).
