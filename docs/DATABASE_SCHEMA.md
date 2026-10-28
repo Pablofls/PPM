@@ -1694,7 +1694,7 @@ funcionando igual.
 
 ## Uso del plan de Supabase
 
-Introducida por `0048_admin_usage_stats.sql` (⏳ pendiente de ejecutar).
+Introducida por `0048_admin_usage_stats.sql`, ejecutada el 2026-10-27.
 Alimenta Configuración → **Uso de Supabase**, solo admin.
 
 No agrega tablas, columnas ni vistas: es una función de solo lectura, así que
@@ -2040,7 +2040,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0045_session_days_weekdays.sql` | `session_day` suma `martes`, `jueves`, `viernes`; `admin_register_students` los acepta | ✅ 2026-10-14 |
 | `0044_teacher_group_admin.sql` | semilla `maestro`/`coordinador` = «Puede editar» en `alumnos_registrados` y `grupos`; `v_students_directory.teacher_name`; `admin_register_students` acepta `maestro_id` por fila para distinguir grupos homónimos | ✅ 2026-10-14 |
 | `0043_weekly_log_sequential.sql` | entrega secuencial de bitácoras: `next_weekly_week_number()`, `new_weekly_submission` exige la primera semana pendiente, y `v_grade_center` agrega `is_late` (derivada) | ✅ 2026-10-14 |
-| `0048_admin_usage_stats.sql` | `admin_usage_stats()`: tamaño de BD y Storage, MAU, conexiones y tablas más pesadas para la pantalla Uso de Supabase (admin) | ⏳ **pendiente** |
+| `0048_admin_usage_stats.sql` | `admin_usage_stats()`: tamaño de BD y Storage, MAU, conexiones y tablas más pesadas para la pantalla Uso de Supabase (admin) | ✅ 2026-10-27 |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.

@@ -9,9 +9,9 @@ formularios de Google. Reemplaza la implementación actual en Google Apps Script
 El profesor autorizó el proyecto el 10 de septiembre de 2026.
 
 - Supabase configurado (ref `sovinakodrmgxytgapry`) y Vercel desplegado.
-- Las migraciones `0001`–`0041` **ya se ejecutaron** (salvo `0019`, ver
+- Las migraciones `0001`–`0048` **ya se ejecutaron** (salvo `0019`, ver
   `docs/DATABASE_SCHEMA.md`). Un archivo ejecutado no se vuelve a editar: el
-  siguiente cambio es `0042_…`.
+  siguiente cambio es `0049_…`.
 - Alcance del esquema: **autenticación + los 11 formularios de Módulo 1 y 2 +
   los dos apéndices + las dos bitácoras semanales**. Las hojas `alumnos` y
   `fechas_entrega` quedan para después.
@@ -83,7 +83,7 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
 - **Maestros y coordinadores administran** (`0044`, ejecutada el 2026-10-14): por defecto «Puede editar» en *Alumnos registrados* y *Administrar grupos*, acotados a sus grupos (maestro) o a los de sus maestros (coordinador); columna y filtro **Maestro**; `admin_register_students` acepta `maestro_id`.
 - **Frecuencia de lunes a viernes** (`0045`, ejecutada el 2026-10-14): el enum `session_day` suma martes, jueves y viernes. El maestro crea grupos solo a su nombre (campo de solo lectura). Aviso de versión nueva rediseñado.
 - **Fechas de entrega por grupo** (`0046`, ejecutada el 2026-10-14): el calendario semanal y las fechas límite pasan de globales a `group_weeks`/`group_deadlines`; cada maestro configura los de sus grupos. Ver [docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md#fechas-de-entrega-por-grupo).
-- **Uso de Supabase** (`0048`, pendiente de ejecutar): Configuración → *Uso
+- **Uso de Supabase** (`0048`, ejecutada el 2026-10-27): Configuración → *Uso
   de Supabase*, solo admin. BD, Storage y MAU contra el plan gratuito, con
   proyección de cuándo se llena la BD; egress y API solo en el panel de Supabase.
 - **Mi perfil** (`0034`, ejecutada el 2026-10-07): nombre y apellido por
