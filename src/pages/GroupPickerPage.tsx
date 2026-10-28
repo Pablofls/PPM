@@ -138,7 +138,9 @@ export function GroupPickerPage() {
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-8 py-8">
+    // `w-full`: dentro del flex de `HomeShell`, `mx-auto` solo encogería la
+    // página al ancho de su contenido, y tarjetas y tabla miden distinto.
+    <main className="mx-auto w-full max-w-6xl px-8 py-8">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-ink-950">Mis grupos</h1>
