@@ -54,6 +54,7 @@ import type {
   SubmissionStatusRow,
   SyncRunResult,
   SyncStatus,
+  UsageStats,
   Teacher,
   ValuesRow,
   WeeklyLogStatusCell,
@@ -158,6 +159,12 @@ export interface PanelRepository {
    * (`admin_run_sheet_sync()`, `0022`) rechaza a cualquiera que no sea admin.
    */
   runSheetSync(): Promise<SyncRunResult>
+
+  /**
+   * Cuánto del plan gratuito de Supabase se está usando: BD, Storage, MAU y
+   * conexiones. Admin-only en la base (`admin_usage_stats()`, `0048`).
+   */
+  getUsageStats(): Promise<UsageStats>
 
   /** Fechas límite de un grupo (`group_deadlines`, 0046). */
   getFormDeadlines(groupId: string): Promise<FormDeadline[]>
@@ -400,6 +407,9 @@ export const emptyRepository: PanelRepository = {
   },
   async runSheetSync() {
     throw new Error('No hay conexión con la base de datos. No se procesó nada.')
+  },
+  async getUsageStats(): Promise<UsageStats> {
+    throw new Error('No hay conexión con la base de datos.')
   },
   async getFormDeadlines() {
     return []

@@ -580,3 +580,26 @@ export interface WeeklyReport {
 
 /** Puntos posibles cuando el profesor no configura otra cosa. */
 export const DEFAULT_POINTS_POSSIBLE = 100
+
+/**
+ * Lo que ocupa el proyecto en Supabase, para compararlo con el plan gratuito
+ * (`admin_usage_stats()`, `0048`). Los bytes vienen de Postgres; egress y
+ * peticiones a la API no se pueden medir desde la base.
+ */
+export interface UsageStats {
+  generatedAt: string
+  databaseBytes: number
+  /** Lo que ocupan las tablas de `public`: los datos del panel. */
+  publicBytes: number
+  storageBytes: number
+  storageObjects: number
+  authUsers: number
+  /** Cuentas que iniciaron sesión en los últimos 30 días. */
+  monthlyActiveUsers: number
+  connections: number
+  maxConnections: number
+  submissions: number
+  submissionsLast30Days: number
+  /** Las 10 tablas más pesadas. `rows` es la estimación de Postgres. */
+  tables: { name: string; bytes: number; rows: number }[]
+}

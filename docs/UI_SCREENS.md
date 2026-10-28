@@ -181,6 +181,18 @@ La pantalla es la lista; crear y editar se hacen en **ventanas emergentes**
 En **Administrar grupos**, con más de un maestro, la columna Maestro es un
 selector para reasignar el grupo.
 
+### Uso de Supabase · `/configuracion/uso`
+
+> `0048_admin_usage_stats.sql`. Solo admin (`AdminRoute`), en el engrane →
+> Configuración; no está en la matriz de permisos.
+
+Tres medidores contra el plan Free —base de datos (500 MB), Storage (1 GB) y
+usuarios activos en 30 días (50 000)— en verde, ámbar (≥ 70 %) o rojo
+(≥ 90 %); una proyección de cuándo se llena la BD al ritmo de entregas de los
+últimos 30 días; las 10 tablas más pesadas; conexiones abiertas; y lo que
+solo se ve en el panel de Supabase (egress, Edge Functions, Realtime), con un
+enlace. Botón *Actualizar*.
+
 ### Mi perfil · `/mi-perfil`
 
 > `0034_profile_names.sql`. Desde el engrane, en la barra de Mis grupos.

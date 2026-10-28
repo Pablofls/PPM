@@ -34,6 +34,7 @@
     - [Calificaciones](#calificaciones)
 13. [Fechas de entrega y estado de las entregas](#fechas-de-entrega-y-estado-de-las-entregas)
 14. [Sincronización con el Sheets](#sincronización-con-el-sheets)
+    - [Uso del plan de Supabase](#uso-del-plan-de-supabase)
 15. [Vistas](#vistas)
 16. [Índices](#índices)
 17. [Seguridad](#seguridad)
@@ -1691,6 +1692,42 @@ funcionando igual.
 
 ---
 
+## Uso del plan de Supabase
+
+Introducida por `0048_admin_usage_stats.sql` (⏳ pendiente de ejecutar).
+Alimenta Configuración → **Uso de Supabase**, solo admin.
+
+No agrega tablas, columnas ni vistas: es una función de solo lectura, así que
+no hay nada que normalizar.
+
+### `admin_usage_stats() → jsonb`
+
+`SECURITY DEFINER` con `search_path = ''`, porque lee `auth.users`,
+`storage.objects` y las estadísticas del servidor, que un usuario del panel no
+ve. La primera línea exige `is_admin()` (si no, `42501`). `execute` solo para
+`authenticated`.
+
+| Llave | De dónde sale | Límite Free |
+|---|---|---|
+| `database_bytes` | `pg_database_size(current_database())` | 500 MB |
+| `public_bytes` | suma de `pg_total_relation_size` de las tablas de `public` | — |
+| `storage_bytes`, `storage_objects` | `storage.objects.metadata->>'size'` | 1 GB |
+| `auth_users`, `monthly_active_users` | `auth.users`; MAU = `last_sign_in_at` en los últimos 30 días | 50 000 MAU |
+| `connections`, `max_connections` | `pg_stat_activity`, `max_connections` | — |
+| `submissions`, `submissions_last_30_days` | `public.submissions` (por `created_at`) | — |
+| `tables` | las 10 tablas de `public` más pesadas: `name`, `bytes`, `row_count` (`n_live_tup`, estimado) | — |
+
+Los límites viven en la pantalla (`FREE_PLAN` en `UsagePage.tsx`), no en la
+base. La proyección de cuándo se llena la BD es `public_bytes / submissions`
+× entregas de los últimos 30 días.
+
+**Lo que la base no puede medir:** egress, peticiones a la API, invocaciones
+de Edge Functions y mensajes de Realtime. Solo los da la Management API de
+Supabase, que pide un token personal con acceso a toda la cuenta; la pantalla
+enlaza al panel de uso de Supabase en lugar de guardar ese token.
+
+---
+
 ## Vistas
 
 ### `latest_submissions`
@@ -2003,6 +2040,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0045_session_days_weekdays.sql` | `session_day` suma `martes`, `jueves`, `viernes`; `admin_register_students` los acepta | ✅ 2026-10-14 |
 | `0044_teacher_group_admin.sql` | semilla `maestro`/`coordinador` = «Puede editar» en `alumnos_registrados` y `grupos`; `v_students_directory.teacher_name`; `admin_register_students` acepta `maestro_id` por fila para distinguir grupos homónimos | ✅ 2026-10-14 |
 | `0043_weekly_log_sequential.sql` | entrega secuencial de bitácoras: `next_weekly_week_number()`, `new_weekly_submission` exige la primera semana pendiente, y `v_grade_center` agrega `is_late` (derivada) | ✅ 2026-10-14 |
+| `0048_admin_usage_stats.sql` | `admin_usage_stats()`: tamaño de BD y Storage, MAU, conexiones y tablas más pesadas para la pantalla Uso de Supabase (admin) | ⏳ **pendiente** |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.

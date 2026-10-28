@@ -28,6 +28,7 @@ import { DeadlinesPage } from './pages/admin/DeadlinesPage'
 import { GroupPickerPage } from './pages/GroupPickerPage'
 import { MyProfilePage } from './pages/MyProfilePage'
 import { GroupsPage } from './pages/admin/GroupsPage'
+import { UsagePage } from './pages/admin/UsagePage'
 import { UsersPage } from './pages/admin/UsersPage'
 import { RegisteredStudentsPage } from './pages/admin/RegisteredStudentsPage'
 import { GradeActivitiesPage } from './pages/calificaciones/GradeActivitiesPage'
@@ -121,6 +122,14 @@ export default function App() {
                     element={
                       <AdminRoute>
                         <UsersPage />
+                      </AdminRoute>
+                    }
+                  />
+                  <Route
+                    path="uso"
+                    element={
+                      <AdminRoute>
+                        <UsagePage />
                       </AdminRoute>
                     }
                   />

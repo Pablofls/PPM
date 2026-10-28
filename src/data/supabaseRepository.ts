@@ -56,6 +56,7 @@ import type {
   SubmissionStatusRow,
   SyncRunResult,
   SyncStatus,
+  UsageStats,
   Teacher,
   ValuesRow,
   WeeklyLogStatusCell,
@@ -651,6 +652,34 @@ export const supabaseRepository: PanelRepository = {
       .reduce((total, [, count]) => total + (count ?? 0), 0)
 
     return { recordsSynced, accountsCreated }
+  },
+
+  /** `admin_usage_stats()` (`0048`): un solo jsonb, pasado a camelCase. */
+  async getUsageStats(): Promise<UsageStats> {
+    const { data, error } = await supabase.rpc('admin_usage_stats')
+    if (error) throw new Error(`No se pudo leer el uso de Supabase: ${error.message}`)
+
+    const raw = data as Record<string, unknown>
+    const num = (key: string) => Number(raw[key] ?? 0)
+    const tables = (raw.tables ?? []) as { name: string; bytes: number; row_count: number }[]
+    return {
+      generatedAt: raw.generated_at as string,
+      databaseBytes: num('database_bytes'),
+      publicBytes: num('public_bytes'),
+      storageBytes: num('storage_bytes'),
+      storageObjects: num('storage_objects'),
+      authUsers: num('auth_users'),
+      monthlyActiveUsers: num('monthly_active_users'),
+      connections: num('connections'),
+      maxConnections: num('max_connections'),
+      submissions: num('submissions'),
+      submissionsLast30Days: num('submissions_last_30_days'),
+      tables: tables.map((table) => ({
+        name: table.name,
+        bytes: Number(table.bytes),
+        rows: Number(table.row_count),
+      })),
+    }
   },
 
   async getFormDeadlines(groupId: string): Promise<FormDeadline[]> {

@@ -7,12 +7,13 @@ import { usePermissions } from '../auth/PermissionsProvider'
 /** Las pantallas de Configuración. Viven aquí, no en el rail del panel. */
 /**
  * `screen` es la pantalla de `0038` que da acceso; sin ella, es solo del
- * admin (Usuarios y permisos no se delega).
+ * admin (Usuarios y permisos y Uso de Supabase no se delegan).
  */
 const SETTINGS_ITEMS: { to: string; label: string; screen?: string }[] = [
   { to: '/configuracion/alumnos-registrados', label: 'Alumnos registrados', screen: 'alumnos_registrados' },
   { to: '/configuracion/grupos', label: 'Administrar grupos', screen: 'grupos' },
   { to: '/configuracion/usuarios', label: 'Usuarios y permisos' },
+  { to: '/configuracion/uso', label: 'Uso de Supabase' },
 ]
 
 /**
