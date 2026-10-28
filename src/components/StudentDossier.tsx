@@ -490,21 +490,37 @@ function Internship({ dossier }: { dossier: Dossier | null }) {
   )
 }
 
-/** VI — Bitácora de búsqueda de empleo. */
 type ClassifyWeek = (submissionId: string, weekNumber: number | null) => Promise<void>
 
-function JobSearchLogs({
+/**
+ * Para revisar el historial desde Calificar: la fila de la semana que se
+ * califica y un aviso en las celdas repetidas. El expediente no lo usa.
+ */
+export interface LogHighlight {
+  currentKey: string | null
+  /** Aviso de la celda (por `submissionId` y la `key` del campo), o `null`. */
+  noteFor: (submissionId: string, field: string) => string | null
+}
+
+/** VI — Bitácora de búsqueda de empleo. */
+export function JobSearchLogs({
   rows,
   onClassifyWeek,
+  title = 'VI — Reporte de Búsqueda',
+  highlight,
 }: {
   rows: JobSearchLogRow[]
   /** Sin él, la semana se ve pero no se corrige (sin «Puede editar», 0038). */
   onClassifyWeek?: ClassifyWeek
+  title?: string
+  highlight?: LogHighlight
 }) {
   if (!rows.length) return null
 
+  const fields = ['activities', 'applications', 'interviews', 'learnings', 'nextSteps']
+
   return (
-    <Section title="VI — Reporte de Búsqueda" hint={entryCount(rows.length)}>
+    <Section title={title} hint={entryCount(rows.length)}>
       <LogTable
         headers={[
           'Semana',
@@ -525,29 +541,37 @@ function JobSearchLogs({
             log.learnings,
             log.nextSteps,
           ],
+          notes: highlight && fields.map((field) => highlight.noteFor(log.submissionId, field)),
         }))}
         onClassifyWeek={onClassifyWeek}
+        highlightKey={highlight?.currentKey}
       />
     </Section>
   )
 }
 
 /** VII — Bitácora de prácticas, con las horas acumuladas. */
-function InternshipLogs({
+export function InternshipLogs({
   rows,
   onClassifyWeek,
+  title = 'VII — Reporte de Prácticas',
+  highlight,
 }: {
   rows: InternshipLogRow[]
   /** Sin él, la semana se ve pero no se corrige (sin «Puede editar», 0038). */
   onClassifyWeek?: ClassifyWeek
+  title?: string
+  highlight?: LogHighlight
 }) {
   if (!rows.length) return null
 
   // Igual en todas las filas: la vista lo calcula por alumno.
   const total = rows[0].totalHours
+  // En el orden de `cells`; las horas no se comparan.
+  const fields = ['activities', null, null, 'skillsPracticed', 'proposal']
 
   return (
-    <Section title="VII — Reporte de Prácticas" hint={entryCount(rows.length)}>
+    <Section title={title} hint={entryCount(rows.length)}>
       <LogTable
         headers={[
           'Semana',
@@ -569,8 +593,12 @@ function InternshipLogs({
             log.proposal,
           ],
           numeric: [1, 2],
+          notes:
+            highlight &&
+            fields.map((field) => (field ? highlight.noteFor(log.submissionId, field) : null)),
         }))}
         onClassifyWeek={onClassifyWeek}
+        highlightKey={highlight?.currentKey}
       />
 
       {total !== null && (
@@ -599,6 +627,8 @@ interface LogRow {
   cells: (string | null)[]
   /** Índices de `cells` que se alinean a la derecha. */
   numeric?: number[]
+  /** Aviso por celda, en paralelo a `cells` (ver `LogHighlight`). */
+  notes?: (string | null)[]
 }
 
 /**
@@ -609,11 +639,14 @@ function LogTable({
   headers,
   rows,
   onClassifyWeek,
+  highlightKey,
 }: {
   headers: string[]
   rows: LogRow[]
   /** Sin él, la semana se ve pero no se corrige (sin «Puede editar», 0038). */
   onClassifyWeek?: ClassifyWeek
+  /** La fila que se resalta (la semana que se califica). */
+  highlightKey?: string | null
 }) {
   return (
     <div className="max-h-96 overflow-auto rounded-lg border border-ink-200">
@@ -632,8 +665,16 @@ function LogTable({
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.key} className="align-top hover:bg-ink-50/60">
+            <tr
+              key={row.key}
+              className={`align-top ${row.key === highlightKey ? 'bg-sky-50/70' : 'hover:bg-ink-50/60'}`}
+            >
               <td className="border-b border-ink-100 px-3 py-2.5 text-xs whitespace-nowrap text-ink-500">
+                {row.key === highlightKey && (
+                  <div className="mb-1">
+                    <Badge tone="blue">Esta semana</Badge>
+                  </div>
+                )}
                 <WeekNumberCell
                   weekStart={row.week.weekStart}
                   weekEnd={row.week.weekEnd}
@@ -645,18 +686,26 @@ function LogTable({
                   }
                 />
               </td>
-              {row.cells.map((cell, index) => (
-                <td
-                  key={index}
-                  className={`border-b border-ink-100 px-3 py-2.5 text-ink-700 ${
-                    row.numeric?.includes(index)
-                      ? 'tnum whitespace-nowrap text-right'
-                      : 'min-w-40 max-w-56 whitespace-pre-line'
-                  }`}
-                >
-                  {cell || <Dash />}
-                </td>
-              ))}
+              {row.cells.map((cell, index) => {
+                const note = row.notes?.[index]
+                return (
+                  <td
+                    key={index}
+                    className={`border-b border-ink-100 px-3 py-2.5 text-ink-700 ${
+                      row.numeric?.includes(index)
+                        ? 'tnum whitespace-nowrap text-right'
+                        : 'min-w-40 max-w-56 whitespace-pre-line'
+                    } ${note ? 'bg-accent-100' : ''}`}
+                  >
+                    {note && (
+                      <div className="mb-1">
+                        <Badge tone="amber">{note}</Badge>
+                      </div>
+                    )}
+                    {cell || <Dash />}
+                  </td>
+                )
+              })}
               <td className="tnum border-b border-ink-100 px-3 py-2.5 text-xs whitespace-nowrap text-ink-500">
                 {formatDateTime(row.week.timestamp) || <Dash />}
               </td>

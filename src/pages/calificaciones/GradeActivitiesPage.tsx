@@ -6,19 +6,30 @@ import { Badge, Dash } from '../../components/Badge'
 import { useColumnPreferences } from '../../components/ColumnPicker'
 import { DataTable, type Column } from '../../components/DataTable'
 import { FilterBar, useFilters } from '../../components/FilterBar'
-import { DossierNavButton } from '../../components/StudentDossier'
-import { useRepositoryQuery } from '../../data/hooks'
+import {
+  DossierNavButton,
+  InternshipLogs,
+  JobSearchLogs,
+  type LogHighlight,
+} from '../../components/StudentDossier'
+import { useRepositoryQuery, useWeeklyLogRows } from '../../data/hooks'
 import { repository } from '../../data/repository'
-import type { GradeEntry, WeeklyReport } from '../../data/types'
-import { weeklyFormByCode } from '../../lib/catalog'
+import type {
+  GradeEntry,
+  InternshipLogRow,
+  JobSearchLogRow,
+  WeeklyReport,
+} from '../../data/types'
+import { weeklyFormByCode, type WeeklyFormCode } from '../../lib/catalog'
 import { formatDate, formatDateTime, formatSemester, formatWeekRange } from '../../lib/format'
-import { formatPoints, parseScore, studentLabel } from './gradeUtils'
+import { findRepeats, formatPoints, parseScore, repeatLabel, studentLabel } from './gradeUtils'
 import { useGradeEntries } from './useGradeEntries'
 
 const WEEK_PARAM = 'semana'
 const STUDENT_PARAM = 'alumno'
 const PENDING_PARAM = 'pendientes'
 const MISSING_PARAM = 'sin-entrega'
+const HISTORY_PARAM = 'historial'
 
 const inputClass =
   'rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 shadow-sm focus:border-ink-400 focus:ring-2 focus:ring-ink-900/5 focus:outline-none disabled:bg-ink-50'
@@ -241,6 +252,7 @@ function GradingView({
   const studentParam = searchParams.get(STUDENT_PARAM)
   const onlyPending = searchParams.get(PENDING_PARAM) === '1'
   const includeMissing = searchParams.get(MISSING_PARAM) === '1'
+  const showHistory = searchParams.get(HISTORY_PARAM) === '1'
 
   const weekEntries = useMemo(
     () => entries.filter((entry) => entry.weekNumber === week),
@@ -307,6 +319,34 @@ function GradingView({
     [week, submittedIds.join(',')],
   )
   const report = current ? reports.find((item) => item.studentId === current.studentId) : undefined
+
+  // Todas las semanas del alumno, para el historial y para avisar en el
+  // reporte si repite lo de otra semana. Se carga aunque el historial esté
+  // cerrado: el aviso va en el reporte.
+  const formCode: WeeklyFormCode = report?.formCode ?? 'form_busqueda'
+  const { data: historyRows, loading: loadingHistory } = useWeeklyLogRows(
+    formCode,
+    report ? report.studentId : null,
+  )
+  const repeats = useMemo(
+    () =>
+      findRepeats(
+        historyRows,
+        weeklyFormByCode(formCode)
+          .fields.filter((field) => field.type === 'texto')
+          .map((field) => field.key),
+      ),
+    [historyRows, formCode],
+  )
+  const noteFor = (submissionId: string, field: string) => {
+    const weeks = repeats.get(`${submissionId}|${field}`)
+    return weeks ? repeatLabel(weeks) : null
+  }
+  const toggleHistory = () =>
+    update((params) => {
+      if (showHistory) params.delete(HISTORY_PARAM)
+      else params.set(HISTORY_PARAM, '1')
+    })
 
   // Al pasar a otro alumno se empieza desde arriba.
   useEffect(() => {
@@ -399,7 +439,15 @@ function GradingView({
         </div>
       ) : (
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_21rem]">
-          <ReportCard entry={current} report={report} loading={loadingReports} />
+          <ReportCard
+            entry={current}
+            report={report}
+            loading={loadingReports}
+            noteFor={noteFor}
+            historyCount={historyRows.length}
+            showHistory={showHistory}
+            onToggleHistory={toggleHistory}
+          />
           <GradePanel
             key={`${current.studentId}|${current.weekNumber}`}
             entry={current}
@@ -410,7 +458,69 @@ function GradingView({
             }}
             hasNext={Boolean(onNext)}
           />
+          {showHistory && report && (
+            <ReportHistory
+              formCode={formCode}
+              rows={historyRows}
+              loading={loadingHistory}
+              highlight={{ currentKey: report.submissionId, noteFor }}
+              repeatCount={repeats.size}
+            />
+          )}
         </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Todas las semanas del alumno en una tabla, como en el expediente, para ver
+ * de un vistazo si contesta lo mismo cada semana. Las respuestas iguales a las
+ * de otra semana van marcadas.
+ */
+function ReportHistory({
+  formCode,
+  rows,
+  loading,
+  highlight,
+  repeatCount,
+}: {
+  formCode: WeeklyFormCode
+  rows: (JobSearchLogRow | InternshipLogRow)[]
+  loading: boolean
+  highlight: LogHighlight
+  repeatCount: number
+}) {
+  return (
+    <div className="rounded-xl border border-ink-200 bg-white p-5 shadow-sm lg:col-span-2">
+      {loading && rows.length === 0 ? (
+        <p className="py-8 text-center text-sm text-ink-500">Cargando el historial…</p>
+      ) : (
+        <>
+          <p className="mb-3 text-sm">
+            {repeatCount > 0 ? (
+              <Badge tone="amber">
+                {repeatCount} respuesta{repeatCount === 1 ? '' : 's'} igual
+                {repeatCount === 1 ? '' : 'es'} a la de otra semana
+              </Badge>
+            ) : (
+              <Badge tone="green">Sin respuestas repetidas</Badge>
+            )}
+          </p>
+          {formCode === 'form_busqueda' ? (
+            <JobSearchLogs
+              rows={rows as JobSearchLogRow[]}
+              title="Historial de reportes"
+              highlight={highlight}
+            />
+          ) : (
+            <InternshipLogs
+              rows={rows as InternshipLogRow[]}
+              title="Historial de reportes"
+              highlight={highlight}
+            />
+          )}
+        </>
       )}
     </div>
   )
@@ -421,10 +531,19 @@ function ReportCard({
   entry,
   report,
   loading,
+  noteFor,
+  historyCount,
+  showHistory,
+  onToggleHistory,
 }: {
   entry: GradeEntry
   report: WeeklyReport | undefined
   loading: boolean
+  noteFor: (submissionId: string, field: string) => string | null
+  /** Semanas que ha entregado el alumno, incluida esta. */
+  historyCount: number
+  showHistory: boolean
+  onToggleHistory: () => void
 }) {
   const form = report ? weeklyFormByCode(report.formCode) : null
 
@@ -436,6 +555,19 @@ function ReportCard({
             {studentLabel(entry)}
           </h2>
           {form && <Badge tone="blue">{form.name}</Badge>}
+          {report && (
+            <button
+              type="button"
+              onClick={onToggleHistory}
+              aria-expanded={showHistory}
+              className={`${secondaryButton} ml-auto py-1.5`}
+            >
+              {showHistory ? 'Ocultar historial' : 'Ver historial'}
+              {historyCount > 0 && (
+                <span className="tnum ml-1 text-ink-400">({historyCount})</span>
+              )}
+            </button>
+          )}
         </div>
         <p className="mt-1 text-sm text-ink-500">
           {[entry.fullName ? entry.institutionalEmail : null, entry.degreeCode, formatSemester(entry.semester)]
@@ -469,10 +601,12 @@ function ReportCard({
         <dl className="divide-y divide-ink-100">
           {form.fields.map((field) => {
             const value = report.answers[field.key]
+            const note = noteFor(report.submissionId, field.key)
             return (
-              <div key={field.key} className="px-6 py-4">
-                <dt className="text-[11px] font-semibold tracking-wider text-ink-500 uppercase">
+              <div key={field.key} className={`px-6 py-4 ${note ? 'bg-accent-100' : ''}`}>
+                <dt className="flex flex-wrap items-center gap-2 text-[11px] font-semibold tracking-wider text-ink-500 uppercase">
                   {field.label}
+                  {note && <Badge tone="amber">{note}</Badge>}
                 </dt>
                 <dd className="mt-1.5 text-sm leading-relaxed whitespace-pre-line text-ink-800">
                   {value === null || value === '' ? (

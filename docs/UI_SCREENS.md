@@ -600,6 +600,14 @@ pantalla completa, con la misma navegación que el ADN Profesional:
 - «Solo por calificar» e «Incluir a quienes no entregaron» (que también se
   pueden calificar, p. ej. con 0).
 - Con «Solo lectura» se ve la calificación sin controles.
+- **Ver historial** (en el encabezado del reporte; `?historial=1`, se queda
+  abierto al pasar de alumno): debajo, la tabla de todas las semanas del
+  alumno, la misma del ADN Profesional, con la semana que se califica
+  resaltada. Las respuestas iguales a las de otra semana del mismo alumno van
+  en amarillo con «Igual a sem. N», también en el reporte aunque el historial
+  esté cerrado. Se comparan sin mayúsculas, acentos, espacios de más ni
+  puntuación final; las de menos de 15 caracteres («ninguna», «0») y las horas
+  no cuentan.
 
 ### Centro de calificaciones
 
