@@ -77,7 +77,7 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
 - **Entrega secuencial** (`0043`, ejecutada el 2026-10-14): las bitácoras se
   entregan en orden; el alumno solo puede llenar la primera semana pendiente y,
   si ya cerró, es **entrega tardía** (ámbar en los bloques, rojo en Calificar,
-  punto rojo en el Centro). «Tardía» se deriva de `submitted_at` y `week_end`,
+  amarillo en el Centro, que pinta rojo/amarillo/verde según la entrega). «Tardía» se deriva de `submitted_at` y `week_end`,
   no se guarda. Ver
   [docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md#entrega-secuencial-de-las-bitácoras).
 - **Maestros y coordinadores administran** (`0044`, ejecutada el 2026-10-14): por defecto «Puede editar» en *Alumnos registrados* y *Administrar grupos*, acotados a sus grupos (maestro) o a los de sus maestros (coordinador); columna y filtro **Maestro**; `admin_register_students` acepta `maestro_id`.

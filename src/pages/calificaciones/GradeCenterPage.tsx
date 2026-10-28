@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { usePermissions } from '../../auth/PermissionsProvider'
 import { Dash } from '../../components/Badge'
@@ -8,6 +8,7 @@ import { FilterBar, useFilters } from '../../components/FilterBar'
 import { Toast } from '../../components/Toast'
 import type { GradeEntry } from '../../data/types'
 import { formatSemester } from '../../lib/format'
+import { todayMonterrey } from '../../lib/weeks'
 import { computeTotal, formatPoints, parseScore, studentLabel } from './gradeUtils'
 import { useGradeEntries } from './useGradeEntries'
 
@@ -25,13 +26,39 @@ interface WeekColumn {
   pointsPossible: number
 }
 
+/** Cómo entregó el alumno esa semana: es lo que dice el color de la celda. */
+type DeliveryTone = 'missing' | 'late' | 'onTime' | 'open'
+
+/**
+ * Sin entrega, la celda solo se pinta de rojo cuando la semana ya cerró: una
+ * semana en curso todavía está a tiempo.
+ */
+function deliveryTone(entry: GradeEntry, today: string): DeliveryTone {
+  if (entry.submissionId) return entry.isLate ? 'late' : 'onTime'
+  return entry.weekEnd < today ? 'missing' : 'open'
+}
+
+const TONE_CLASSES: Record<DeliveryTone, string> = {
+  missing: 'border-red-200 bg-red-50',
+  late: 'border-amber-200 bg-amber-50',
+  onTime: 'border-emerald-200 bg-emerald-50',
+  open: 'border-ink-100 bg-white',
+}
+
+const TONE_TITLES: Record<DeliveryTone, string> = {
+  missing: 'No entregó',
+  late: 'Entrega tardía',
+  onTime: 'Entregado a tiempo',
+  open: 'Semana en curso',
+}
+
 /**
  * Centro de calificaciones — el Full Grade Center de Blackboard.
  *
  * Una fila por alumno y una columna por actividad (Reporte semana N). Cada
  * celda se edita ahí mismo: Enter guarda, Tab pasa a la siguiente. «–» es
- * «sin calificar»; el amarillo marca un reporte ya entregado que falta
- * calificar. El total solo cuenta lo ya calificado, como el Total de
+ * «sin calificar»; el color dice cómo entregó: rojo no entregó, amarillo
+ * tarde, verde a tiempo. El total solo cuenta lo ya calificado, como el Total de
  * Blackboard.
  */
 export function GradeCenterPage() {
@@ -39,6 +66,7 @@ export function GradeCenterPage() {
   const { entries, loading, error, isConnected, save } = useGradeEntries(filters)
   const canEdit = usePermissions().can('calificaciones', 'edicion')
   const [saveError, setSaveError] = useState<string | null>(null)
+  const today = todayMonterrey()
 
   const { students, weeks } = useMemo(() => {
     const byStudent = new Map<string, StudentRow>()
@@ -93,6 +121,7 @@ export function GradeCenterPage() {
         return entry ? (
           <GradeCell
             entry={entry}
+            tone={deliveryTone(entry, today)}
             canEdit={canEdit}
             onSave={(score) => save(entry, score, entry.comment)}
             onError={setSaveError}
@@ -141,11 +170,14 @@ export function GradeCenterPage() {
         </h1>
         <p className="mt-1.5 text-sm text-ink-500">
           {canEdit ? 'Escribe la calificación en la celda; Enter guarda. ' : ''}
-          <span className="text-ink-400">«–»</span> es sin calificar y{' '}
-          <span className="rounded bg-accent-100 px-1.5 text-ink-700">amarillo</span> es un reporte
-          entregado que falta calificar. Un{' '}
-          <span className="inline-block size-2 rounded-full bg-red-500 align-middle" /> rojo marca una
-          entrega tardía. El total solo cuenta lo ya calificado.
+          El color dice cómo entregó:{' '}
+          <span className="rounded border border-red-200 bg-red-50 px-1.5 text-ink-700">rojo</span> no
+          entregó,{' '}
+          <span className="rounded border border-amber-200 bg-amber-50 px-1.5 text-ink-700">amarillo</span>{' '}
+          entregó tarde y{' '}
+          <span className="rounded border border-emerald-200 bg-emerald-50 px-1.5 text-ink-700">verde</span>{' '}
+          a tiempo. <span className="text-ink-400">«–»</span> es sin calificar; el total solo cuenta lo
+          ya calificado.
         </p>
       </header>
 
@@ -174,11 +206,13 @@ export function GradeCenterPage() {
 /** Una celda del centro: edita la calificación de un alumno en una semana. */
 function GradeCell({
   entry,
+  tone,
   canEdit,
   onSave,
   onError,
 }: {
   entry: GradeEntry
+  tone: DeliveryTone
   canEdit: boolean
   onSave: (score: number | null) => Promise<void>
   onError: (message: string) => void
@@ -190,15 +224,16 @@ function GradeCell({
     setText(formatPoints(entry.score))
   }, [entry.score])
 
+  const title = `${TONE_TITLES[tone]}${entry.state === 'por_calificar' ? ' · sin calificar' : ''}`
+
   if (!canEdit) {
     return (
-      <LateMark late={entry.isLate}>
-        {entry.score === null ? (
-          <Dash />
-        ) : (
-          <span className="tnum text-ink-900">{formatPoints(entry.score)}</span>
-        )}
-      </LateMark>
+      <span
+        title={title}
+        className={`tnum inline-block w-16 rounded-md border px-2 py-1 text-right text-sm text-ink-900 ${TONE_CLASSES[tone]}`}
+      >
+        {entry.score === null ? <Dash /> : formatPoints(entry.score)}
+      </span>
     )
   }
 
@@ -218,10 +253,7 @@ function GradeCell({
     }
   }
 
-  const pending = entry.state === 'por_calificar'
-
   return (
-    <LateMark late={entry.isLate}>
     <input
       type="text"
       inputMode="decimal"
@@ -234,34 +266,8 @@ function GradeCell({
         if (event.key === 'Escape') setText(formatPoints(entry.score))
       }}
       aria-label={`Semana ${entry.weekNumber} de ${studentLabel(entry)}`}
-      title={
-        pending
-          ? `Entregado, sin calificar${entry.isLate ? ' · entrega tardía' : ''}`
-          : entry.state === 'sin_entrega'
-            ? 'No entregó'
-            : entry.isLate
-              ? 'Entrega tardía'
-              : undefined
-      }
-      className={`tnum w-16 rounded-md border px-2 py-1 text-right text-sm text-ink-900 placeholder:text-ink-300 hover:border-ink-300 focus:border-ink-400 focus:ring-2 focus:ring-ink-900/5 focus:outline-none ${
-        pending ? 'border-accent-300 bg-accent-100' : 'border-ink-100 bg-white'
-      }`}
+      title={title}
+      className={`tnum w-16 rounded-md border px-2 py-1 text-right text-sm text-ink-900 placeholder:text-ink-300 hover:border-ink-300 focus:border-ink-400 focus:ring-2 focus:ring-ink-900/5 focus:outline-none ${TONE_CLASSES[tone]}`}
     />
-    </LateMark>
   )
 }
-
-/** Punto rojo en la esquina de la celda cuando el reporte se entregó fuera de su semana. */
-function LateMark({ late, children }: { late: boolean; children: ReactNode }) {
-  if (!late) return <>{children}</>
-  return (
-    <span className="relative inline-block" title="Entrega tardía">
-      {children}
-      <span
-        aria-label="Entrega tardía"
-        className="absolute -top-1 -right-1 size-2.5 rounded-full bg-red-500 ring-2 ring-white"
-      />
-    </span>
-  )
-}
-

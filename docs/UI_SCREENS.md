@@ -589,7 +589,10 @@ pantalla completa, con la misma navegación que el ADN Profesional:
 Como el Full Grade Center: una fila por estudiante, una columna por
 actividad (`Semana N · pts`), **Total** (puntos obtenidos / posibles) y **%**.
 La celda se edita ahí mismo (Enter guarda, Tab pasa a la siguiente); «–» es
-sin calificar y el amarillo marca un reporte entregado que falta calificar.
+sin calificar. El color de la celda dice cómo entregó el alumno: **rojo** no
+entregó (solo cuando la semana ya cerró; una semana en curso sin entrega se ve
+en blanco), **amarillo** entregó tarde y **verde** entregó a tiempo. Lo que
+falta calificar no tiene marca propia: es la celda con «–».
 El total solo cuenta las actividades ya calificadas.
 
 ### Configurar actividades
@@ -804,6 +807,5 @@ distinguen, que es justo lo que se quiere.
 Desde `0043`, `v_grade_center.is_late` marca los reportes entregados después de
 que cerró su semana. **Calificar:** aviso rojo «Entrega tardía» bajo el
 encabezado del reporte, y en la lista por semana un chip rojo «N tardías» junto
-a «Entregados». **Centro de calificaciones:** punto rojo en la esquina de la
-celda y tooltip «Entrega tardía» (el amarillo sigue significando «por
-calificar»). En el expediente, la matriz de semanas ya la muestra en ámbar.
+a «Entregados». **Centro de calificaciones:** celda amarilla y tooltip
+«Entrega tardía» (rojo es no entregó y verde a tiempo). En el expediente, la matriz de semanas ya la muestra en ámbar.
