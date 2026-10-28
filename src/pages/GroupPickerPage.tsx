@@ -2,7 +2,10 @@ import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { useAuth } from '../auth/AuthProvider'
+import { useColumnPreferences } from '../components/ColumnPicker'
+import { DataTable, type Column } from '../components/DataTable'
 import { GroupCover } from '../components/GroupCover'
+import { repository } from '../data/repository'
 import type { Group } from '../data/types'
 import { ALL_GROUPS, useGroups } from '../layouts/GroupProvider'
 import { formatGroupLabel, formatLanguage, formatSessionDay } from '../lib/format'
@@ -12,6 +15,43 @@ const DEFAULT_PATH = '/modulo1/datos-demograficos'
 
 /** El periodo que el profesor eligió la última vez (`''` = todos los periodos). */
 const PERIOD_KEY = 'ppm.periodo'
+
+/** Tarjetas o tabla, la última que eligió el profesor. */
+const VIEW_KEY = 'ppm.misGrupos.vista'
+
+type PickerView = 'tarjetas' | 'tabla'
+
+function readStoredView(): PickerView {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'tabla' ? 'tabla' : 'tarjetas'
+  } catch {
+    return 'tarjetas'
+  }
+}
+
+const GROUP_COLUMNS: Column<Group>[] = [
+  {
+    key: 'group',
+    header: 'Grupo',
+    width: 'min-w-56',
+    sticky: true,
+    render: (group) => <span className="font-medium text-ink-900">{formatGroupLabel(group)}</span>,
+  },
+  { key: 'period', header: 'Periodo', render: (group) => group.periodCode },
+  { key: 'sessionDay', header: 'Frecuencia', render: (group) => formatSessionDay(group.sessionDay) },
+  { key: 'language', header: 'Idioma', render: (group) => formatLanguage(group.language) },
+  {
+    key: 'teacher',
+    header: 'Maestro',
+    width: 'min-w-48',
+    render: (group) => group.teacherName ?? group.teacherEmail,
+  },
+  {
+    key: 'students',
+    header: 'Alumnos',
+    render: (group) => <span className="tnum">{group.studentCount}</span>,
+  },
+]
 
 function readStoredPeriod(): string | null {
   try {
@@ -61,6 +101,17 @@ export function GroupPickerPage() {
     }
   }
   const [search, setSearch] = useState('')
+  const [view, setView] = useState<PickerView>(readStoredView)
+  const { visibleColumns, picker } = useColumnPreferences('mis-grupos', GROUP_COLUMNS)
+
+  function chooseView(value: PickerView) {
+    setView(value)
+    try {
+      localStorage.setItem(VIEW_KEY, value)
+    } catch {
+      // Sin almacenamiento la vista dura lo que dure la pantalla.
+    }
+  }
 
   const visible = useMemo(() => {
     const needle = search.trim().toLowerCase()
@@ -120,6 +171,8 @@ export function GroupPickerPage() {
           ))}
           <option value="">Todos los periodos</option>
         </select>
+        <ViewToggle value={view} onChange={chooseView} />
+        {view === 'tabla' && picker}
         {!context?.loading && (
           <p className="text-sm text-ink-500">
             {visible.length} {visible.length === 1 ? 'grupo' : 'grupos'}
@@ -133,7 +186,31 @@ export function GroupPickerPage() {
         </p>
       )}
 
-      {context?.loading ? (
+      {view === 'tabla' ? (
+        <>
+          <button
+            type="button"
+            onClick={() => enter(ALL_GROUPS)}
+            className="mb-3 flex w-full items-center justify-between rounded-xl border border-ink-200 bg-white px-4 py-3 text-left shadow-sm transition-colors hover:bg-ink-50"
+          >
+            <span className="font-semibold text-ink-900">Todos mis grupos</span>
+            <span className="tnum text-sm text-ink-500">
+              {totalStudents} alumnos en {groups.length} {groups.length === 1 ? 'grupo' : 'grupos'} ·
+              sin filtro de grupo
+            </span>
+          </button>
+          <DataTable
+            columns={visibleColumns}
+            rows={visible}
+            rowKey={(group) => group.id}
+            loading={context?.loading}
+            isConnected={repository.isConnected}
+            error={context?.error}
+            pageSize={0}
+            onRowClick={(group) => enter(group.id)}
+          />
+        </>
+      ) : context?.loading ? (
         <p className="py-12 text-center text-sm text-ink-500">Cargando grupos…</p>
       ) : (
         <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -162,6 +239,36 @@ export function GroupPickerPage() {
         </p>
       )}
     </main>
+  )
+}
+
+/** Tarjetas o tabla, al lado del periodo. */
+function ViewToggle({ value, onChange }: { value: PickerView; onChange: (value: PickerView) => void }) {
+  const options: { value: PickerView; label: string; icon: string }[] = [
+    { value: 'tarjetas', label: 'Tarjetas', icon: 'M2.5 2.5h4.5v4.5h-4.5zM9 2.5h4.5v4.5H9zM2.5 9h4.5v4.5h-4.5zM9 9h4.5v4.5H9z' },
+    { value: 'tabla', label: 'Tabla', icon: 'M2.5 3h11M2.5 6.33h11M2.5 9.67h11M2.5 13h11' },
+  ]
+  return (
+    <div role="group" aria-label="Vista" className="flex rounded-lg border border-ink-200 bg-white p-0.5 shadow-sm">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          aria-pressed={value === option.value}
+          onClick={() => onChange(option.value)}
+          className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm ${
+            value === option.value
+              ? 'bg-ink-900 font-medium text-white'
+              : 'text-ink-500 hover:bg-ink-100 hover:text-ink-900'
+          }`}
+        >
+          <svg viewBox="0 0 16 16" aria-hidden="true" className="size-4 fill-none stroke-current" strokeWidth={1.5}>
+            <path d={option.icon} />
+          </svg>
+          {option.label}
+        </button>
+      ))}
+    </div>
   )
 }
 

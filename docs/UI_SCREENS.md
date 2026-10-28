@@ -66,6 +66,14 @@ frecuencia · idioma y el maestro. Arriba, un buscador y el selector de
 **periodo** (por omisión el más reciente; también *Todos los periodos*).
 
 La primera tarjeta es **Todos mis grupos**: entra al panel sin filtro de grupo.
+
+Junto al periodo, el selector **Tarjetas / Tabla** cambia la vista. La tabla
+tiene una fila por grupo con las columnas Grupo, Periodo, Frecuencia, Idioma,
+Maestro y Alumnos, y su selector **Columnas** (ver «Selector de columnas»).
+Encima de la tabla está el botón *Todos mis grupos*. Un clic en una fila entra
+igual que la tarjeta. La vista elegida se recuerda en el navegador
+(`ppm.misGrupos.vista`).
+
 Arriba a la derecha, solo un **engrane** (`SettingsMenu`): al abrirlo muestra
 arriba la cuenta —iniciales, nombre y apellido— que lleva a **Mi perfil**, la sección **Configuración** (*Alumnos
 registrados* y *Administrar grupos*) y *Cerrar sesión*. La barra no muestra el
@@ -224,8 +232,9 @@ Todas las pantallas de formulario comparten el mismo esqueleto:
 Todas las tablas con buscador tienen el botón **Columnas** justo después de él.
 Eso incluye los formularios, los apéndices, Estado de Entregas, Calificar, el
 Centro de calificaciones, Alumnos registrados, la tabla de alumnos de
-Administrar grupos y Usuarios. El botón abre una lista donde se marcan las
-columnas a la vista y se cambia su orden, arrastrando o con ↑ ↓. *Mostrar todas*
+Administrar grupos, Usuarios y Mis grupos en vista de tabla. El botón abre una
+lista donde se marcan las columnas a la vista y se cambia su orden, arrastrando
+o con ↑ ↓. *Mostrar todas*
 vuelve a mostrar las ocultas y *Restablecer* regresa al orden de fábrica.
 Mientras la tabla no se vea como de fábrica, el botón se pinta como un filtro
 puesto y dice cuántas columnas están ocultas.
