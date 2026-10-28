@@ -267,7 +267,7 @@ clic; aquí la arma `v_student_dossier` en una sola consulta.
 
 Se abre desde las pantallas de formulario (clic en la fila), desde **Estado de
 Entregas** (clic en la fila, en las dos vistas) y desde el **Centro de
-calificaciones** (clic en el nombre: las celdas se editan). El breadcrumb
+calificaciones** (clic en la celda del nombre: las demás se editan). El breadcrumb
 nombra la sección y la pantalla de origen —`Módulo 1 › 1.1 Intereses`,
 `Entregas › Estado de Entregas`, `Calificaciones › Centro de calificaciones`—
 y los dos eslabones regresan a la tabla. El alumno va en `?alumno=`

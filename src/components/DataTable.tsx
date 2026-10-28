@@ -16,6 +16,12 @@ export interface Column<T> {
   width?: string
   /** Fija la columna al hacer scroll horizontal. Se usa para el nombre. */
   sticky?: boolean
+  /**
+   * Clic en la celda, cuando la fila entera no puede ser clicable porque otras
+   * celdas se editan (Centro de calificaciones). Se ve igual que una fila
+   * clicable, pero solo en esta celda.
+   */
+  onClick?: (row: T) => void
   render: (row: T) => ReactNode
 }
 
@@ -122,6 +128,7 @@ export function DataTable<T>({
                 {columns.map((column) => (
                   <td
                     key={column.key}
+                    onClick={column.onClick ? () => column.onClick?.(row) : undefined}
                     className={[
                       'px-4 py-3 align-top text-ink-700',
                       // La columna fija repite el fondo de la fila: si no, el
@@ -129,6 +136,7 @@ export function DataTable<T>({
                       column.sticky
                         ? `sticky left-0 z-10 ${rowAlert?.(row) ? 'bg-red-50' : 'bg-white'} group-hover:bg-ink-50 after:absolute after:top-0 after:right-0 after:h-full after:w-px after:bg-ink-100`
                         : '',
+                      column.onClick ? 'cursor-pointer hover:bg-ink-50' : '',
                     ].join(' ')}
                   >
                     {column.render(row)}

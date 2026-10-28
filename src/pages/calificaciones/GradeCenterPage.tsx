@@ -107,16 +107,11 @@ export function GradeCenterPage() {
       header: 'Estudiante',
       width: 'min-w-56',
       sticky: true,
-      // Solo el nombre abre el expediente: las celdas se editan con clic.
+      // Solo la celda del nombre abre el expediente: las demás se editan con clic.
+      onClick: dossier.open,
       render: (row) => (
         <div>
-          <button
-            type="button"
-            onClick={() => dossier.open(row)}
-            className="text-left font-medium text-ink-900 underline-offset-2 hover:underline"
-          >
-            {studentLabel(row)}
-          </button>
+          <p className="font-medium text-ink-900">{studentLabel(row)}</p>
           <p className="text-xs text-ink-500">
             {[row.degreeCode, formatSemester(row.semester)].filter(Boolean).join(' · ')}
           </p>

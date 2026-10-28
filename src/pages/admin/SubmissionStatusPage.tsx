@@ -37,12 +37,7 @@ const studentColumns: Column<SubmissionStatusRow>[] = [
     header: 'Nombre',
     width: 'min-w-52',
     sticky: true,
-    // La fila entera abre el expediente; el nombre se ve como liga.
-    render: (row) => (
-      <span className="font-medium text-ink-900 underline-offset-2 hover:underline">
-        {row.fullName ?? '—'}
-      </span>
-    ),
+    render: (row) => <span className="font-medium text-ink-900">{row.fullName ?? '—'}</span>,
   },
   {
     key: 'degreeCode',
