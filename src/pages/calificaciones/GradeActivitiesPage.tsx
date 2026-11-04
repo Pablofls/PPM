@@ -10,6 +10,7 @@ import {
   DossierNavButton,
   InternshipLogs,
   JobSearchLogs,
+  type CellNote,
   type LogHighlight,
 } from '../../components/StudentDossier'
 import { useRepositoryQuery, useWeeklyLogRows } from '../../data/hooks'
@@ -22,7 +23,21 @@ import type {
 } from '../../data/types'
 import { weeklyFormByCode, type WeeklyFormCode } from '../../lib/catalog'
 import { formatDate, formatDateTime, formatSemester, formatWeekRange } from '../../lib/format'
-import { findRepeats, formatPoints, parseScore, repeatLabel, studentLabel } from './gradeUtils'
+import {
+  findSimilar,
+  formatPercent,
+  formatPoints,
+  mostSimilarReport,
+  parseScore,
+  reportSimilarity,
+  SIMILARITY_HIGH,
+  SIMILARITY_NOTICE,
+  similarityLabel,
+  sourceLabel,
+  studentLabel,
+  type SimilarityCandidate,
+  type SimilarityMatch,
+} from './gradeUtils'
 import { useGradeEntries } from './useGradeEntries'
 
 const WEEK_PARAM = 'semana'
@@ -30,6 +45,17 @@ const STUDENT_PARAM = 'alumno'
 const PENDING_PARAM = 'pendientes'
 const MISSING_PARAM = 'sin-entrega'
 const HISTORY_PARAM = 'historial'
+
+/** Los campos de texto libre de una bitácora: los únicos que se comparan. */
+const textFieldsOf = (formCode: WeeklyFormCode) =>
+  weeklyFormByCode(formCode)
+    .fields.filter((field) => field.type === 'texto')
+    .map((field) => field.key)
+
+const toNote = (match: SimilarityMatch): CellNote => ({
+  text: similarityLabel(match),
+  high: match.percent >= SIMILARITY_HIGH,
+})
 
 const inputClass =
   'rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 shadow-sm focus:border-ink-400 focus:ring-2 focus:ring-ink-900/5 focus:outline-none disabled:bg-ink-50'
@@ -321,27 +347,95 @@ function GradingView({
   const report = current ? reports.find((item) => item.studentId === current.studentId) : undefined
 
   // Todas las semanas del alumno, para el historial y para avisar en el
-  // reporte si repite lo de otra semana. Se carga aunque el historial esté
-  // cerrado: el aviso va en el reporte.
+  // reporte si se parece a lo de otra semana. Se carga aunque el historial
+  // esté cerrado: el aviso va en el reporte.
   const formCode: WeeklyFormCode = report?.formCode ?? 'form_busqueda'
   const { data: historyRows, loading: loadingHistory } = useWeeklyLogRows(
     formCode,
     report ? report.studentId : null,
   )
-  const repeats = useMemo(
+  const textFields = useMemo(() => textFieldsOf(formCode), [formCode])
+
+  // Contra sus semanas: cada fila del historial contra las demás.
+  const ownCandidates = useMemo(
     () =>
-      findRepeats(
-        historyRows,
-        weeklyFormByCode(formCode)
-          .fields.filter((field) => field.type === 'texto')
-          .map((field) => field.key),
-      ),
-    [historyRows, formCode],
+      historyRows.map((row) => ({
+        submissionId: row.submissionId,
+        source: { kind: 'semana' as const, week: row.weekNumber },
+        answers: row as unknown as Record<string, unknown>,
+      })),
+    [historyRows],
   )
+  const historyMatches = useMemo(() => {
+    const matches = new Map<string, SimilarityMatch>()
+    for (const row of ownCandidates) {
+      const others = ownCandidates.filter((other) => other.submissionId !== row.submissionId)
+      for (const [field, match] of findSimilar(row.answers, others, textFields)) {
+        matches.set(`${row.submissionId}|${field}`, match)
+      }
+    }
+    return matches
+  }, [ownCandidates, textFields])
   const noteFor = (submissionId: string, field: string) => {
-    const weeks = repeats.get(`${submissionId}|${field}`)
-    return weeks ? repeatLabel(weeks) : null
+    const match = historyMatches.get(`${submissionId}|${field}`)
+    return match ? toNote(match) : null
   }
+
+  // Contra los compañeros: los reportes de esta semana del mismo formulario.
+  const nameOf = useMemo(
+    () => new Map(weekEntries.map((entry) => [entry.studentId, studentLabel(entry)])),
+    [weekEntries],
+  )
+  const peerCandidates = useMemo<SimilarityCandidate[]>(
+    () =>
+      report
+        ? reports
+            .filter((item) => item.formCode === report.formCode && item.studentId !== report.studentId)
+            .map((item) => ({
+              source: {
+                kind: 'alumno',
+                studentId: item.studentId,
+                name: nameOf.get(item.studentId) ?? 'otro alumno',
+              },
+              answers: item.answers,
+            }))
+        : [],
+    [report, reports, nameOf],
+  )
+
+  const similarityOf = useMemo(() => {
+    if (!report) return null
+    const own = ownCandidates.filter((row) => row.submissionId !== report.submissionId)
+    const peerFields = findSimilar(report.answers, peerCandidates, textFields)
+    return {
+      own: mostSimilarReport(report.answers, own, textFields),
+      peers: mostSimilarReport(report.answers, peerCandidates, textFields),
+      fieldNotes: (field: string): CellNote[] =>
+        [historyMatches.get(`${report.submissionId}|${field}`), peerFields.get(field)]
+          .filter((match): match is SimilarityMatch => Boolean(match))
+          .map(toNote),
+    }
+  }, [report, ownCandidates, peerCandidates, historyMatches, textFields])
+
+  // Quiénes entregaron esta semana un reporte muy parecido al de otro
+  // compañero: el aviso de arriba, para empezar por ellos.
+  const flaggedIds = useMemo(() => {
+    const flagged = new Set<string>()
+    for (let i = 0; i < reports.length; i++) {
+      for (let j = i + 1; j < reports.length; j++) {
+        const [a, b] = [reports[i], reports[j]]
+        if (a.formCode !== b.formCode) continue
+        const percent = reportSimilarity(a.answers, b.answers, textFieldsOf(a.formCode))
+        if (percent !== null && percent >= SIMILARITY_HIGH) {
+          flagged.add(a.studentId)
+          flagged.add(b.studentId)
+        }
+      }
+    }
+    return flagged
+  }, [reports])
+  const flaggedEntries = weekEntries.filter((entry) => flaggedIds.has(entry.studentId))
+
   const toggleHistory = () =>
     update((params) => {
       if (showHistory) params.delete(HISTORY_PARAM)
@@ -425,6 +519,27 @@ function GradingView({
         )}
       </div>
 
+      {flaggedEntries.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <span className="font-medium">
+            {flaggedEntries.length} alumnos entregaron reportes muy parecidos entre sí (
+            {SIMILARITY_HIGH} % o más):
+          </span>
+          {flaggedEntries.map((entry) => (
+            <button
+              key={entry.studentId}
+              type="button"
+              onClick={() => goTo(entry)}
+              className={`rounded-md px-1.5 py-0.5 underline-offset-2 hover:underline ${
+                entry.studentId === current?.studentId ? 'bg-red-100 font-semibold' : ''
+              }`}
+            >
+              {studentLabel(entry)}
+            </button>
+          ))}
+        </div>
+      )}
+
       {error ? (
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {error}
@@ -443,7 +558,11 @@ function GradingView({
             entry={current}
             report={report}
             loading={loadingReports}
-            noteFor={noteFor}
+            similarity={similarityOf}
+            onOpenStudent={(studentId) => {
+              const target = weekEntries.find((entry) => entry.studentId === studentId)
+              if (target) goTo(target)
+            }}
             historyCount={historyRows.length}
             showHistory={showHistory}
             onToggleHistory={toggleHistory}
@@ -464,7 +583,7 @@ function GradingView({
               rows={historyRows}
               loading={loadingHistory}
               highlight={{ currentKey: report.submissionId, noteFor }}
-              repeatCount={repeats.size}
+              matches={[...historyMatches.values()]}
             />
           )}
         </div>
@@ -475,22 +594,25 @@ function GradingView({
 
 /**
  * Todas las semanas del alumno en una tabla, como en el expediente, para ver
- * de un vistazo si contesta lo mismo cada semana. Las respuestas iguales a las
- * de otra semana van marcadas.
+ * de un vistazo si contesta lo mismo cada semana. Las respuestas parecidas a
+ * las de otra semana van marcadas con su porcentaje.
  */
 function ReportHistory({
   formCode,
   rows,
   loading,
   highlight,
-  repeatCount,
+  matches,
 }: {
   formCode: WeeklyFormCode
   rows: (JobSearchLogRow | InternshipLogRow)[]
   loading: boolean
   highlight: LogHighlight
-  repeatCount: number
+  /** Las celdas parecidas a otra semana (cada una con su mejor coincidencia). */
+  matches: SimilarityMatch[]
 }) {
+  const max = Math.max(0, ...matches.map((match) => match.percent))
+
   return (
     <div className="rounded-xl border border-ink-200 bg-white p-5 shadow-sm lg:col-span-2">
       {loading && rows.length === 0 ? (
@@ -498,13 +620,13 @@ function ReportHistory({
       ) : (
         <>
           <p className="mb-3 text-sm">
-            {repeatCount > 0 ? (
-              <Badge tone="amber">
-                {repeatCount} respuesta{repeatCount === 1 ? '' : 's'} igual
-                {repeatCount === 1 ? '' : 'es'} a la de otra semana
+            {matches.length > 0 ? (
+              <Badge tone={max >= SIMILARITY_HIGH ? 'red' : 'amber'}>
+                {matches.length} respuesta{matches.length === 1 ? '' : 's'} parecida
+                {matches.length === 1 ? '' : 's'} a la de otra semana (máx. {formatPercent(max)})
               </Badge>
             ) : (
-              <Badge tone="green">Sin respuestas repetidas</Badge>
+              <Badge tone="green">Sin respuestas parecidas entre semanas</Badge>
             )}
           </p>
           {formCode === 'form_busqueda' ? (
@@ -531,7 +653,8 @@ function ReportCard({
   entry,
   report,
   loading,
-  noteFor,
+  similarity,
+  onOpenStudent,
   historyCount,
   showHistory,
   onToggleHistory,
@@ -539,7 +662,13 @@ function ReportCard({
   entry: GradeEntry
   report: WeeklyReport | undefined
   loading: boolean
-  noteFor: (submissionId: string, field: string) => string | null
+  /** Contra sus otras semanas y contra los compañeros (ver `gradeUtils`). */
+  similarity: {
+    own: SimilarityMatch | null
+    peers: SimilarityMatch | null
+    fieldNotes: (field: string) => CellNote[]
+  } | null
+  onOpenStudent: (studentId: string) => void
   /** Semanas que ha entregado el alumno, incluida esta. */
   historyCount: number
   showHistory: boolean
@@ -578,6 +707,24 @@ function ReportCard({
           Semana del {formatWeekRange(entry.weekStart, entry.weekEnd)}
           {entry.submittedAt && <> · Entregado el {formatDateTime(entry.submittedAt)}</>}
         </p>
+        {report && similarity && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+            <span className="font-semibold tracking-wider text-ink-500 uppercase">Similitud</span>
+            <SimilarityChip label="Sus semanas" match={similarity.own} />
+            <SimilarityChip
+              label="Compañeros"
+              match={similarity.peers}
+              onOpen={
+                similarity.peers?.source.kind === 'alumno'
+                  ? () => {
+                      const source = similarity.peers?.source
+                      if (source?.kind === 'alumno') onOpenStudent(source.studentId)
+                    }
+                  : undefined
+              }
+            />
+          </div>
+        )}
         {entry.isLate && (
           <p
             role="alert"
@@ -601,12 +748,20 @@ function ReportCard({
         <dl className="divide-y divide-ink-100">
           {form.fields.map((field) => {
             const value = report.answers[field.key]
-            const note = noteFor(report.submissionId, field.key)
+            const notes = similarity?.fieldNotes(field.key) ?? []
+            const high = notes.some((note) => note.high)
             return (
-              <div key={field.key} className={`px-6 py-4 ${note ? 'bg-accent-100' : ''}`}>
+              <div
+                key={field.key}
+                className={`px-6 py-4 ${notes.length === 0 ? '' : high ? 'bg-red-50/70' : 'bg-accent-100'}`}
+              >
                 <dt className="flex flex-wrap items-center gap-2 text-[11px] font-semibold tracking-wider text-ink-500 uppercase">
                   {field.label}
-                  {note && <Badge tone="amber">{note}</Badge>}
+                  {notes.map((note) => (
+                    <Badge key={note.text} tone={note.high ? 'red' : 'amber'}>
+                      {note.text}
+                    </Badge>
+                  ))}
                 </dt>
                 <dd className="mt-1.5 text-sm leading-relaxed whitespace-pre-line text-ink-800">
                   {value === null || value === '' ? (
@@ -623,6 +778,52 @@ function ReportCard({
         </dl>
       )}
     </article>
+  )
+}
+
+/**
+ * El reporte entero contra lo más parecido: «Compañeros: 91 % · Ana López».
+ * Verde por debajo del umbral de aviso; el del compañero lleva a su reporte.
+ */
+function SimilarityChip({
+  label,
+  match,
+  onOpen,
+}: {
+  label: string
+  match: SimilarityMatch | null
+  onOpen?: () => void
+}) {
+  if (!match) {
+    return (
+      <span className="rounded-md bg-ink-100 px-2 py-0.5 font-medium text-ink-500">
+        {label}: sin con qué comparar
+      </span>
+    )
+  }
+  const tone =
+    match.percent >= SIMILARITY_HIGH
+      ? 'bg-red-50 text-red-800'
+      : match.percent >= SIMILARITY_NOTICE
+        ? 'bg-accent-200 text-ink-800'
+        : 'bg-emerald-50 text-emerald-800'
+  const text = (
+    <>
+      {label}: <span className="tnum font-semibold">{formatPercent(match.percent)}</span> ·{' '}
+      {sourceLabel(match.source)}
+    </>
+  )
+  return onOpen ? (
+    <button
+      type="button"
+      onClick={onOpen}
+      title="Ver el reporte de ese alumno"
+      className={`rounded-md px-2 py-0.5 font-medium underline-offset-2 hover:underline ${tone}`}
+    >
+      {text}
+    </button>
+  ) : (
+    <span className={`rounded-md px-2 py-0.5 font-medium ${tone}`}>{text}</span>
   )
 }
 

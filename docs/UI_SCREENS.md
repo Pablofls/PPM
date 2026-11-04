@@ -623,11 +623,22 @@ pantalla completa, con la misma navegación que el ADN Profesional:
 - **Ver historial** (en el encabezado del reporte; `?historial=1`, se queda
   abierto al pasar de alumno): debajo, la tabla de todas las semanas del
   alumno, la misma del ADN Profesional, con la semana que se califica
-  resaltada. Las respuestas iguales a las de otra semana del mismo alumno van
-  en amarillo con «Igual a sem. N», también en el reporte aunque el historial
-  esté cerrado. Se comparan sin mayúsculas, acentos, espacios de más ni
-  puntuación final; las de menos de 15 caracteres («ninguna», «0») y las horas
-  no cuentan.
+  resaltada.
+- **Similitud** (sin cambios de BD; se calcula en el navegador con
+  `gradeUtils.ts`). Cada respuesta de texto se compara en **porcentaje**
+  contra las otras semanas del mismo alumno y contra los reportes de sus
+  compañeros de la misma semana (mismo formulario):
+  - Encabezado del reporte: «Sus semanas: 74 % · sem. 3» y «Compañeros: 91 %
+    · Ana López» (el reporte entero, promedio de campos pesado por longitud);
+    el del compañero lleva a su reporte.
+  - Por campo, en el reporte y en el historial: «82 % similar a sem. 3»,
+    «Idéntica a Ana López». Desde **40 %** en ámbar y desde **70 %** en rojo.
+  - Arriba de la vista: los alumnos de la semana cuyo reporte se parece 70 % o
+    más al de otro compañero, como botones para ir a cada uno.
+  - Cómo se mide: sin mayúsculas, acentos ni puntuación y sin palabras vacías
+    («de», «la», «que»…); Sørensen–Dice sobre las palabras sueltas y sobre los
+    pares de palabras seguidas, promediados. Las respuestas de menos de 15
+    caracteres («ninguna», «0») y las horas no se comparan.
 
 ### Centro de calificaciones
 

@@ -542,12 +542,19 @@ type ClassifyWeek = (submissionId: string, weekNumber: number | null) => Promise
 
 /**
  * Para revisar el historial desde Calificar: la fila de la semana que se
- * califica y un aviso en las celdas repetidas. El expediente no lo usa.
+ * califica y un aviso en las celdas parecidas a las de otra semana. El
+ * expediente no lo usa.
  */
 export interface LogHighlight {
   currentKey: string | null
   /** Aviso de la celda (por `submissionId` y la `key` del campo), o `null`. */
-  noteFor: (submissionId: string, field: string) => string | null
+  noteFor: (submissionId: string, field: string) => CellNote | null
+}
+
+/** «82 % similar a sem. 3»; `high` la pinta de rojo (copia probable). */
+export interface CellNote {
+  text: string
+  high: boolean
 }
 
 /** VI — Bitácora de búsqueda de empleo. */
@@ -676,7 +683,7 @@ interface LogRow {
   /** Índices de `cells` que se alinean a la derecha. */
   numeric?: number[]
   /** Aviso por celda, en paralelo a `cells` (ver `LogHighlight`). */
-  notes?: (string | null)[]
+  notes?: (CellNote | null)[]
 }
 
 /**
@@ -743,11 +750,11 @@ function LogTable({
                       row.numeric?.includes(index)
                         ? 'tnum whitespace-nowrap text-right'
                         : 'min-w-40 max-w-56 whitespace-pre-line'
-                    } ${note ? 'bg-accent-100' : ''}`}
+                    } ${note ? (note.high ? 'bg-red-50/70' : 'bg-accent-100') : ''}`}
                   >
                     {note && (
                       <div className="mb-1">
-                        <Badge tone="amber">{note}</Badge>
+                        <Badge tone={note.high ? 'red' : 'amber'}>{note.text}</Badge>
                       </div>
                     )}
                     {cell || <Dash />}
