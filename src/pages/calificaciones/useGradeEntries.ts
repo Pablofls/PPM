@@ -45,6 +45,9 @@ export function useGradeEntries(filters: PanelFilters) {
                 score,
                 comment: cleanComment,
                 state: stateOf(score, item.submissionId),
+                gradedAt: score === null ? null : new Date().toISOString(),
+                // Guardar la vuelve a notificar: el alumno todavía no la ve.
+                seenAt: null,
               }
             : item,
         ),

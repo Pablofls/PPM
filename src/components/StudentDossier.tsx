@@ -1,8 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
+import { useRepositoryQuery } from '../data/hooks'
 import { repository } from '../data/repository'
 import type {
+  AppNotification,
   InternshipLogRow,
   JobSearchLogRow,
   SessionDay,
@@ -23,6 +25,8 @@ import { usePermissions } from '../auth/PermissionsProvider'
 import { useGroups } from '../layouts/GroupProvider'
 import { Badge, Dash } from './Badge'
 import { HollandRadar } from './HollandRadar'
+import { SendNoticeModal } from './SendNoticeModal'
+import { Toast } from './Toast'
 import {
   SubmissionStatusGrid,
   SubmissionStatusLegend,
@@ -79,6 +83,8 @@ export function StudentDossier<T extends DossierRow>({
   const { dossier, jobSearch, internship, error } = useDossier(studentId, weekFixKey)
   const { statuses, error: statusError } = useSubmissionStatus(studentId)
   const { weeks, error: weeksError } = useWeeklyLogStatus(studentId, weekFixKey)
+  const [composing, setComposing] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
 
   /**
    * El profesor corrige el número de semana de una entrega (botón "Clasificar
@@ -116,6 +122,21 @@ export function StudentDossier<T extends DossierRow>({
 
   return (
     <div>
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
+      {composing && (
+        <SendNoticeModal
+          target={{
+            kind: 'alumno',
+            studentId: row.studentId,
+            name: studentName ?? row.institutionalEmail ?? 'el alumno',
+          }}
+          onClose={() => setComposing(false)}
+          onSent={(message) => {
+            setComposing(false)
+            setToast(message)
+          }}
+        />
+      )}
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <nav aria-label="Ruta" className="flex min-w-0 items-center gap-1.5 text-sm text-ink-500">
           <button type="button" onClick={onClose} className="hover:text-ink-900 hover:underline">
@@ -153,10 +174,20 @@ export function StudentDossier<T extends DossierRow>({
           aria-label="Expediente del alumno"
           className="overflow-hidden rounded-xl border border-ink-200 bg-white shadow-sm"
         >
-          <header className="border-b border-ink-200 bg-white px-6 py-4">
+          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-ink-200 bg-white px-6 py-4">
             <h1 className="text-lg font-semibold tracking-tight text-ink-950">
               ADN Profesional
             </h1>
+            {/* Mandar avisos exige «Puede editar» en Avisos (0050). */}
+            {can('avisos', 'edicion') && (
+              <button
+                type="button"
+                onClick={() => setComposing(true)}
+                className="rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-sm font-medium text-ink-700 shadow-sm hover:bg-ink-100"
+              >
+                Enviar aviso
+              </button>
+            )}
           </header>
 
           <div className="space-y-7 px-6 py-6">
@@ -180,6 +211,8 @@ export function StudentDossier<T extends DossierRow>({
             {children && (
               <Section title={trail[1]}>{children(row)}</Section>
             )}
+
+            {can('avisos') && <StudentNotices studentId={row.studentId} />}
 
             <Section title="Estado de Entregas" hint="todos los formularios y las semanas de bitácora">
               {statusError ? (
@@ -860,6 +893,43 @@ function WeekNumberCell({
         </button>
       )}
     </div>
+  )
+}
+
+/** Los avisos que ha recibido el alumno y si ya los leyó (`0050`). */
+function StudentNotices({ studentId }: { studentId: string }) {
+  const { data, error } = useRepositoryQuery(
+    () => repository.getNotifications(studentId),
+    [] as AppNotification[],
+    [studentId],
+  )
+  const notices = data.filter((item) => item.kind === 'aviso')
+  if (error || notices.length === 0) return null
+
+  return (
+    <Section title="Avisos" hint={notices.length === 1 ? '1 aviso' : `${notices.length} avisos`}>
+      <ul className="divide-y divide-ink-100 rounded-lg border border-ink-200">
+        {notices.map((notice) => (
+          <li key={notice.key} className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 px-4 py-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-ink-900">
+                {notice.title}
+                {notice.toGroup && <span className="ml-2 text-xs font-normal text-ink-500">(a todo el grupo)</span>}
+              </p>
+              <p className="mt-0.5 text-sm whitespace-pre-line text-ink-600">{notice.body}</p>
+              <p className="tnum mt-1 text-xs text-ink-400">
+                {[notice.senderName, formatDateTime(notice.createdAt)].filter(Boolean).join(' · ')}
+              </p>
+            </div>
+            {notice.readAt ? (
+              <Badge tone="green">Leído {formatDateTime(notice.readAt)}</Badge>
+            ) : (
+              <Badge>Sin leer</Badge>
+            )}
+          </li>
+        ))}
+      </ul>
+    </Section>
   )
 }
 

@@ -136,6 +136,14 @@ volver sobre lo enviado.
 > `alumno_calificaciones` (solo lectura). Las restrictivas de pantalla de esas
 > dos tablas dejan pasar al alumno sobre lo suyo cuando tiene esa pantalla.
 > Sigue sin escribir en ellas.
+>
+> `0050` agrega las notificaciones: el alumno lee sus avisos
+> (`notice_recipients`, `notices`, `notice_groups` acotados a
+> `current_student_id()`) y marca como leído **solo lo suyo** con
+> `mark_notice_read()`, `mark_grade_read()` y `mark_all_notifications_read()`.
+> No hay políticas de `UPDATE`: esas funciones son la única escritura, y en
+> «Ver como Alumno» no hacen nada. Mandar avisos exige «Puede editar» en la
+> pantalla `avisos` (maestro por defecto) y solo a sus alumnos y grupos.
 
 ## Cómo se crean las cuentas de los alumnos
 

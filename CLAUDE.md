@@ -10,7 +10,7 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
 
 - Supabase configurado (ref `sovinakodrmgxytgapry`) y Vercel desplegado.
 - Las migraciones `0001`–`0048` **ya se ejecutaron** (salvo `0019`, ver
-  `docs/DATABASE_SCHEMA.md`); `0049` está pendiente. Un archivo ejecutado no se
+  `docs/DATABASE_SCHEMA.md`); `0049` y `0050` están pendientes. Un archivo ejecutado no se
   vuelve a editar.
 - Alcance del esquema: **autenticación + los 11 formularios de Módulo 1 y 2 +
   los dos apéndices + las dos bitácoras semanales**. Las hojas `alumnos` y
@@ -97,6 +97,10 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   tiene rail (Inicio y Calificaciones, estilo Canvas) y el alumno lee sus
   calificaciones, comentarios y total. Calificar mide la **similitud en %**
   de cada respuesta contra sus otras semanas y contra sus compañeros.
+- **Avisos y notificaciones** (`0050`, **pendiente de ejecutar**): campanita
+  en el portal del alumno con sus calificaciones (puntaje y comentario, al
+  guardar en Calificar) y los avisos del profesor, que se mandan desde el ADN
+  Profesional (a un alumno) o desde **Avisos** en el rail (a todo un grupo).
 - El **portal del alumno son sus tareas**, al estilo de Canvas: instrucciones,
   formulario de entrega y las entregas anteriores. Hoy tiene las dos bitácoras
   semanales, y son los **únicos** formularios que se contestan dentro del panel;
@@ -220,7 +224,8 @@ La vista del alumno sigue la misma regla desde el otro lado: su guardia es
 `student_id = public.current_student_id()`. Nunca `authenticated`.
 
 El alumno solo escribe sus dos bitácoras, y la política lo acota por código de
-formulario (`0016`). Abrirle un formulario más es una decisión que se pide, no
+formulario (`0016`). Además marca como leídas **sus** notificaciones, solo con
+las funciones `mark_*_read()` de `0050` (no hay política de `UPDATE`). Abrirle un formulario más es una decisión que se pide, no
 se asume. **Nunca hay política de `DELETE`.** Tampoco hay `UPDATE`, con una
 única excepción, acotada por fecha y no por confianza en la pantalla: mientras
 la semana de una bitácora siga siendo la semana en curso, el alumno la puede

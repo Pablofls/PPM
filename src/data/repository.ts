@@ -45,7 +45,10 @@ import type {
   PanelFilters,
   ReflectionRow,
   SemesterWeek,
+  AppNotification,
   GradeEntry,
+  NoticeInput,
+  SentNotice,
   WeeklyReport,
   SkillsRow,
   StudentDossier,
@@ -332,6 +335,23 @@ export interface PanelRepository {
   setGradeActivityPoints(groupId: string, points: number | null): Promise<void>
 
   /**
+   * La campanita de un alumno (`0050`): sus avisos y sus calificaciones, de la
+   * más reciente a la más antigua.
+   */
+  getNotifications(studentId: string): Promise<AppNotification[]>
+
+  /** Los avisos enviados que la sesión puede ver (los de sus alumnos y grupos). */
+  getSentNotices(): Promise<SentNotice[]>
+
+  /** Manda un aviso a alumnos sueltos y/o a grupos completos. */
+  sendNotice(input: NoticeInput): Promise<void>
+
+  /** El alumno de la sesión marca como leído un aviso, una calificación o todo. */
+  markNoticeRead(noticeId: string): Promise<void>
+  markGradeRead(groupId: string, weekNumber: number): Promise<void>
+  markAllNotificationsRead(): Promise<void>
+
+  /**
    * Genera las semanas de un grupo: la 1 empieza en `firstWeekStart` y las
    * siguientes suman 7 días, `weekCount` veces. Falla si el grupo ya tiene
    * semanas — hay que borrarlas primero (`deleteSemesterWeeks`).
@@ -528,6 +548,18 @@ export const emptyRepository: PanelRepository = {
   async setGradeActivityPoints() {
     throw new Error('No hay conexión con la base de datos. Los puntos no se guardaron.')
   },
+  async getNotifications() {
+    return []
+  },
+  async getSentNotices() {
+    return []
+  },
+  async sendNotice() {
+    throw new Error('No hay conexión con la base de datos. El aviso no se envió.')
+  },
+  async markNoticeRead() {},
+  async markGradeRead() {},
+  async markAllNotificationsRead() {},
   async createSemesterWeeks() {
     throw new Error('No hay conexión con la base de datos. Las semanas no se guardaron.')
   },
@@ -547,7 +579,13 @@ const baseRepository: PanelRepository = isSupabaseConfigured
  * calificaciones son la excepción: `useGradeEntries` actualiza el caché al
  * guardar, y vaciarlo haría esperar al profesor entre una calificación y otra.
  */
-const KEEP_CACHE = new Set(['setGrade'])
+const KEEP_CACHE = new Set([
+  'setGrade',
+  // La campanita actualiza su lista al marcar; no hace falta recargar la pantalla.
+  'markNoticeRead',
+  'markGradeRead',
+  'markAllNotificationsRead',
+])
 
 export const repository: PanelRepository = new Proxy(baseRepository, {
   get(target, prop, receiver) {

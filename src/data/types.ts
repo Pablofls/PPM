@@ -566,6 +566,8 @@ export interface GradeEntry {
   state: GradeState
   /** Entregó después de que cerró su semana (`is_late`, `0043`). `false` si no entregó. */
   isLate: boolean
+  /** Cuándo vio el alumno la calificación vigente (`seen_at`, `0050`); `null` si no la ha visto. */
+  seenAt: string | null
 }
 
 /** Lo que el alumno contestó en su reporte de una semana, para calificarlo. */
@@ -576,6 +578,54 @@ export interface WeeklyReport {
   submittedAt: string | null
   /** Por la `key` de `WEEKLY_FORMS[].fields`. */
   answers: Record<string, string | number | null>
+}
+
+/**
+ * Una notificación de la campanita del alumno (`v_my_notifications`, `0050`):
+ * un aviso del profesor o una calificación.
+ */
+export interface AppNotification {
+  kind: 'aviso' | 'calificacion'
+  /** Única en la lista: el aviso, o el grupo y la semana de la calificación. */
+  key: string
+  studentId: string
+  noticeId: string | null
+  groupId: string | null
+  weekNumber: number | null
+  /** El asunto del aviso, o «Reporte semana N». */
+  title: string
+  /** El mensaje del aviso, o el comentario de la calificación. */
+  body: string | null
+  score: number | null
+  pointsPossible: number | null
+  createdAt: string
+  readAt: string | null
+  senderName: string | null
+  /** El aviso se mandó a todo un grupo. */
+  toGroup: boolean
+}
+
+/** Un aviso enviado, para el profesor (`v_sent_notices`, `0050`). */
+export interface SentNotice {
+  noticeId: string
+  subject: string
+  body: string
+  sentAt: string
+  senderName: string | null
+  /** Los grupos a los que se mandó (vacío si fue a alumnos sueltos). */
+  targetGroupIds: string[]
+  /** Los grupos en que están inscritos sus destinatarios. */
+  recipientGroupIds: string[]
+  studentIds: string[]
+  recipientCount: number
+  readCount: number
+}
+
+export interface NoticeInput {
+  subject: string
+  body: string
+  studentIds?: string[]
+  groupIds?: string[]
 }
 
 /** Puntos posibles cuando el profesor no configura otra cosa. */

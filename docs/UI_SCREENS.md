@@ -659,6 +659,24 @@ que vale lo mismo y se repite cada semana, así que es una sola cifra, no una
 por semana. Sin configurar vale 100. Pide elegir un grupo si está en «Todos mis
 grupos».
 
+## Avisos · `/avisos`
+
+> `0050_notices.sql`. Pantalla `avisos` (maestro edita, coordinador lee). Rail,
+> sección **Comunicación**, como los Anuncios de un curso en Canvas.
+
+- Lista de avisos enviados a alumnos del **grupo elegido** (a todo el grupo o
+  a alguien en particular), con asunto, mensaje (clic para verlo completo),
+  remitente, fecha y **«Leído por n de m»**.
+- **Nuevo aviso al grupo**: ventana (`SendNoticeModal`) con el grupo (si está
+  en «Todos mis grupos» se elige), asunto (150) y mensaje (5000). Les llega a
+  los inscritos hoy en el grupo.
+- **ADN Profesional**: botón **Enviar aviso** en el encabezado (con «Puede
+  editar» en Avisos) y sección **Avisos** con los que ha recibido el alumno y
+  si los leyó.
+- **Calificar**: guardar una calificación la manda a las notificaciones del
+  alumno con su puntaje y comentario (el panel lo dice), y el panel muestra
+  «Visto por el alumno el …» o «El alumno todavía no la ha visto».
+
 ## Estado de Entregas y Fechas de entrega
 
 > `0017_form_deadlines.sql` y `0018_semester_weeks.sql`. Ver
@@ -756,8 +774,8 @@ dentro de [Expediente del alumno](#expediente-del-alumno).
 
 Lo que ve un usuario con rol `alumno`. Vive fuera del `AppShell` y bajo su
 propio marco, `src/layouts/StudentShell.tsx`, con su **propio rail** (desde
-`0049`): **Inicio** (`/alumno`) y **Calificaciones** (`/alumno/calificaciones`,
-si tiene la pantalla `alumno_calificaciones`), como el menú de un curso en
+`0049`): **Inicio** (`/alumno`), **Calificaciones** (`/alumno/calificaciones`,
+si tiene la pantalla `alumno_calificaciones`) y **Notificaciones** (`0050`), como el menú de un curso en
 Canvas. Las piezas del rail (`NavGroup`, `NavItem`) viven en
 `src/layouts/RailNav.tsx` y las comparte con el `AppShell`. Debajo de `lg` el
 rail se esconde y se abre como cajón con ☰.
@@ -801,6 +819,21 @@ Canvas. Lee `v_grade_center` filtrada por su `student_id` (`0049`).
 A la derecha, el **Total** (% y puntos) con el mismo criterio que el Centro de
 calificaciones: solo cuentan las actividades ya calificadas. «Mostrar todos
 los comentarios» los abre todos. `?semana=N` abre y resalta esa fila.
+
+### Notificaciones · campanita y `/alumno/notificaciones`
+
+`src/components/NotificationBell.tsx` y
+`src/pages/alumno/StudentNotificationsPage.tsx` (`0050`). La **campanita**
+va arriba a la derecha del portal con el número de no leídas (9+). Al abrirla,
+las 8 más recientes, «Marcar todo como leído» y «Ver todas»:
+
+- **Calificación**: «Reporte semana N», «Obtuviste x / y», el comentario y
+  quién calificó. Lleva a Calificaciones con esa fila abierta.
+- **Aviso** / **Aviso al grupo**: asunto, extracto del mensaje y remitente.
+  Lleva a Notificaciones con el aviso resaltado y completo.
+
+Abrir una la marca como leída. Se refresca cada minuto y al volver a la
+pestaña. En «Ver como Alumno» el admin las ve pero no las marca.
 
 ### Una bitácora · `/alumno/reporte-de-busqueda`, `/alumno/reporte-de-practicas`
 

@@ -107,6 +107,12 @@ export function AppShell() {
             </NavGroup>
           )}
 
+          {can('avisos') && (
+            <NavGroup title="Comunicación">
+              <NavItem to="/avisos" label="" name="Avisos" />
+            </NavGroup>
+          )}
+
           {(can('estado_entregas') || can('fechas_entrega')) && (
             <NavGroup title="Entregas">
               {can('estado_entregas') && (

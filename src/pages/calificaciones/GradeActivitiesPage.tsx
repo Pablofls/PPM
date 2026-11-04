@@ -940,6 +940,10 @@ function GradePanel({
             />
           </div>
 
+          <p className="text-xs leading-relaxed text-ink-500">
+            Al guardar, el alumno recibe en sus notificaciones el puntaje y el comentario.
+          </p>
+
           {message && (
             <p
               role="status"
@@ -965,6 +969,8 @@ function GradePanel({
             )}
           </div>
 
+          {entry.state === 'calificado' && <SeenStatus entry={entry} />}
+
           {entry.state === 'calificado' && (
             <button
               type="button"
@@ -983,10 +989,20 @@ function GradePanel({
             <span className="text-base font-normal text-ink-500">/ {formatPoints(entry.pointsPossible)}</span>
           </p>
           {entry.comment && <p className="text-sm whitespace-pre-line text-ink-700">{entry.comment}</p>}
+          <SeenStatus entry={entry} />
         </div>
       ) : (
         <p className="text-sm text-ink-500">Todavía no tiene calificación.</p>
       )}
     </aside>
+  )
+}
+
+/** Si el alumno ya vio la calificación vigente en sus notificaciones (`0050`). */
+function SeenStatus({ entry }: { entry: GradeEntry }) {
+  return entry.seenAt ? (
+    <p className="text-xs text-emerald-700">Visto por el alumno el {formatDateTime(entry.seenAt)}.</p>
+  ) : (
+    <p className="text-xs text-ink-500">El alumno todavía no la ha visto.</p>
   )
 }

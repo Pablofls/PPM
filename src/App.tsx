@@ -22,6 +22,8 @@ import { InternshipsPage } from './pages/apendices/InternshipsPage'
 import { ProfilePage } from './pages/alumno/ProfilePage'
 import { StudentGradesPage } from './pages/alumno/StudentGradesPage'
 import { StudentHome } from './pages/alumno/StudentHome'
+import { StudentNotificationsPage } from './pages/alumno/StudentNotificationsPage'
+import { NoticesPage } from './pages/avisos/NoticesPage'
 import { WeeklyLogPage } from './pages/alumno/WeeklyLogPage'
 import { IndeedPage } from './pages/modulo2/IndeedPage'
 import { ReflectionPage } from './pages/modulo2/ReflectionPage'
@@ -70,6 +72,7 @@ export default function App() {
 
               <Route path="perfil" element={<ProfilePage />} />
               <Route path="calificaciones" element={<StudentGradesPage />} />
+              <Route path="notificaciones" element={<StudentNotificationsPage />} />
 
               {/* Las dos bitácoras comparten pantalla: solo cambian sus campos. */}
               <Route
@@ -173,6 +176,8 @@ export default function App() {
                   <Route path="centro" element={<GradeCenterPage />} />
                   <Route path="actividades" element={<GradeSettingsPage />} />
                 </Route>
+
+                <Route path="avisos" element={<NoticesPage />} />
 
                 <Route path="entregas">
                   <Route path="estado-de-entregas" element={<SubmissionStatusPage />} />

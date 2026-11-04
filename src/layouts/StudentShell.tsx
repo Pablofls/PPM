@@ -3,13 +3,15 @@ import { Link, Outlet, useLocation } from 'react-router-dom'
 
 import { useAuth } from '../auth/AuthProvider'
 import { usePermissions } from '../auth/PermissionsProvider'
+import { NotificationBell } from '../components/NotificationBell'
 import { RoleSwitcher } from '../components/RoleSwitcher'
 import { NavGroup, NavItem } from './RailNav'
 
 /**
  * Marco de la vista del alumno, gemelo del `AppShell` del profesor: rail
  * oscuro a la izquierda con sus secciones (Inicio y Calificaciones, como el
- * menú de un curso en Canvas) y la barra de cuenta arriba.
+ * menú de un curso en Canvas) y la barra de cuenta arriba con la campanita
+ * de notificaciones.
  *
  * En pantallas angostas —el alumno entra mucho desde el celular— el rail se
  * esconde y se abre como cajón con el botón ☰.
@@ -69,6 +71,7 @@ export function StudentShell() {
               {can('alumno_calificaciones') && (
                 <NavItem to="/alumno/calificaciones" label="" name="Calificaciones" />
               )}
+              <NavItem to="/alumno/notificaciones" label="" name="Notificaciones" />
             </NavGroup>
           </nav>
         </aside>
@@ -89,6 +92,7 @@ export function StudentShell() {
             </div>
 
             <div className="flex shrink-0 items-center gap-1 text-sm sm:gap-3">
+              {portalStudentId && <NotificationBell />}
               {/* Su contraseña y su sesión no son del admin que lo está viendo. */}
               {!portalReadOnly && (
                 <>

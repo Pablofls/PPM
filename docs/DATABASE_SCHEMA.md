@@ -33,6 +33,7 @@
 12. [Semanas del semestre](#semanas-del-semestre)
     - [Calificaciones](#calificaciones)
     - [Calificaciones del alumno](#calificaciones-del-alumno)
+    - [Avisos y notificaciones](#avisos-y-notificaciones)
 13. [Fechas de entrega y estado de las entregas](#fechas-de-entrega-y-estado-de-las-entregas)
 14. [Sincronización con el Sheets](#sincronización-con-el-sheets)
     - [Uso del plan de Supabase](#uso-del-plan-de-supabase)
@@ -197,6 +198,36 @@ erDiagram
         text comment
         uuid graded_by "FK profiles"
         timestamptz graded_at
+    }
+
+    PROFILES ||--o{ NOTICES : "envía"
+    NOTICES ||--|{ NOTICE_RECIPIENTS : "llega a"
+    STUDENTS ||--o{ NOTICE_RECIPIENTS : "recibe"
+    NOTICES ||--o{ NOTICE_GROUPS : "dirigido a"
+    GROUPS ||--o{ NOTICE_GROUPS : "recibe"
+    GRADES ||--o| GRADE_READS : "visto"
+
+    NOTICES {
+        uuid id PK
+        uuid sender_id "FK profiles"
+        text subject
+        text body
+        timestamptz sent_at
+    }
+    NOTICE_RECIPIENTS {
+        uuid notice_id PK "FK notices"
+        uuid student_id PK "FK students"
+        timestamptz read_at "nulo = sin leer"
+    }
+    NOTICE_GROUPS {
+        uuid notice_id PK "FK notices"
+        uuid group_id PK "FK groups"
+    }
+    GRADE_READS {
+        uuid student_id PK "FK grades"
+        uuid group_id PK "FK grades"
+        smallint week_number PK "FK grades"
+        timestamptz read_at
     }
 
     PERIODS {
@@ -1381,6 +1412,78 @@ y el total.
   hay vista aparte: repetiría la lógica de la semana de cada entrega.
 - El alumno sigue **sin escribir** en estas tablas.
 
+### Avisos y notificaciones
+
+> Migración `0050_notices.sql` — ⏳ **pendiente de ejecutar** en Supabase
+> (después de `0049`).
+
+El portal del alumno tiene una **campanita** arriba a la derecha con dos tipos
+de notificación: sus **calificaciones** (cada vez que el profesor guarda una,
+con su puntaje y comentario; recalificar la vuelve a marcar como nueva) y los
+**avisos** que el profesor le manda a él desde su ADN Profesional o a todo su
+grupo desde la pantalla Avisos.
+
+#### Normalización (hasta 4FN)
+
+- `notices (id) → sender_id, subject, body, sent_at`: el aviso.
+- `notice_recipients (notice_id, student_id) → read_at`: a quién le llegó y
+  cuándo lo leyó; `read_at` depende de la llave completa.
+- `notice_groups (notice_id, group_id)`: todo-llave; a qué grupo se dirigió.
+- Destinatarios y grupos son **hechos multivaluados independientes** del
+  aviso: en una sola tabla `(notice_id, student_id, group_id)` habría que
+  repetir cada combinación (la dependencia multivaluada que prohíbe la 4FN),
+  así que van en dos. Los destinatarios **se fijan al enviar** (quien entra
+  al grupo después no recibe avisos viejos), por eso no se derivan del grupo.
+- `grade_reads (student_id, group_id, week_number) → read_at`, FK a `grades`
+  (`ON DELETE CASCADE`): cuándo vio el alumno su calificación.
+- **No se guarda** la notificación de una calificación: es la fila de `grades`.
+  Está sin leer si no hay `grade_reads` o `read_at < graded_at`; `set_grade`
+  actualiza `graded_at` en cada guardado, así que recalificar la vuelve nueva.
+- Al ejecutar la migración, las calificaciones existentes se marcan como
+  vistas (el alumno no recibe de golpe las viejas; las ve en Calificaciones).
+
+#### Tablas
+
+| Tabla | Columnas | Notas |
+|---|---|---|
+| `notices` | `id` uuid PK, `sender_id` FK → `profiles` (`SET NULL`), `subject` 1–150, `body` 1–5000, `sent_at` | |
+| `notice_recipients` | PK (`notice_id` FK → `notices` `CASCADE`, `student_id` FK → `students` `CASCADE`), `read_at` | índice `(student_id, read_at)` |
+| `notice_groups` | PK (`notice_id` FK → `notices` `CASCADE`, `group_id` FK → `groups` `CASCADE`) | índice `(group_id)` |
+| `grade_reads` | PK y FK (`student_id`, `group_id`, `week_number`) → `grades` `CASCADE`, `read_at` | |
+
+#### Funciones (`SECURITY DEFINER`)
+
+| Función | Qué hace |
+|---|---|
+| `send_notice(subject, body, student_ids[], group_ids[])` | Destinatarios = alumnos ∪ inscritos en los grupos. Admin, o «Puede editar» en `avisos` y solo a `visible_student_ids()`/`visible_group_ids()`. Devuelve el id |
+| `mark_notice_read(notice_id)` | El alumno de la sesión marca un aviso suyo |
+| `mark_grade_read(group_id, week_number)` | Ídem con una calificación suya (upsert en `grade_reads`) |
+| `mark_all_notifications_read()` | Todo lo suyo. Sin `current_student_id()` (admin en «Ver como») no hace nada |
+| `notification_sender_name(profile_id)` | Solo el nombre de quien le mandó un aviso o lo calificó (el alumno no lee `profiles`); al staff, de cualquiera |
+
+#### Vistas (`security_invoker = on`)
+
+- `v_my_notifications`: `union all` de avisos (`kind = 'aviso'`) y
+  calificaciones (`kind = 'calificacion'`, título «Reporte semana N», `body` =
+  comentario, `score`, `points_possible`), con `student_id`, `created_at`,
+  `read_at`, `sender_name` y `to_group`.
+- `v_sent_notices`: por aviso, `target_group_ids`, `recipient_group_ids` (los
+  grupos de sus destinatarios, para filtrar por el grupo elegido),
+  `student_ids`, `recipient_count` y `read_count`.
+- `v_grade_center` agrega al final `seen_at`: cuándo vio el alumno la
+  calificación vigente (nulo si no la ha visto).
+
+#### Seguridad
+
+- Pantalla `avisos` en `app_screens` (`edicion`, `panel`); maestro = edición,
+  coordinador = lectura.
+- Lectura: `*_select_admin`; `*_select_own` (`current_student_id()`);
+  `*_select_scope` con `screen_access('avisos') >= 'lectura'` y el alcance
+  (`visible_student_ids()` / `visible_group_ids()`); en `grade_reads`, con
+  `calificaciones`. Todas con `(select …)` (ver 0047).
+- **Sin políticas de escritura**: todo pasa por las funciones. La única
+  escritura nueva del alumno es marcar como leído lo suyo.
+
 ## Fechas de entrega y estado de las entregas
 
 > ⚠️ Desde `0046` las fechas límite son `group_deadlines` (por grupo); `form_deadlines` y
@@ -2067,6 +2170,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0043_weekly_log_sequential.sql` | entrega secuencial de bitácoras: `next_weekly_week_number()`, `new_weekly_submission` exige la primera semana pendiente, y `v_grade_center` agrega `is_late` (derivada) | ✅ 2026-10-14 |
 | `0048_admin_usage_stats.sql` | `admin_usage_stats()`: tamaño de BD y Storage, MAU, conexiones y tablas más pesadas para la pantalla Uso de Supabase (admin) | ✅ 2026-10-27 |
 | `0049_student_grades.sql` | pantalla `alumno_calificaciones`; el alumno lee sus `grades` y los `grade_activities` de su grupo (políticas «lo mío» y restrictivas ampliadas) | ⏳ pendiente |
+| `0050_notices.sql` | `notices`, `notice_recipients`, `notice_groups`, `grade_reads`; `send_notice()`, `mark_*_read()`, `notification_sender_name()`; vistas `v_my_notifications`, `v_sent_notices`; `v_grade_center.seen_at`; pantalla `avisos` | ⏳ pendiente |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.

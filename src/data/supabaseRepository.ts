@@ -46,7 +46,10 @@ import type {
   PanelFilters,
   ReflectionRow,
   SemesterWeek,
+  AppNotification,
   GradeEntry,
+  NoticeInput,
+  SentNotice,
   WeeklyReport,
   SkillsRow,
   StudentDossier,
@@ -1230,6 +1233,92 @@ export const supabaseRepository: PanelRepository = {
     if (error) throw new Error(`No se pudieron guardar los puntos: ${error.message}`)
   },
 
+  async getNotifications(studentId: string): Promise<AppNotification[]> {
+    const { data, error } = await supabase
+      .from('v_my_notifications')
+      .select('*')
+      .eq('student_id', studentId)
+      .order('created_at', { ascending: false })
+      .limit(200)
+
+    if (error) throw new Error(`No se pudieron cargar las notificaciones: ${error.message}`)
+
+    return ((data ?? []) as PanelRecord[]).map((record) => {
+      const kind = str(record.kind) === 'calificacion' ? 'calificacion' : 'aviso'
+      const noticeId = str(record.notice_id)
+      const groupId = str(record.group_id)
+      const weekNumber = num(record.week_number)
+      return {
+        kind,
+        key: kind === 'aviso' ? `aviso:${noticeId}` : `calificacion:${groupId}:${weekNumber}`,
+        studentId: str(record.student_id) ?? '',
+        noticeId,
+        groupId,
+        weekNumber,
+        title: str(record.title) ?? '',
+        body: str(record.body),
+        score: num(record.score),
+        pointsPossible: num(record.points_possible),
+        createdAt: str(record.created_at) ?? '',
+        readAt: str(record.read_at),
+        senderName: str(record.sender_name),
+        toGroup: record.to_group === true,
+      }
+    })
+  },
+
+  async getSentNotices(): Promise<SentNotice[]> {
+    const { data, error } = await supabase
+      .from('v_sent_notices')
+      .select('*')
+      .order('sent_at', { ascending: false })
+
+    if (error) throw new Error(`No se pudieron cargar los avisos: ${error.message}`)
+
+    const ids = (value: unknown) => (Array.isArray(value) ? value.map(String) : [])
+    return ((data ?? []) as PanelRecord[]).map((record) => ({
+      noticeId: str(record.notice_id) ?? '',
+      subject: str(record.subject) ?? '',
+      body: str(record.body) ?? '',
+      sentAt: str(record.sent_at) ?? '',
+      senderName: str(record.sender_name),
+      targetGroupIds: ids(record.target_group_ids),
+      recipientGroupIds: ids(record.recipient_group_ids),
+      studentIds: ids(record.student_ids),
+      recipientCount: num(record.recipient_count) ?? 0,
+      readCount: num(record.read_count) ?? 0,
+    }))
+  },
+
+  async sendNotice({ subject, body, studentIds, groupIds }: NoticeInput): Promise<void> {
+    const { error } = await supabase.rpc('send_notice', {
+      p_subject: subject,
+      p_body: body,
+      p_student_ids: studentIds?.length ? studentIds : null,
+      p_group_ids: groupIds?.length ? groupIds : null,
+    })
+
+    if (error) throw new Error(`No se pudo enviar el aviso: ${error.message}`)
+  },
+
+  async markNoticeRead(noticeId: string): Promise<void> {
+    const { error } = await supabase.rpc('mark_notice_read', { p_notice_id: noticeId })
+    if (error) throw new Error(`No se pudo marcar como leído: ${error.message}`)
+  },
+
+  async markGradeRead(groupId: string, weekNumber: number): Promise<void> {
+    const { error } = await supabase.rpc('mark_grade_read', {
+      p_group_id: groupId,
+      p_week_number: weekNumber,
+    })
+    if (error) throw new Error(`No se pudo marcar como leído: ${error.message}`)
+  },
+
+  async markAllNotificationsRead(): Promise<void> {
+    const { error } = await supabase.rpc('mark_all_notifications_read')
+    if (error) throw new Error(`No se pudieron marcar como leídas: ${error.message}`)
+  },
+
   async createSemesterWeeks(
     groupId: string,
     firstWeekStart: string,
@@ -1335,5 +1424,6 @@ function toGradeEntry(record: PanelRecord): GradeEntry {
     gradedAt: str(record.graded_at),
     state: (str(record.state) as GradeState) ?? 'sin_entrega',
     isLate: record.is_late === true,
+    seenAt: str(record.seen_at),
   }
 }

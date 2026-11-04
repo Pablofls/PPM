@@ -77,6 +77,15 @@ export const SCREENS: ScreenMeta[] = [
     editHint: 'Calificar los reportes y configurar los puntos de sus grupos',
   },
   {
+    code: 'avisos',
+    name: 'Avisos',
+    section: 'Comunicación',
+    maxAccess: 'edicion',
+    audience: 'panel',
+    path: '/avisos',
+    editHint: 'Mandar avisos a sus alumnos y grupos',
+  },
+  {
     code: 'estado_entregas',
     name: 'Estado de Entregas',
     section: 'Entregas',
