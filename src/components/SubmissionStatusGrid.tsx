@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 
 import { useRepositoryQuery } from '../data/hooks'
 import { repository } from '../data/repository'
@@ -122,35 +122,12 @@ function LegendItem({ color, label }: { color: string; label: string }) {
 
 /** Trae el estado de entregas de un alumno. Vacío mientras no haya `studentId`. */
 export function useSubmissionStatus(studentId: string | null) {
-  const [statuses, setStatuses] = useState<Partial<Record<FormCode, SubmissionStatusCell>>>({})
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!studentId) {
-      setStatuses({})
-      setError(null)
-      return
-    }
-
-    let cancelled = false
-    repository
-      .getSubmissionStatusForStudent(studentId)
-      .then((result) => {
-        if (cancelled) return
-        setStatuses(result)
-        setError(null)
-      })
-      .catch((cause: unknown) => {
-        if (cancelled) return
-        setStatuses({})
-        setError(cause instanceof Error ? cause.message : 'Error desconocido')
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [studentId])
-
+  const { data: statuses, error } = useRepositoryQuery<Partial<Record<FormCode, SubmissionStatusCell>>>(
+    () => (studentId ? repository.getSubmissionStatusForStudent(studentId) : Promise.resolve({})),
+    {},
+    [studentId],
+    'submissionStatus',
+  )
   return { statuses, error }
 }
 

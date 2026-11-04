@@ -1027,35 +1027,14 @@ function age(birthDate: string | null): string {
 
 /** Solo el expediente (secciones I a V), sin las bitácoras ni el historial. */
 export function useStudentDossier(studentId: string | null) {
-  const [dossier, setDossier] = useState<Dossier | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!studentId) {
-      setDossier(null)
-      setError(null)
-      return
-    }
-
-    let cancelled = false
-    repository
-      .getStudentDossier(studentId)
-      .then((expediente) => {
-        if (cancelled) return
-        setDossier(expediente)
-        setError(null)
-      })
-      .catch((cause: unknown) => {
-        if (cancelled) return
-        setDossier(null)
-        setError(cause instanceof Error ? cause.message : 'Error desconocido')
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [studentId])
-
+  // En caché, como el resto del panel: volver al inicio del alumno muestra el
+  // expediente al instante mientras se reconsulta en segundo plano.
+  const { data: dossier, error } = useRepositoryQuery<Dossier | null>(
+    () => (studentId ? repository.getStudentDossier(studentId) : Promise.resolve(null)),
+    null,
+    [studentId],
+    'studentDossier',
+  )
   return { dossier, error }
 }
 
