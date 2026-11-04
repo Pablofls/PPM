@@ -32,6 +32,7 @@
 11. [Grupos](#grupos)
 12. [Semanas del semestre](#semanas-del-semestre)
     - [Calificaciones](#calificaciones)
+    - [Calificaciones del alumno](#calificaciones-del-alumno)
 13. [Fechas de entrega y estado de las entregas](#fechas-de-entrega-y-estado-de-las-entregas)
 14. [Sincronización con el Sheets](#sincronización-con-el-sheets)
     - [Uso del plan de Supabase](#uso-del-plan-de-supabase)
@@ -1341,7 +1342,8 @@ baja el porcentaje.
   `role_screen_access`: maestro = edición, coordinador = lectura.
 - Lectura: `*_select_admin`, `*_select_scope` (`group_id in visible_group_ids()`)
   y una restrictiva `screen_access('calificaciones') >= 'lectura'`.
-- **El alumno no tiene política**: todavía no ve sus calificaciones.
+- El alumno lee **solo las suyas** desde `0049` (ver
+  [Calificaciones del alumno](#calificaciones-del-alumno)).
 
 ### Rendimiento de las políticas (0047)
 
@@ -1355,6 +1357,29 @@ entregas: `v_weekly_submission_status` 900 ms, bitácoras ~500 ms.
 > **Toda política nueva** escribe `(select public.is_admin())` y
 > `(select public.current_student_id())`, nunca la llamada suelta. `0047` rehízo
 > las existentes; una política nueva con la llamada suelta vuelve el problema.
+
+### Calificaciones del alumno
+
+> Migración `0049_student_grades.sql` — ⏳ **pendiente de ejecutar** en Supabase.
+
+El portal del alumno tiene la sección **Calificaciones**, al estilo de Canvas:
+cada Reporte semana N con su estado, su puntuación, el comentario del profesor
+y el total.
+
+- **Sin tablas ni columnas nuevas**: la normalización (4FN) de `0040`–`0041`
+  no cambia.
+- Pantalla `alumno_calificaciones` en `app_screens` (`lectura`, `portal`);
+  `role_screen_access`: alumno = lectura. Se quita por rol o por persona como
+  las demás del portal.
+- `grades_select_own` (`student_id = current_student_id()`) y
+  `grade_activities_select_own` (`group_id = current_student_group_id()`).
+- Las restrictivas `grades_screen_read` y `grade_activities_screen_read` dejan
+  pasar a quien tiene `calificaciones` **o** al alumno sobre lo suyo con
+  `alumno_calificaciones`.
+- El portal lee `v_grade_center` filtrado por su `student_id` (la vista es
+  `security_invoker` y el resto de sus tablas ya le dejaban leer lo suyo). No
+  hay vista aparte: repetiría la lógica de la semana de cada entrega.
+- El alumno sigue **sin escribir** en estas tablas.
 
 ## Fechas de entrega y estado de las entregas
 
@@ -2041,6 +2066,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0044_teacher_group_admin.sql` | semilla `maestro`/`coordinador` = «Puede editar» en `alumnos_registrados` y `grupos`; `v_students_directory.teacher_name`; `admin_register_students` acepta `maestro_id` por fila para distinguir grupos homónimos | ✅ 2026-10-14 |
 | `0043_weekly_log_sequential.sql` | entrega secuencial de bitácoras: `next_weekly_week_number()`, `new_weekly_submission` exige la primera semana pendiente, y `v_grade_center` agrega `is_late` (derivada) | ✅ 2026-10-14 |
 | `0048_admin_usage_stats.sql` | `admin_usage_stats()`: tamaño de BD y Storage, MAU, conexiones y tablas más pesadas para la pantalla Uso de Supabase (admin) | ✅ 2026-10-27 |
+| `0049_student_grades.sql` | pantalla `alumno_calificaciones`; el alumno lee sus `grades` y los `grade_activities` de su grupo (políticas «lo mío» y restrictivas ampliadas) | ⏳ pendiente |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.

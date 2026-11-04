@@ -755,8 +755,12 @@ dentro de [Expediente del alumno](#expediente-del-alumno).
 ## Portal del alumno
 
 Lo que ve un usuario con rol `alumno`. Vive fuera del `AppShell` y bajo su
-propio marco, `src/layouts/StudentShell.tsx`: el rail es la navegación del
-profesor, y un alumno tiene dos tareas, no trece pantallas.
+propio marco, `src/layouts/StudentShell.tsx`, con su **propio rail** (desde
+`0049`): **Inicio** (`/alumno`) y **Calificaciones** (`/alumno/calificaciones`,
+si tiene la pantalla `alumno_calificaciones`), como el menú de un curso en
+Canvas. Las piezas del rail (`NavGroup`, `NavItem`) viven en
+`src/layouts/RailNav.tsx` y las comparte con el `AppShell`. Debajo de `lg` el
+rail se esconde y se abre como cajón con ☰.
 
 El portal está modelado como **las tareas de un curso**, no como un panel de
 resultados: una lista de tareas, y dentro de cada una las instrucciones, el
@@ -780,6 +784,23 @@ El resumen de cada tarjeta es lo que hace útil la lista. Sin él, el alumno
 tendría que entrar a cada tarea para saber si ya entregó la semana. Si la
 consulta falla, la tarjeta se queda sin resumen pero no sin tarea: todavía se
 puede entrar y entregar.
+
+### Calificaciones · `/alumno/calificaciones`
+
+`src/pages/alumno/StudentGradesPage.tsx`, como la página «Calificaciones» de
+Canvas. Lee `v_grade_center` filtrada por su `student_id` (`0049`).
+
+| Columna | Contenido |
+|---|---|
+| Nombre | «Reporte semana N» (liga a la tarea que entregó) y debajo la bitácora y cuándo la entregó |
+| Vence | El fin de la semana (`week_end`) |
+| Estado | **Tardía** (rojo), **Faltante** (rojo: la semana cerró sin entrega ni calificación) o **Entregado** (azul, falta calificar) |
+| Puntuación | `x / puntos posibles`, o `– / puntos` sin calificar |
+| 💬 | Abre en la fila el comentario del profesor y cuándo calificó |
+
+A la derecha, el **Total** (% y puntos) con el mismo criterio que el Centro de
+calificaciones: solo cuentan las actividades ya calificadas. «Mostrar todos
+los comentarios» los abre todos. `?semana=N` abre y resalta esa fila.
 
 ### Una bitácora · `/alumno/reporte-de-busqueda`, `/alumno/reporte-de-practicas`
 

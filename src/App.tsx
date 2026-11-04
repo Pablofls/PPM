@@ -20,6 +20,7 @@ import { ValuesPage } from './pages/modulo1/ValuesPage'
 import { CompaniesPage } from './pages/apendices/CompaniesPage'
 import { InternshipsPage } from './pages/apendices/InternshipsPage'
 import { ProfilePage } from './pages/alumno/ProfilePage'
+import { StudentGradesPage } from './pages/alumno/StudentGradesPage'
 import { StudentHome } from './pages/alumno/StudentHome'
 import { WeeklyLogPage } from './pages/alumno/WeeklyLogPage'
 import { IndeedPage } from './pages/modulo2/IndeedPage'
@@ -68,6 +69,7 @@ export default function App() {
               <Route index element={<StudentHome />} />
 
               <Route path="perfil" element={<ProfilePage />} />
+              <Route path="calificaciones" element={<StudentGradesPage />} />
 
               {/* Las dos bitácoras comparten pantalla: solo cambian sus campos. */}
               <Route

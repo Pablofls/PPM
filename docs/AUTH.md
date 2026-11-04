@@ -128,6 +128,14 @@ volver sobre lo enviado.
 > aunque `form_deadlines` y sus propias `submissions` ya fueran legibles. Se
 > detectó comparando la respuesta real de la API para el alumno contra la del
 > SQL Editor como admin.
+>
+> `0049` abre las calificaciones: el profesor pidió que el alumno viera las
+> suyas en la sección Calificaciones del portal. `grades_select_own`
+> (`student_id = current_student_id()`) y `grade_activities_select_own`
+> (`group_id = current_student_group_id()`), más la pantalla de portal
+> `alumno_calificaciones` (solo lectura). Las restrictivas de pantalla de esas
+> dos tablas dejan pasar al alumno sobre lo suyo cuando tiene esa pantalla.
+> Sigue sin escribir en ellas.
 
 ## Cómo se crean las cuentas de los alumnos
 

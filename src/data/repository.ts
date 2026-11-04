@@ -307,6 +307,12 @@ export interface PanelRepository {
    */
   getGradeCenter(filters: PanelFilters): Promise<GradeEntry[]>
 
+  /**
+   * Las calificaciones de un alumno, semana por semana, para su portal
+   * (`0049`). Misma vista que el Centro de calificaciones, filtrada por él.
+   */
+  getStudentGrades(studentId: string): Promise<GradeEntry[]>
+
   /** Lo que contestaron los alumnos en su reporte de una semana, para calificarlo. */
   getWeeklyReports(weekNumber: number, studentIds: string[]): Promise<WeeklyReport[]>
 
@@ -505,6 +511,9 @@ export const emptyRepository: PanelRepository = {
     return []
   },
   async getGradeCenter() {
+    return []
+  },
+  async getStudentGrades() {
     return []
   },
   async getWeeklyReports() {

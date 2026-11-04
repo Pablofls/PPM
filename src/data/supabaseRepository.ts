@@ -1132,26 +1132,18 @@ export const supabaseRepository: PanelRepository = {
 
     if (error) throw new Error(`No se pudieron cargar las calificaciones: ${error.message}`)
 
-    return ((data ?? []) as PanelRecord[]).map((record) => ({
-      studentId: str(record.student_id) ?? '',
-      institutionalEmail: str(record.institutional_email) ?? '',
-      fullName: str(record.full_name),
-      degreeCode: str(record.degree_code),
-      semester: num(record.semester),
-      groupId: str(record.group_id) ?? '',
-      weekNumber: num(record.week_number) ?? 0,
-      weekStart: str(record.week_start) ?? '',
-      weekEnd: str(record.week_end) ?? '',
-      formCode: (str(record.form_code) as WeeklyFormCode | null) ?? null,
-      submissionId: str(record.submission_id),
-      submittedAt: str(record.submitted_at),
-      pointsPossible: num(record.points_possible) ?? DEFAULT_POINTS_POSSIBLE,
-      score: num(record.score),
-      comment: str(record.comment),
-      gradedAt: str(record.graded_at),
-      state: (str(record.state) as GradeState) ?? 'sin_entrega',
-      isLate: record.is_late === true,
-    }))
+    return ((data ?? []) as PanelRecord[]).map(toGradeEntry)
+  },
+
+  async getStudentGrades(studentId: string): Promise<GradeEntry[]> {
+    const { data, error } = await supabase
+      .from('v_grade_center')
+      .select('*')
+      .eq('student_id', studentId)
+      .order('week_number', { ascending: true })
+
+    if (error) throw new Error(`No se pudieron cargar tus calificaciones: ${error.message}`)
+    return ((data ?? []) as PanelRecord[]).map(toGradeEntry)
   },
 
   async getWeeklyReports(weekNumber: number, studentIds: string[]): Promise<WeeklyReport[]> {
@@ -1321,4 +1313,27 @@ const VIEW_BY_FORM: Record<FormCode, string> = {
   form2_7: 'v_panel_indeed',
   formA_1: 'v_panel_internships',
   formB_1: 'v_panel_companies',
+}
+
+function toGradeEntry(record: PanelRecord): GradeEntry {
+  return {
+    studentId: str(record.student_id) ?? '',
+    institutionalEmail: str(record.institutional_email) ?? '',
+    fullName: str(record.full_name),
+    degreeCode: str(record.degree_code),
+    semester: num(record.semester),
+    groupId: str(record.group_id) ?? '',
+    weekNumber: num(record.week_number) ?? 0,
+    weekStart: str(record.week_start) ?? '',
+    weekEnd: str(record.week_end) ?? '',
+    formCode: (str(record.form_code) as WeeklyFormCode | null) ?? null,
+    submissionId: str(record.submission_id),
+    submittedAt: str(record.submitted_at),
+    pointsPossible: num(record.points_possible) ?? DEFAULT_POINTS_POSSIBLE,
+    score: num(record.score),
+    comment: str(record.comment),
+    gradedAt: str(record.graded_at),
+    state: (str(record.state) as GradeState) ?? 'sin_entrega',
+    isLate: record.is_late === true,
+  }
 }

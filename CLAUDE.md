@@ -10,8 +10,8 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
 
 - Supabase configurado (ref `sovinakodrmgxytgapry`) y Vercel desplegado.
 - Las migraciones `0001`–`0048` **ya se ejecutaron** (salvo `0019`, ver
-  `docs/DATABASE_SCHEMA.md`). Un archivo ejecutado no se vuelve a editar: el
-  siguiente cambio es `0049_…`.
+  `docs/DATABASE_SCHEMA.md`); `0049` está pendiente. Un archivo ejecutado no se
+  vuelve a editar.
 - Alcance del esquema: **autenticación + los 11 formularios de Módulo 1 y 2 +
   los dos apéndices + las dos bitácoras semanales**. Las hojas `alumnos` y
   `fechas_entrega` quedan para después.
@@ -93,6 +93,10 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   correo institucional, contraseña = matrícula) con
   `create_student_accounts()`, y el alumno entra a `/alumno`. Las cuentas ya se
   dieron de alta (2026-09-20).
+- **Calificaciones del alumno** (`0049`, **pendiente de ejecutar**): el portal
+  tiene rail (Inicio y Calificaciones, estilo Canvas) y el alumno lee sus
+  calificaciones, comentarios y total. Calificar mide la **similitud en %**
+  de cada respuesta contra sus otras semanas y contra sus compañeros.
 - El **portal del alumno son sus tareas**, al estilo de Canvas: instrucciones,
   formulario de entrega y las entregas anteriores. Hoy tiene las dos bitácoras
   semanales, y son los **únicos** formularios que se contestan dentro del panel;

@@ -125,6 +125,13 @@ export const SCREENS: ScreenMeta[] = [
     maxAccess: 'lectura',
     audience: 'portal',
   },
+  {
+    code: 'alumno_calificaciones',
+    name: 'Calificaciones',
+    section: 'Portal del alumno',
+    maxAccess: 'lectura',
+    audience: 'portal',
+  },
 ]
 
 /** Una pantalla puede tener subrutas (Calificaciones): `/calificaciones/centro` es suya. */
