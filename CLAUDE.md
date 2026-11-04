@@ -9,9 +9,9 @@ formularios de Google. Reemplaza la implementación actual en Google Apps Script
 El profesor autorizó el proyecto el 10 de septiembre de 2026.
 
 - Supabase configurado (ref `sovinakodrmgxytgapry`) y Vercel desplegado.
-- Las migraciones `0001`–`0048` **ya se ejecutaron** (salvo `0019`, ver
-  `docs/DATABASE_SCHEMA.md`); `0049` y `0050` están pendientes. Un archivo ejecutado no se
-  vuelve a editar.
+- Las migraciones `0001`–`0050` **ya se ejecutaron** (salvo `0019`, ver
+  `docs/DATABASE_SCHEMA.md`). Un archivo ejecutado no se vuelve a editar: el
+  siguiente cambio es `0051_…`.
 - Alcance del esquema: **autenticación + los 11 formularios de Módulo 1 y 2 +
   los dos apéndices + las dos bitácoras semanales**. Las hojas `alumnos` y
   `fechas_entrega` quedan para después.
@@ -93,11 +93,11 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   correo institucional, contraseña = matrícula) con
   `create_student_accounts()`, y el alumno entra a `/alumno`. Las cuentas ya se
   dieron de alta (2026-09-20).
-- **Calificaciones del alumno** (`0049`, **pendiente de ejecutar**): el portal
+- **Calificaciones del alumno** (`0049`, ejecutada el 2026-11-04): el portal
   tiene rail (Inicio y Calificaciones, estilo Canvas) y el alumno lee sus
   calificaciones, comentarios y total. Calificar mide la **similitud en %**
   de cada respuesta contra sus otras semanas y contra sus compañeros.
-- **Avisos y notificaciones** (`0050`, **pendiente de ejecutar**): campanita
+- **Avisos y notificaciones** (`0050`, ejecutada el 2026-11-04): campanita
   en el portal del alumno con sus calificaciones (puntaje y comentario, al
   guardar en Calificar) y los avisos del profesor, que se mandan desde el ADN
   Profesional (a un alumno) o desde **Avisos** en el rail (a todo un grupo).

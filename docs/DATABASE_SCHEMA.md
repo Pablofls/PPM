@@ -1391,7 +1391,7 @@ entregas: `v_weekly_submission_status` 900 ms, bitácoras ~500 ms.
 
 ### Calificaciones del alumno
 
-> Migración `0049_student_grades.sql` — ⏳ **pendiente de ejecutar** en Supabase.
+> Migración `0049_student_grades.sql` — ✅ ejecutada en Supabase (2026-11-04).
 
 El portal del alumno tiene la sección **Calificaciones**, al estilo de Canvas:
 cada Reporte semana N con su estado, su puntuación, el comentario del profesor
@@ -1414,8 +1414,7 @@ y el total.
 
 ### Avisos y notificaciones
 
-> Migración `0050_notices.sql` — ⏳ **pendiente de ejecutar** en Supabase
-> (después de `0049`).
+> Migración `0050_notices.sql` — ✅ ejecutada en Supabase (2026-11-04).
 
 El portal del alumno tiene una **campanita** arriba a la derecha con dos tipos
 de notificación: sus **calificaciones** (cada vez que el profesor guarda una,
@@ -2169,8 +2168,8 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0044_teacher_group_admin.sql` | semilla `maestro`/`coordinador` = «Puede editar» en `alumnos_registrados` y `grupos`; `v_students_directory.teacher_name`; `admin_register_students` acepta `maestro_id` por fila para distinguir grupos homónimos | ✅ 2026-10-14 |
 | `0043_weekly_log_sequential.sql` | entrega secuencial de bitácoras: `next_weekly_week_number()`, `new_weekly_submission` exige la primera semana pendiente, y `v_grade_center` agrega `is_late` (derivada) | ✅ 2026-10-14 |
 | `0048_admin_usage_stats.sql` | `admin_usage_stats()`: tamaño de BD y Storage, MAU, conexiones y tablas más pesadas para la pantalla Uso de Supabase (admin) | ✅ 2026-10-27 |
-| `0049_student_grades.sql` | pantalla `alumno_calificaciones`; el alumno lee sus `grades` y los `grade_activities` de su grupo (políticas «lo mío» y restrictivas ampliadas) | ⏳ pendiente |
-| `0050_notices.sql` | `notices`, `notice_recipients`, `notice_groups`, `grade_reads`; `send_notice()`, `mark_*_read()`, `notification_sender_name()`; vistas `v_my_notifications`, `v_sent_notices`; `v_grade_center.seen_at`; pantalla `avisos` | ⏳ pendiente |
+| `0049_student_grades.sql` | pantalla `alumno_calificaciones`; el alumno lee sus `grades` y los `grade_activities` de su grupo (políticas «lo mío» y restrictivas ampliadas) | ✅ 2026-11-04 |
+| `0050_notices.sql` | `notices`, `notice_recipients`, `notice_groups`, `grade_reads`; `send_notice()`, `mark_*_read()`, `notification_sender_name()`; vistas `v_my_notifications`, `v_sent_notices`; `v_grade_center.seen_at`; pantalla `avisos` | ✅ 2026-11-04 |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.
