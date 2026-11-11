@@ -785,6 +785,33 @@ El portal está modelado como **las tareas de un curso**, no como un panel de
 resultados: una lista de tareas, y dentro de cada una las instrucciones, el
 formulario de entrega y lo que ya entregó.
 
+### Idioma del portal
+
+El portal va en el **idioma del grupo del alumno** (`groups.language`): un
+alumno de un grupo de Inglés ve **todo** su portal en inglés —rail, Inicio
+(ADN Profesional y Estado de Entregas), Actividades, las bitácoras con sus
+instrucciones y preguntas, Calificaciones, la campanita, Notificaciones, Mi
+perfil, el sello de entrega tardía y las fechas (`en-US`). No hay selector
+manual: lo decide únicamente el grupo; sin grupo, español. El admin en «Ver
+como Alumno» ve el portal en el idioma del alumno que eligió.
+
+- `src/lib/i18n.ts`: `useLang()` y `useT()` (`t('Entregar', 'Submit')`, las dos
+  versiones juntas) y `translateServerText()`, que traduce en pantalla los
+  textos fijos de la base («Reporte semana N», los `raise exception` de las
+  bitácoras) sin migrar las funciones. Los avisos que escribe el profesor se
+  muestran tal cual.
+- `src/layouts/StudentLanguage.tsx`: el proveedor, montado en `StudentShell`.
+  Lee el grupo del alumno (`v_student_dossier.group_id` y `groups`, que el
+  alumno puede leer por `groups_select_own`) y recuerda el último idioma en
+  `localStorage` para no parpadear en español al recargar.
+- Las bitácoras traen su versión en inglés en `WEEKLY_FORMS[].en`
+  (`localizeWeeklyForm()`).
+- **El panel del profesor sigue en español.** Los componentes compartidos
+  (campanita, ADN Profesional, cambio de contraseña) usan `useT()`, que fuera
+  del portal vale español. Lo único en inglés que ve el profesor son las
+  respuestas que escriben sus alumnos.
+- La pantalla de login queda en español: antes de entrar no se sabe el grupo.
+
 ### Inicio · `/alumno`
 
 `src/pages/alumno/StudentHome.tsx`, protegida por `StudentRoute`.
@@ -867,7 +894,9 @@ matrícula —en Prácticas también empresa y puesto, del B.1— y una tabla co
 fila por semana, la más reciente primero, con el encabezado repetido en cada
 página. Prácticas lleva horas trabajadas y acumuladas por semana y el total al
 final. El archivo se llama `Reporte de Prácticas - <Nombre> - <Matrícula>.pdf`.
-No escribe nada, así que también funciona en «Ver como Alumno». La Helvetica de
+Sigue el idioma del portal: un grupo de Inglés descarga `Internship Report` /
+`Job Search Report` con encabezados y fechas en inglés (el texto del alumno va
+como lo escribió). No escribe nada, así que también funciona en «Ver como Alumno». La Helvetica de
 jsPDF es Latin-1: acentos y ñ salen bien; comillas tipográficas y guiones
 largos se simplifican y los emojis se quitan.
 

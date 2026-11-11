@@ -1,9 +1,10 @@
 import type { GradeEntry } from '../data/types'
+import { localeOf, type Lang } from './i18n'
 
 /** `4` → `4`, `4.5` → `4.5`, `4.50` → `4.5`: sin ceros de relleno. */
-export function formatPoints(value: number | null): string {
+export function formatPoints(value: number | null, lang: Lang = 'es'): string {
   if (value === null) return ''
-  return new Intl.NumberFormat('es-MX', { maximumFractionDigits: 2 }).format(value)
+  return new Intl.NumberFormat(localeOf(lang), { maximumFractionDigits: 2 }).format(value)
 }
 
 /**

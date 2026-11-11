@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { translateAuthError } from '../auth/AuthProvider'
 import { supabase } from '../data/supabaseClient'
 import { PasswordInput } from './PasswordInput'
+import { useLang, useT } from '../lib/i18n'
 
 const LONGITUD_MINIMA = 8
 
@@ -31,21 +32,30 @@ export function PasswordChangeForm({
   const [confirmacion, setConfirmacion] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const t = useT()
+  const lang = useLang()
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     setError(null)
 
     if (password.length < LONGITUD_MINIMA) {
-      setError(`La contraseña debe tener al menos ${LONGITUD_MINIMA} caracteres.`)
+      setError(
+        t(
+          `La contraseña debe tener al menos ${LONGITUD_MINIMA} caracteres.`,
+          `The password must be at least ${LONGITUD_MINIMA} characters long.`,
+        ),
+      )
       return
     }
     if (password !== confirmacion) {
-      setError('Las contraseñas no coinciden.')
+      setError(t('Las contraseñas no coinciden.', 'The passwords do not match.'))
       return
     }
     if (!email) {
-      setError('No se pudo identificar tu correo. Vuelve a iniciar sesión.')
+      setError(
+        t('No se pudo identificar tu correo. Vuelve a iniciar sesión.', 'Could not identify your email. Sign in again.'),
+      )
       return
     }
 
@@ -59,8 +69,8 @@ export function PasswordChangeForm({
       setSubmitting(false)
       setError(
         signInError.message.toLowerCase().includes('invalid login credentials')
-          ? 'Tu contraseña actual es incorrecta.'
-          : translateAuthError(signInError.message),
+          ? t('Tu contraseña actual es incorrecta.', 'Your current password is incorrect.')
+          : translateAuthError(signInError.message, lang),
       )
       return
     }
@@ -69,7 +79,7 @@ export function PasswordChangeForm({
     setSubmitting(false)
 
     if (updateError) {
-      setError(translateAuthError(updateError.message))
+      setError(translateAuthError(updateError.message, lang))
       return
     }
 
@@ -81,11 +91,11 @@ export function PasswordChangeForm({
 
   return (
     <form onSubmit={handleSubmit}>
-      <h2 className="text-sm font-semibold text-ink-900">Cambiar contraseña</h2>
+      <h2 className="text-sm font-semibold text-ink-900">{t('Cambiar contraseña', 'Change password')}</h2>
       <p className="mt-1 text-xs leading-relaxed text-ink-500">{hint}</p>
 
       <label className="mt-4 block">
-        <span className="text-sm text-ink-700">Contraseña actual</span>
+        <span className="text-sm text-ink-700">{t('Contraseña actual', 'Current password')}</span>
         <PasswordInput
           value={currentPassword}
           onChange={setCurrentPassword}
@@ -95,7 +105,7 @@ export function PasswordChangeForm({
       </label>
 
       <label className="mt-4 block">
-        <span className="text-sm text-ink-700">Nueva contraseña</span>
+        <span className="text-sm text-ink-700">{t('Nueva contraseña', 'New password')}</span>
         <PasswordInput
           value={password}
           onChange={setPassword}
@@ -106,7 +116,7 @@ export function PasswordChangeForm({
       </label>
 
       <label className="mt-4 block">
-        <span className="text-sm text-ink-700">Confirmar contraseña</span>
+        <span className="text-sm text-ink-700">{t('Confirmar contraseña', 'Confirm password')}</span>
         <PasswordInput
           value={confirmacion}
           onChange={setConfirmacion}
@@ -127,7 +137,7 @@ export function PasswordChangeForm({
         disabled={submitting}
         className="mt-6 rounded-lg bg-accent-400 px-4 py-2.5 text-sm font-medium text-ink-900 transition-colors hover:bg-accent-500 focus:outline-2 focus:outline-offset-2 focus:outline-ink-900 disabled:cursor-not-allowed disabled:bg-ink-100 disabled:text-ink-400"
       >
-        {submitting ? 'Guardando…' : 'Guardar contraseña'}
+        {submitting ? t('Guardando…', 'Saving…') : t('Guardar contraseña', 'Save password')}
       </button>
     </form>
   )

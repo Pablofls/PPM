@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 import type { CelebrationKind } from '../lib/celebration'
+import { useT } from '../lib/i18n'
 
 const CONFETTI_MS = 4000
 const STAMP_MS = 2800
@@ -27,6 +28,7 @@ export function SubmissionCelebration({
 }
 
 function Stamp({ onDone }: { onDone: () => void }) {
+  const t = useT()
   useEffect(() => {
     const timer = window.setTimeout(onDone, STAMP_MS)
     return () => window.clearTimeout(timer)
@@ -73,7 +75,7 @@ function Stamp({ onDone }: { onDone: () => void }) {
             lengthAdjust="spacingAndGlyphs"
             fontFamily="Inter, system-ui, sans-serif"
           >
-            ENTREGADO
+            {t('ENTREGADO', 'SUBMITTED')}
           </text>
         </g>
       </svg>

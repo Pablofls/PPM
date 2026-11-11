@@ -1,5 +1,7 @@
 import { useId, useState } from 'react'
 
+import { useT } from '../lib/i18n'
+
 /**
  * Campo de contraseña con el ojo para mostrarla u ocultarla.
  *
@@ -27,6 +29,7 @@ export function PasswordInput({
 }) {
   const [visible, setVisible] = useState(false)
   const inputId = useId()
+  const t = useT()
 
   return (
     <div className="relative mt-1.5">
@@ -45,7 +48,7 @@ export function PasswordInput({
       <button
         type="button"
         onClick={() => setVisible((current) => !current)}
-        aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+        aria-label={visible ? t('Ocultar contraseña', 'Hide password') : t('Mostrar contraseña', 'Show password')}
         tabIndex={-1}
         className="absolute inset-y-0 right-0 flex items-center px-3 text-ink-400 transition-colors hover:text-ink-700"
       >

@@ -7,7 +7,8 @@ import { Badge, Dash } from '../../components/Badge'
 import { useRepositoryQuery } from '../../data/hooks'
 import { repository } from '../../data/repository'
 import type { GradeEntry } from '../../data/types'
-import { weeklyFormByCode } from '../../lib/catalog'
+import { localizeWeeklyForm, weeklyFormByCode } from '../../lib/catalog'
+import { translateServerText, useLang, useT } from '../../lib/i18n'
 import { formatDate, formatDateTime } from '../../lib/format'
 import { computeTotal, formatPoints } from '../../lib/grades'
 
@@ -23,6 +24,8 @@ const WEEK_PARAM = 'semana'
  */
 export function StudentGradesPage() {
   const { portalStudentId: studentId } = useAuth()
+  const t = useT()
+  const lang = useLang()
   const { can, loading: loadingPermissions } = usePermissions()
   const [searchParams] = useSearchParams()
   const focusWeek = Number(searchParams.get(WEEK_PARAM)) || null
@@ -57,39 +60,51 @@ export function StudentGradesPage() {
   return (
     <>
       <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight text-ink-950">Calificaciones</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink-950">
+          {t('Calificaciones', 'Grades')}
+        </h1>
         <p className="mt-1.5 text-sm text-ink-500">
-          Tus reportes semanales, lo que obtuviste en cada uno y los comentarios de tu profesor.
+          {t(
+            'Tus reportes semanales, lo que obtuviste en cada uno y los comentarios de tu profesor.',
+            'Your weekly reports, what you scored on each one and your professor’s comments.',
+          )}
         </p>
       </header>
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_16rem]">
         <div className="overflow-x-auto rounded-xl border border-ink-200 bg-white shadow-sm">
           {error ? (
-            <p className="px-6 py-12 text-center text-sm text-red-800">{error}</p>
+            <p className="px-6 py-12 text-center text-sm text-red-800">
+              {translateServerText(error, lang)}
+            </p>
           ) : !studentId ? (
-            <p className="px-6 py-12 text-center text-sm text-ink-500">Elige un alumno para ver sus calificaciones.</p>
+            <p className="px-6 py-12 text-center text-sm text-ink-500">
+              {t('Elige un alumno para ver sus calificaciones.', 'Choose a student to see their grades.')}
+            </p>
           ) : grades.length === 0 ? (
             <p className="px-6 py-12 text-center text-sm text-ink-500">
-              {loading ? 'Cargando tus calificaciones…' : 'Todavía no hay actividades en tu grupo.'}
+              {loading
+                ? t('Cargando tus calificaciones…', 'Loading your grades…')
+                : t('Todavía no hay actividades en tu grupo.', 'There are no assignments in your group yet.')}
             </p>
           ) : (
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b border-ink-200 bg-ink-50 text-left text-[11px] font-semibold tracking-wider text-ink-500 uppercase">
-                  <th className="px-4 py-2.5">Nombre</th>
-                  <th className="px-4 py-2.5">Vence</th>
-                  <th className="px-4 py-2.5">Estado</th>
-                  <th className="px-4 py-2.5 text-right">Puntuación</th>
+                  <th className="px-4 py-2.5">{t('Nombre', 'Name')}</th>
+                  <th className="px-4 py-2.5">{t('Vence', 'Due')}</th>
+                  <th className="px-4 py-2.5">{t('Estado', 'Status')}</th>
+                  <th className="px-4 py-2.5 text-right">{t('Puntuación', 'Score')}</th>
                   <th className="w-12 px-2 py-2.5">
-                    <span className="sr-only">Comentarios</span>
+                    <span className="sr-only">{t('Comentarios', 'Comments')}</span>
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {grades.map((grade) => {
                   const expanded = Boolean(grade.comment) && (showAll || open.has(grade.weekNumber))
-                  const form = grade.formCode ? weeklyFormByCode(grade.formCode) : null
+                  const form = grade.formCode ? localizeWeeklyForm(weeklyFormByCode(grade.formCode), lang) : null
+                  const title = t(`Reporte semana ${grade.weekNumber}`, `Weekly report ${grade.weekNumber}`)
                   const missing = !grade.submissionId && grade.score === null && grade.weekEnd < today
                   const focused = grade.weekNumber === focusWeek
                   return (
@@ -103,33 +118,38 @@ export function StudentGradesPage() {
                         <td className="px-4 py-3">
                           {form ? (
                             <Link to={form.path} className="font-medium text-accent-700 hover:underline">
-                              Reporte semana {grade.weekNumber}
+                              {title}
                             </Link>
                           ) : (
-                            <span className="font-medium text-ink-900">Reporte semana {grade.weekNumber}</span>
+                            <span className="font-medium text-ink-900">{title}</span>
                           )}
                           <p className="mt-0.5 text-xs text-ink-500">
-                            {form ? form.name : 'Reporte semanal'}
-                            {grade.submittedAt && <> · Entregado el {formatDateTime(grade.submittedAt)}</>}
+                            {form ? form.name : t('Reporte semanal', 'Weekly report')}
+                            {grade.submittedAt && (
+                              <>
+                                {' '}
+                                · {t('Entregado el', 'Submitted on')} {formatDateTime(grade.submittedAt, lang)}
+                              </>
+                            )}
                           </p>
                         </td>
-                        <td className="tnum px-4 py-3 whitespace-nowrap text-ink-600">{formatDate(grade.weekEnd)}</td>
+                        <td className="tnum px-4 py-3 whitespace-nowrap text-ink-600">{formatDate(grade.weekEnd, lang)}</td>
                         <td className="px-4 py-3">
                           {grade.isLate ? (
-                            <Badge tone="red">Tardía</Badge>
+                            <Badge tone="red">{t('Tardía', 'Late')}</Badge>
                           ) : missing ? (
-                            <Badge tone="red">Faltante</Badge>
+                            <Badge tone="red">{t('Faltante', 'Missing')}</Badge>
                           ) : grade.submissionId && grade.score === null ? (
-                            <Badge tone="blue">Entregado</Badge>
+                            <Badge tone="blue">{t('Entregado', 'Submitted')}</Badge>
                           ) : null}
                         </td>
                         <td className="tnum px-4 py-3 text-right whitespace-nowrap">
                           {grade.score !== null ? (
-                            <span className="font-semibold text-ink-950">{formatPoints(grade.score)}</span>
+                            <span className="font-semibold text-ink-950">{formatPoints(grade.score, lang)}</span>
                           ) : (
                             <span className="text-ink-400">–</span>
                           )}
-                          <span className="text-ink-500"> / {formatPoints(grade.pointsPossible)}</span>
+                          <span className="text-ink-500"> / {formatPoints(grade.pointsPossible, lang)}</span>
                         </td>
                         <td className="px-2 py-2.5 text-center">
                           {grade.comment && (
@@ -137,7 +157,11 @@ export function StudentGradesPage() {
                               type="button"
                               onClick={() => toggle(grade.weekNumber)}
                               aria-expanded={expanded}
-                              title={expanded ? 'Ocultar el comentario' : 'Ver el comentario del profesor'}
+                              title={
+                                expanded
+                                  ? t('Ocultar el comentario', 'Hide comment')
+                                  : t('Ver el comentario del profesor', 'View your professor’s comment')
+                              }
                               className={`rounded-md px-1.5 py-1 text-base leading-none transition-colors hover:bg-ink-100 ${
                                 expanded ? 'bg-ink-100' : ''
                               }`}
@@ -152,11 +176,11 @@ export function StudentGradesPage() {
                           <td colSpan={5} className="px-4 pb-4">
                             <div className="rounded-lg border border-ink-200 bg-ink-50 px-4 py-3">
                               <p className="text-[11px] font-semibold tracking-wider text-ink-500 uppercase">
-                                Comentario del profesor
+                                {t('Comentario del profesor', 'Professor’s comment')}
                                 {grade.gradedAt && (
                                   <span className="font-normal tracking-normal normal-case">
                                     {' '}
-                                    · {formatDateTime(grade.gradedAt)}
+                                    · {formatDateTime(grade.gradedAt, lang)}
                                   </span>
                                 )}
                               </p>
@@ -179,26 +203,27 @@ export function StudentGradesPage() {
             {total ? (
               <>
                 <p className="tnum mt-1 text-3xl font-semibold text-ink-950">
-                  {formatPoints(Math.round(total.percentage * 100) / 100)} %
+                  {formatPoints(Math.round(total.percentage * 100) / 100, lang)} %
                 </p>
                 <p className="tnum mt-1 text-sm text-ink-500">
-                  {formatPoints(total.earned)} / {formatPoints(total.possible)} puntos
+                  {formatPoints(total.earned, lang)} / {formatPoints(total.possible, lang)}{' '}
+                  {t('puntos', 'points')}
                 </p>
               </>
             ) : (
               <p className="mt-1 text-sm text-ink-500">
-                <Dash /> Aún no tienes actividades calificadas.
+                <Dash /> {t('Aún no tienes actividades calificadas.', 'You have no graded assignments yet.')}
               </p>
             )}
             <p className="mt-3 text-xs leading-relaxed text-ink-500">
-              Solo cuentan las actividades ya calificadas.
+              {t('Solo cuentan las actividades ya calificadas.', 'Only graded assignments count.')}
             </p>
           </div>
 
           {grades.some((grade) => grade.comment) && (
             <label className="flex items-center gap-2 px-1 text-sm text-ink-600">
               <input type="checkbox" checked={showAll} onChange={(event) => setShowAll(event.target.checked)} />
-              Mostrar todos los comentarios
+              {t('Mostrar todos los comentarios', 'Show all comments')}
             </label>
           )}
         </aside>

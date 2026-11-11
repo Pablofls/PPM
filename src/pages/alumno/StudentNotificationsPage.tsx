@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { usePermissions } from '../../auth/PermissionsProvider'
 import { NotificationSummary, useNotifications } from '../../components/NotificationBell'
 import { formatDateTime } from '../../lib/format'
+import { translateServerText, useLang, useT } from '../../lib/i18n'
 
 /**
  * Todas las notificaciones del alumno, completas: los avisos con su mensaje
@@ -13,6 +14,8 @@ import { formatDateTime } from '../../lib/format'
 export function StudentNotificationsPage() {
   const { items, unread, loading, error, canMark, markRead, markAll } = useNotifications()
   const { can } = usePermissions()
+  const t = useT()
+  const lang = useLang()
   const [searchParams] = useSearchParams()
   const focus = searchParams.get('aviso')
 
@@ -24,9 +27,14 @@ export function StudentNotificationsPage() {
     <>
       <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-ink-950">Notificaciones</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-ink-950">
+            {t('Notificaciones', 'Notifications')}
+          </h1>
           <p className="mt-1.5 text-sm text-ink-500">
-            Los avisos de tu profesor y tus calificaciones, de lo más reciente a lo más antiguo.
+            {t(
+              'Los avisos de tu profesor y tus calificaciones, de lo más reciente a lo más antiguo.',
+              'Announcements from your professor and your grades, newest first.',
+            )}
           </p>
         </div>
         {canMark && unread > 0 && (
@@ -35,16 +43,18 @@ export function StudentNotificationsPage() {
             onClick={() => void markAll()}
             className="rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm font-medium text-ink-700 shadow-sm hover:bg-ink-100"
           >
-            Marcar todo como leído ({unread})
+            {t('Marcar todo como leído', 'Mark all as read')} ({unread})
           </button>
         )}
       </header>
 
       {error ? (
-        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>
+        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {translateServerText(error, lang)}
+        </p>
       ) : items.length === 0 ? (
         <div className="rounded-xl border border-ink-200 bg-white px-4 py-16 text-center text-sm text-ink-500 shadow-sm">
-          {loading ? 'Cargando…' : 'No tienes notificaciones.'}
+          {loading ? t('Cargando…', 'Loading…') : t('No tienes notificaciones.', 'You have no notifications.')}
         </div>
       ) : (
         <ul className="space-y-3">
@@ -63,7 +73,7 @@ export function StudentNotificationsPage() {
                 <NotificationSummary item={item} />
               </div>
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-ink-100 px-5 py-2.5 text-xs text-ink-500">
-                <span className="tnum">{formatDateTime(item.createdAt)}</span>
+                <span className="tnum">{formatDateTime(item.createdAt, lang)}</span>
                 <span className="flex items-center gap-3">
                   {item.kind === 'calificacion' && can('alumno_calificaciones') && (
                     <Link
@@ -71,7 +81,7 @@ export function StudentNotificationsPage() {
                       onClick={() => void markRead(item)}
                       className="font-medium text-accent-700 hover:underline"
                     >
-                      Ver en Calificaciones
+                      {t('Ver en Calificaciones', 'View in Grades')}
                     </Link>
                   )}
                   {canMark && !item.readAt && (
@@ -80,7 +90,7 @@ export function StudentNotificationsPage() {
                       onClick={() => void markRead(item)}
                       className="font-medium text-ink-600 hover:text-ink-900 hover:underline"
                     >
-                      Marcar como leído
+                      {t('Marcar como leído', 'Mark as read')}
                     </button>
                   )}
                 </span>

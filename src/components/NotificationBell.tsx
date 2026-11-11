@@ -7,6 +7,7 @@ import { repository } from '../data/repository'
 import type { AppNotification } from '../data/types'
 import { formatRelativeTime } from '../lib/format'
 import { formatPoints } from '../lib/grades'
+import { translateServerText, useLang, useT } from '../lib/i18n'
 
 /** Cada cuánto se buscan notificaciones nuevas mientras el portal está abierto. */
 const REFRESH_MS = 60_000
@@ -84,6 +85,8 @@ export function notificationPath(item: AppNotification): string {
  */
 export function NotificationBell() {
   const { items, unread, error, canMark, markRead, markAll, refetch } = useNotifications()
+  const t = useT()
+  const lang = useLang()
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
   const box = useRef<HTMLDivElement>(null)
@@ -127,7 +130,11 @@ export function NotificationBell() {
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        aria-label={unread > 0 ? `Notificaciones, ${unread} sin leer` : 'Notificaciones'}
+        aria-label={
+          unread > 0
+            ? t(`Notificaciones, ${unread} sin leer`, `Notifications, ${unread} unread`)
+            : t('Notificaciones', 'Notifications')
+        }
         className="relative rounded-lg p-2 text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-900"
       >
         <svg aria-hidden viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -144,23 +151,25 @@ export function NotificationBell() {
       {open && (
         <div className="absolute right-0 z-40 mt-2 w-[22rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-ink-200 bg-white shadow-xl">
           <div className="flex items-center justify-between gap-3 border-b border-ink-100 px-4 py-3">
-            <p className="text-sm font-semibold text-ink-950">Notificaciones</p>
+            <p className="text-sm font-semibold text-ink-950">{t('Notificaciones', 'Notifications')}</p>
             {canMark && unread > 0 && (
               <button
                 type="button"
                 onClick={() => void markAll()}
                 className="text-xs font-medium text-accent-700 hover:underline"
               >
-                Marcar todo como leído
+                {t('Marcar todo como leído', 'Mark all as read')}
               </button>
             )}
           </div>
 
           <ul className="max-h-[60vh] divide-y divide-ink-100 overflow-y-auto">
             {error ? (
-              <li className="px-4 py-6 text-center text-sm text-red-800">{error}</li>
+              <li className="px-4 py-6 text-center text-sm text-red-800">{translateServerText(error, lang)}</li>
             ) : items.length === 0 ? (
-              <li className="px-4 py-10 text-center text-sm text-ink-500">No tienes notificaciones.</li>
+              <li className="px-4 py-10 text-center text-sm text-ink-500">
+                {t('No tienes notificaciones.', 'You have no notifications.')}
+              </li>
             ) : (
               items.slice(0, BELL_LIMIT).map((item) => (
                 <li key={item.key}>
@@ -183,7 +192,7 @@ export function NotificationBell() {
             onClick={() => setOpen(false)}
             className="block border-t border-ink-100 bg-ink-50 px-4 py-2.5 text-center text-sm font-medium text-ink-700 hover:bg-ink-100"
           >
-            Ver todas
+            {t('Ver todas', 'View all')}
           </Link>
         </div>
       )}
@@ -197,6 +206,8 @@ export function NotificationBell() {
  */
 export function NotificationSummary({ item, compact = false }: { item: AppNotification; compact?: boolean }) {
   const isGrade = item.kind === 'calificacion'
+  const t = useT()
+  const lang = useLang()
   return (
     <>
       <span
@@ -210,27 +221,34 @@ export function NotificationSummary({ item, compact = false }: { item: AppNotifi
               isGrade ? 'text-emerald-700' : 'text-violet-700'
             }`}
           >
-            {isGrade ? 'Calificación' : item.toGroup ? 'Aviso al grupo' : 'Aviso'}
+            {isGrade
+              ? t('Calificación', 'Grade')
+              : item.toGroup
+                ? t('Aviso al grupo', 'Group announcement')
+                : t('Aviso', 'Announcement')}
           </span>
-          {!item.readAt && <span className="sr-only">Sin leer</span>}
+          {!item.readAt && <span className="sr-only">{t('Sin leer', 'Unread')}</span>}
         </span>
-        <span className="mt-0.5 block text-sm font-semibold text-ink-900">{item.title}</span>
+        <span className="mt-0.5 block text-sm font-semibold text-ink-900">
+          {isGrade ? translateServerText(item.title, lang) : item.title}
+        </span>
         {isGrade && item.score !== null && (
           <span className="tnum mt-0.5 block text-sm text-ink-700">
-            Obtuviste <span className="font-semibold text-ink-950">{formatPoints(item.score)}</span> /{' '}
-            {formatPoints(item.pointsPossible)}
+            {t('Obtuviste', 'You scored')}{' '}
+            <span className="font-semibold text-ink-950">{formatPoints(item.score, lang)}</span> /{' '}
+            {formatPoints(item.pointsPossible, lang)}
           </span>
         )}
         {item.body && (
           <span
             className={`mt-1 block text-sm text-ink-600 ${compact ? 'line-clamp-2' : 'whitespace-pre-line'}`}
           >
-            {isGrade && <span className="font-medium text-ink-700">Comentario: </span>}
+            {isGrade && <span className="font-medium text-ink-700">{t('Comentario:', 'Comment:')} </span>}
             {item.body}
           </span>
         )}
         <span className="mt-1 block text-xs text-ink-400">
-          {[item.senderName, formatRelativeTime(item.createdAt)].filter(Boolean).join(' · ')}
+          {[item.senderName, formatRelativeTime(item.createdAt, lang)].filter(Boolean).join(' · ')}
         </span>
       </span>
     </>

@@ -11,8 +11,14 @@ import type {
   StudentDossier,
   WeeklyLogStatusCell,
 } from '../../data/types'
+import {
+  localizeWeeklyForm,
+  type WeeklyField,
+  type WeeklyFormCode,
+  type WeeklyFormMeta,
+} from '../../lib/catalog'
+import { translateServerText, useLang, useT } from '../../lib/i18n'
 import { downloadWeeklyLogPdf } from '../../lib/weeklyLogPdf'
-import type { WeeklyField, WeeklyFormCode, WeeklyFormMeta } from '../../lib/catalog'
 import { formatDate, formatDateTime, formatWeekRange } from '../../lib/format'
 import { celebrationKind, type CelebrationKind } from '../../lib/celebration'
 import { targetWeek } from '../../lib/weeks'
@@ -41,7 +47,10 @@ import { usePermissions } from '../../auth/PermissionsProvider'
  * `0020_weekly_log_current_week_only.sql`. En cuanto la semana termina, la
  * entrega vuelve a ser inmutable para siempre.
  */
-export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
+export function WeeklyLogPage({ form: baseForm }: { form: WeeklyFormMeta }) {
+  const t = useT()
+  const lang = useLang()
+  const form = useMemo(() => localizeWeeklyForm(baseForm, lang), [baseForm, lang])
   const { portalStudentId: studentId, portalReadOnly } = useAuth()
   // Entregar exige «Puede editar» en esta bitácora (0038); con «Solo
   // lectura» se ven las entregas anteriores y el formulario deshabilitado.
@@ -74,11 +83,18 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
   // antes mete renders y red en medio de la animación y la traba.
   const onSubmitted = useCallback(
     (updated: boolean, late: boolean) => {
-      if (updated) setToast(`Actualizaste tu ${form.name}. Tu profesor ya puede verlo.`)
+      if (updated) {
+        setToast(
+          t(
+            `Actualizaste tu ${form.name}. Tu profesor ya puede verlo.`,
+            `You updated your ${form.name}. Your professor can see it now.`,
+          ),
+        )
+      }
       // Corregir la semana en curso también se celebra (nunca es tardía).
       setCelebration(celebrationKind(late))
     },
-    [form.name],
+    [form.name, t],
   )
   const endCelebration = useCallback(() => {
     setCelebration(null)
@@ -99,7 +115,7 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
         to="/alumno/actividades"
         className="text-sm font-medium text-ink-500 transition-colors hover:text-ink-900"
       >
-        ← Actividades
+        ← {t('Actividades', 'Assignments')}
       </Link>
 
       <header className="mt-4">
@@ -107,13 +123,13 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
           <h1 className="text-2xl font-semibold tracking-tight text-ink-950">
             {form.name}
           </h1>
-          <Badge tone="violet">Semanal</Badge>
+          <Badge tone="violet">{t('Semanal', 'Weekly')}</Badge>
         </div>
         <p className="mt-1 text-sm text-ink-600">{form.subtitle}</p>
       </header>
 
       <section className="mt-6 rounded-xl border border-ink-200 bg-white p-6 shadow-sm">
-        <h2 className="text-sm font-semibold text-ink-900">Instrucciones</h2>
+        <h2 className="text-sm font-semibold text-ink-900">{t('Instrucciones', 'Instructions')}</h2>
         <ul className="mt-3 space-y-2">
           {form.instructions.map((linea) => (
             <li key={linea} className="flex gap-2 text-sm leading-relaxed text-ink-600">
@@ -204,6 +220,8 @@ function SubmissionForm({
     return () => window.clearTimeout(timer)
   }, [cooling])
   const [error, setError] = useState<string | null>(null)
+  const t = useT()
+  const lang = useLang()
 
   useEffect(() => {
     setValues({})
@@ -267,10 +285,10 @@ function SubmissionForm({
     } catch (cause) {
       setError(
         cause instanceof Error
-          ? cause.message
+          ? translateServerText(cause.message, lang)
           : existingEntry
-            ? 'No se pudo guardar tu corrección.'
-            : 'No se pudo guardar tu entrega.',
+            ? t('No se pudo guardar tu corrección.', 'Your changes could not be saved.')
+            : t('No se pudo guardar tu entrega.', 'Your submission could not be saved.'),
       )
     } finally {
       setSaving(false)
@@ -284,16 +302,20 @@ function SubmissionForm({
     if (weeks.length === 0) {
       return (
         <div className="mt-6 rounded-xl border border-dashed border-ink-200 bg-ink-50/50 p-6 text-sm text-ink-600">
-          Tu profesor todavía no configuró las semanas de este periodo. Vuelve
-          más tarde para entregar tu bitácora.
+          {t(
+            'Tu profesor todavía no configuró las semanas de este periodo. Vuelve más tarde para entregar tu bitácora.',
+            'Your professor has not set up the weeks for this term yet. Come back later to submit your log.',
+          )}
         </div>
       )
     }
     if (!currentWeek) {
       return (
         <div className="mt-6 rounded-xl border border-dashed border-ink-200 bg-ink-50/50 p-6 text-sm text-ink-600">
-          Hoy no cae dentro de ninguna semana configurada de tu periodo.
-          Contacta a tu profesor.
+          {t(
+            'Hoy no cae dentro de ninguna semana configurada de tu periodo. Contacta a tu profesor.',
+            'Today does not fall within any week set up for your term. Contact your professor.',
+          )}
         </div>
       )
     }
@@ -306,10 +328,13 @@ function SubmissionForm({
     >
       <h2 className="text-sm font-semibold text-ink-900">
         {existingEntry
-          ? 'Tu entrega de esta semana'
+          ? t('Tu entrega de esta semana', 'Your submission for this week')
           : isLate && currentWeek
-            ? `Entrega tardía · semana ${currentWeek.weekNumber}`
-            : 'Nueva entrega'}
+            ? t(
+                `Entrega tardía · semana ${currentWeek.weekNumber}`,
+                `Late submission · week ${currentWeek.weekNumber}`,
+              )
+            : t('Nueva entrega', 'New submission')}
       </h2>
 
       {isLate && currentWeek && target && (
@@ -317,13 +342,27 @@ function SubmissionForm({
           role="status"
           className="mt-3 rounded-lg border border-accent-300 bg-accent-100 px-3 py-2 text-sm text-ink-900"
         >
-          <strong>Entrega tardía.</strong> La semana {currentWeek.weekNumber} cerró el{' '}
-          {formatDate(currentWeek.weekEnd)} y no la entregaste a tiempo. Tienes que
-          entregarla para poder llenar las que siguen
-          {target.pendingAfter > 0
-            ? ` (te quedan ${target.pendingAfter} más por entregar después de esta).`
-            : ' hasta llegar a la semana actual.'}{' '}
-          Tu profesor verá que fue fuera de tiempo.
+          {lang === 'en' ? (
+            <>
+              <strong>Late submission.</strong> Week {currentWeek.weekNumber} closed on{' '}
+              {formatDate(currentWeek.weekEnd, lang)} and you did not submit it on time. You have
+              to submit it before you can fill in the following ones
+              {target.pendingAfter > 0
+                ? ` (you have ${target.pendingAfter} more to submit after this one).`
+                : ' up to the current week.'}{' '}
+              Your professor will see that it was late.
+            </>
+          ) : (
+            <>
+              <strong>Entrega tardía.</strong> La semana {currentWeek.weekNumber} cerró el{' '}
+              {formatDate(currentWeek.weekEnd)} y no la entregaste a tiempo. Tienes que
+              entregarla para poder llenar las que siguen
+              {target.pendingAfter > 0
+                ? ` (te quedan ${target.pendingAfter} más por entregar después de esta).`
+                : ' hasta llegar a la semana actual.'}{' '}
+              Tu profesor verá que fue fuera de tiempo.
+            </>
+          )}
         </p>
       )}
 
@@ -331,18 +370,18 @@ function SubmissionForm({
         className="mt-5"
         disabled={readOnly || saving || weeksLoading || entriesLoading}
       >
-        <legend className="sr-only">Semana que reportas</legend>
+        <legend className="sr-only">{t('Semana que reportas', 'Week you are reporting')}</legend>
         <div className="sm:max-w-xs">
-          <Field label="Semana que reportas">
+          <Field label={t('Semana que reportas', 'Week you are reporting')}>
             {weeksError ? (
-              <p className="text-sm text-red-700">{weeksError}</p>
+              <p className="text-sm text-red-700">{translateServerText(weeksError, lang)}</p>
             ) : currentWeek ? (
               <p className="text-sm font-medium text-ink-900">
-                Semana {currentWeek.weekNumber} ·{' '}
-                {formatWeekRange(currentWeek.weekStart, currentWeek.weekEnd)}
+                {t('Semana', 'Week')} {currentWeek.weekNumber} ·{' '}
+                {formatWeekRange(currentWeek.weekStart, currentWeek.weekEnd, lang)}
               </p>
             ) : (
-              <p className="text-sm text-ink-500">Cargando…</p>
+              <p className="text-sm text-ink-500">{t('Cargando…', 'Loading…')}</p>
             )}
           </Field>
         </div>
@@ -394,20 +433,26 @@ function SubmissionForm({
         >
           {existingEntry
             ? saving
-              ? 'Actualizando…'
-              : 'Actualizar'
+              ? t('Actualizando…', 'Updating…')
+              : t('Actualizar', 'Update')
             : saving
-              ? 'Entregando…'
-              : 'Entregar'}
+              ? t('Entregando…', 'Submitting…')
+              : t('Entregar', 'Submit')}
         </button>
         <p className="text-xs text-ink-500">
           {readOnly
-            ? 'Vista de solo lectura: aquí no se puede entregar.'
+            ? t('Vista de solo lectura: aquí no se puede entregar.', 'Read-only view: you cannot submit here.')
             : existingEntry
-              ? 'Puedes seguir corrigiéndola mientras siga siendo esta semana.'
+              ? t(
+                  'Puedes seguir corrigiéndola mientras siga siendo esta semana.',
+                  'You can keep editing it while it is still this week.',
+                )
               : isLate
-                ? 'Una entrega tardía ya no se puede corregir.'
-                : 'Podrás corregirla mientras siga siendo esta semana.'}
+                ? t('Una entrega tardía ya no se puede corregir.', 'A late submission cannot be edited afterwards.')
+                : t(
+                    'Podrás corregirla mientras siga siendo esta semana.',
+                    'You will be able to edit it while it is still this week.',
+                  )}
         </p>
       </div>
     </form>
@@ -466,21 +511,23 @@ function PreviousEntries({
   loading: boolean
   error: string | null
 }) {
+  const t = useT()
+  const lang = useLang()
   return (
     <section className="mt-3">
       <h2 className="px-1 text-[11px] font-semibold tracking-widest text-ink-500 uppercase">
-        Tus entregas {entries.length > 0 && `· ${entries.length}`}
+        {t('Tus entregas', 'Your submissions')} {entries.length > 0 && `· ${entries.length}`}
       </h2>
 
       {error ? (
         <p className="mt-2 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800">
-          {error}
+          {translateServerText(error, lang)}
         </p>
       ) : loading ? (
-        <p className="mt-2 px-1 text-sm text-ink-500">Cargando…</p>
+        <p className="mt-2 px-1 text-sm text-ink-500">{t('Cargando…', 'Loading…')}</p>
       ) : entries.length === 0 ? (
         <p className="mt-2 rounded-xl border border-dashed border-ink-200 bg-ink-50/50 px-5 py-6 text-sm text-ink-500">
-          Todavía no has entregado ninguna semana.
+          {t('Todavía no has entregado ninguna semana.', 'You have not submitted any week yet.')}
         </p>
       ) : (
         <ol className="mt-2 space-y-3">
@@ -491,10 +538,10 @@ function PreviousEntries({
             >
               <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                 <p className="text-sm font-semibold text-ink-900">
-                  {formatWeekRange(entry.weekStart, entry.weekEnd) || 'Semana sin fecha'}
+                  {formatWeekRange(entry.weekStart, entry.weekEnd, lang) || t('Semana sin fecha', 'Undated week')}
                 </p>
                 <p className="text-xs text-ink-500">
-                  Entregada el {formatDateTime(entry.submittedAt)}
+                  {t('Entregada el', 'Submitted on')} {formatDateTime(entry.submittedAt, lang)}
                 </p>
               </div>
 
@@ -535,6 +582,8 @@ function DownloadPdfButton({
   onError: (message: string) => void
 }) {
   const [generating, setGenerating] = useState(false)
+  const lang = useLang()
+  const t = useT()
 
   async function download() {
     setGenerating(true)
@@ -542,6 +591,7 @@ function DownloadPdfButton({
       await downloadWeeklyLogPdf({
         form,
         rows,
+        lang,
         student: {
           fullName: dossier?.fullName ?? null,
           studentNumber: dossier?.studentNumber ?? null,
@@ -550,7 +600,7 @@ function DownloadPdfButton({
         },
       })
     } catch {
-      onError('No se pudo generar el PDF. Intenta de nuevo.')
+      onError(t('No se pudo generar el PDF. Intenta de nuevo.', 'The PDF could not be created. Try again.'))
     } finally {
       setGenerating(false)
     }
@@ -563,7 +613,7 @@ function DownloadPdfButton({
       disabled={disabled || generating}
       className="rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-sm font-medium text-ink-700 shadow-sm hover:bg-ink-100 disabled:cursor-not-allowed disabled:opacity-50"
     >
-      {generating ? 'Generando…' : 'Descargar PDF'}
+      {generating ? t('Generando…', 'Generating…') : t('Descargar PDF', 'Download PDF')}
     </button>
   )
 }
