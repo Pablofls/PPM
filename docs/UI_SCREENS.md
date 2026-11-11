@@ -917,7 +917,11 @@ mantener en sincronía.
 bitácora** (no se le saca a Actividades) y ahí mismo sale `SubmissionCelebration`
 (`src/components/SubmissionCelebration.tsx`): **confeti** por toda la pantalla
 si fue a tiempo, o un **sello «ENTREGADO»** que se estampa con golpe y
-sacudida si fue tardía. Corregir la semana en curso también da confeti (además del
+sacudida si fue tardía. El confeti es **de temporada** (`celebrationTheme`,
+según el mes en la hora local): **hojas de otoño** en octubre y noviembre,
+**copos de nieve** de diciembre a febrero y confeti el resto del año. Solo
+cambian la forma y los colores de las piezas; la caída, la cantidad y la
+duración son las mismas. Corregir la semana en curso también da confeti (además del
 aviso). No bloquea clics, no tiene sonido, se retira solo y respeta
 `prefers-reduced-motion`. Tras entregar se recargan las entregas y el
 formulario pasa a la semana siguiente (al terminar la celebración, para no
