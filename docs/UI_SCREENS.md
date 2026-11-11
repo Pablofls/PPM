@@ -856,7 +856,20 @@ que cambia entre ellas son sus campos, y esos viven en `WEEKLY_FORMS`
 |---|---|
 | Instrucciones | Cada cuándo se entrega, qué semana se reporta y qué pasa si se equivoca |
 | Nueva entrega | La semana que le toca (sin selector), más los campos del formulario. Si esa semana ya cerró, se llama «Entrega tardía» y lleva un aviso amarillo |
+| Descargar PDF | Botón arriba de «Tus entregas»; deshabilitado sin entregas |
 | Tus entregas | Todas las que lleva, de la más reciente a la más antigua |
+
+**Descargar PDF.** Arma en el navegador la bitácora completa con la forma del
+documento que los alumnos llenaban antes (`src/lib/weeklyLogPdf.ts`, con
+`jspdf` + `jspdf-autotable`, cargados solo al hacer clic): hoja carta
+horizontal, el nombre del reporte como título, un recuadro con nombre y
+matrícula —en Prácticas también empresa y puesto, del B.1— y una tabla con una
+fila por semana, la más reciente primero, con el encabezado repetido en cada
+página. Prácticas lleva horas trabajadas y acumuladas por semana y el total al
+final. El archivo se llama `Reporte de Prácticas - <Nombre> - <Matrícula>.pdf`.
+No escribe nada, así que también funciona en «Ver como Alumno». La Helvetica de
+jsPDF es Latin-1: acentos y ñ salen bien; comillas tipográficas y guiones
+largos se simplifican y los emojis se quitan.
 
 Los campos son **los mismos** que tenía el Google Form, con la pregunta original
 como texto de ayuda. Las claves de `WeeklyField` son las propiedades de

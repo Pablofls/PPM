@@ -8,8 +8,10 @@ import type {
   InternshipLogRow,
   JobSearchLogRow,
   SemesterWeek,
+  StudentDossier,
   WeeklyLogStatusCell,
 } from '../../data/types'
+import { downloadWeeklyLogPdf } from '../../lib/weeklyLogPdf'
 import type { WeeklyField, WeeklyFormCode, WeeklyFormMeta } from '../../lib/catalog'
 import { formatDate, formatDateTime, formatWeekRange } from '../../lib/format'
 import { celebrationKind, type CelebrationKind } from '../../lib/celebration'
@@ -50,9 +52,10 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
   // El admin en «Ver como Alumno» recibe las semanas de TODOS los grupos
   // (RLS de admin); el alumno, solo las del suyo. Se acotan al grupo del
   // alumno que se está viendo para calcular la misma semana que él ve.
-  const { dossier } = useStudentDossier(portalReadOnly ? studentId : null)
+  // También da nombre, matrícula, empresa y puesto al PDF descargable.
+  const { dossier } = useStudentDossier(studentId)
 
-  const { entries, loading, error } = useMyLogs(form.code, studentId, refreshKey)
+  const { rows, entries, loading, error } = useMyLogs(form.code, studentId, refreshKey)
   // Qué semanas están entregadas (con cualquiera de las dos bitácoras): de ahí
   // sale la semana que toca. `entries` solo trae las de esta bitácora.
   const { weeks: statusCells, loaded: statusLoaded } = useWeeklyLogStatus(studentId, refreshKey)
@@ -135,6 +138,16 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
         entriesLoading={loading || !statusLoaded}
         statusCells={statusCells}
       />
+
+      <div className="mt-8 flex justify-end">
+        <DownloadPdfButton
+          form={form}
+          rows={rows}
+          dossier={dossier}
+          disabled={loading || rows.length === 0}
+          onError={setToast}
+        />
+      </div>
 
       <PreviousEntries
         fields={form.fields}
@@ -454,7 +467,7 @@ function PreviousEntries({
   error: string | null
 }) {
   return (
-    <section className="mt-8">
+    <section className="mt-3">
       <h2 className="px-1 text-[11px] font-semibold tracking-widest text-ink-500 uppercase">
         Tus entregas {entries.length > 0 && `· ${entries.length}`}
       </h2>
@@ -503,6 +516,58 @@ function PreviousEntries({
   )
 }
 
+/**
+ * Descarga la bitácora completa en PDF, con la forma del documento que los
+ * alumnos llenaban antes (ver `src/lib/weeklyLogPdf.ts`). No escribe nada, así
+ * que también funciona en «Ver como Alumno».
+ */
+function DownloadPdfButton({
+  form,
+  rows,
+  dossier,
+  disabled,
+  onError,
+}: {
+  form: WeeklyFormMeta
+  rows: (JobSearchLogRow | InternshipLogRow)[]
+  dossier: StudentDossier | null
+  disabled: boolean
+  onError: (message: string) => void
+}) {
+  const [generating, setGenerating] = useState(false)
+
+  async function download() {
+    setGenerating(true)
+    try {
+      await downloadWeeklyLogPdf({
+        form,
+        rows,
+        student: {
+          fullName: dossier?.fullName ?? null,
+          studentNumber: dossier?.studentNumber ?? null,
+          companyName: dossier?.companyName ?? null,
+          department: dossier?.department ?? null,
+        },
+      })
+    } catch {
+      onError('No se pudo generar el PDF. Intenta de nuevo.')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={download}
+      disabled={disabled || generating}
+      className="rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-sm font-medium text-ink-700 shadow-sm hover:bg-ink-100 disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {generating ? 'Generando…' : 'Descargar PDF'}
+    </button>
+  )
+}
+
 function formatValue(value: unknown): string {
   if (value === null || value === undefined || value === '') return '—'
   return String(value)
@@ -542,7 +607,7 @@ function useMyLogs(code: WeeklyFormCode, studentId: string | null, refreshKey: n
     refetch()
   }, [refreshKey, refetch])
 
-  return { entries, loading, error }
+  return { rows: data, entries, loading, error }
 }
 
 function toEntry(row: JobSearchLogRow | InternshipLogRow): Entry {
