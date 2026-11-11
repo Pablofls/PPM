@@ -9,8 +9,8 @@ formularios de Google. Reemplaza la implementación actual en Google Apps Script
 El profesor autorizó el proyecto el 10 de septiembre de 2026.
 
 - Supabase configurado (ref `sovinakodrmgxytgapry`) y Vercel desplegado.
-- Las migraciones `0001`–`0051` **ya se ejecutaron** (salvo `0019`, ver
-  `docs/DATABASE_SCHEMA.md`). `0052` está escrita y sin ejecutar. Un archivo
+- Las migraciones `0001`–`0052` **ya se ejecutaron** (salvo `0019`, ver
+  `docs/DATABASE_SCHEMA.md`). Un archivo
   ejecutado no se vuelve a editar: el siguiente cambio es `0053_…`.
 - Alcance del esquema: **autenticación + los 11 formularios de Módulo 1 y 2 +
   los dos apéndices + las dos bitácoras semanales**. Las hojas `alumnos` y
@@ -92,7 +92,7 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   `group_deadlines`; los 12 Google Forms solo llevan fecha de entrega y no
   salen en el portal. Ver
   [docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md#actividades).
-- **1.0 en el portal** (`0052`, **escrita, sin ejecutar**): el alumno
+- **1.0 en el portal** (`0052`, ejecutada el 2026-11-11): el alumno
   contesta Datos Demográficos en Actividades cuando el profesor lo publica.
   No se pregunta ni se guarda periodo, frecuencia, idioma ni matrícula: los
   da el grupo y el registro. Corregir es volver a entregar. El Google Form
