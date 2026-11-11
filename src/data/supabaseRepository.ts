@@ -789,6 +789,18 @@ export const supabaseRepository: PanelRepository = {
     }))
   },
 
+  async getGroupLanguage(groupId: string): Promise<Group['language'] | null> {
+    const { data, error } = await supabase
+      .from('groups')
+      .select('language')
+      .eq('id', groupId)
+      .maybeSingle()
+
+    if (error) throw new Error(`No se pudo leer el idioma del grupo: ${error.message}`)
+    const language = str((data as PanelRecord | null)?.language)
+    return language === 'en' || language === 'es' ? language : null
+  },
+
   async createGroup(input: GroupInput): Promise<void> {
     const { error } = await supabase.rpc('admin_create_group', {
       p_period_code: input.periodCode,

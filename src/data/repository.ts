@@ -192,6 +192,13 @@ export interface PanelRepository {
   getGroups(): Promise<Group[]>
 
   /**
+   * El idioma de un grupo, leído de `groups` y no de `v_groups`: la vista une
+   * el perfil del maestro, que el alumno no puede leer, y le llega vacía.
+   * Lo usa el portal del alumno para elegir su idioma. `null` si no lo ve.
+   */
+  getGroupLanguage(groupId: string): Promise<Group['language'] | null>
+
+  /**
    * Crea un grupo (`admin_create_group()`). Si hay alumnos sin grupo cuyo 1.0
    * coincide solo con este, quedan inscritos en el mismo paso.
    */
@@ -454,6 +461,9 @@ export const emptyRepository: PanelRepository = {
   },
   async getGroups() {
     return []
+  },
+  async getGroupLanguage() {
+    return null
   },
   async createGroup() {
     throw new Error('No hay conexión con la base de datos. El grupo no se creó.')

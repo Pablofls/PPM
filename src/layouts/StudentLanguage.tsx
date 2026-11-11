@@ -32,22 +32,24 @@ function store(studentId: string, lang: Lang) {
  * El idioma del portal: el del grupo del alumno (`groups.language`).
  *
  * El alumno lee su propio grupo (política `groups_select_own`, `0032`) y su
- * expediente trae `group_id`. El admin en «Ver como Alumno» recibe todos los
- * grupos y se queda con el del alumno que está viendo. Sin grupo, español.
+ * expediente trae `group_id`; el admin en «Ver como Alumno» lee el del alumno
+ * que está viendo. Sin grupo, español.
  */
 export function StudentLanguageProvider({ children }: { children: ReactNode }) {
   const { portalStudentId } = useAuth()
   const { dossier } = useStudentDossier(portalStudentId)
   const groupId = dossier?.groupId ?? null
-  const { data: groups, loading } = useRepositoryQuery(
-    () => (groupId ? repository.getGroups() : Promise.resolve([] as Group[])),
-    [] as Group[],
+  // Directo de `groups`, no de `v_groups`: la vista une el perfil del maestro,
+  // que el alumno no puede leer, y le regresaba vacía (el portal quedaba en
+  // español aunque el grupo fuera de Inglés).
+  const { data: groupLanguage, loading } = useRepositoryQuery(
+    () => (groupId ? repository.getGroupLanguage(groupId) : Promise.resolve(null)),
+    null as Group['language'] | null,
     [groupId],
-    'studentLanguageGroups',
+    'studentLanguage',
   )
 
-  const group = groups.find((candidate) => candidate.id === groupId)
-  const resolved: Lang | null = group ? (group.language === 'en' ? 'en' : 'es') : null
+  const resolved: Lang | null = groupLanguage ? (groupLanguage === 'en' ? 'en' : 'es') : null
   // Mientras se resuelve, el último idioma conocido de este alumno.
   const known = dossier && !groupId ? 'es' : !loading ? resolved : null
   const lang: Lang = known ?? readStored(portalStudentId) ?? 'es'

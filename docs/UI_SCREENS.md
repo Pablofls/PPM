@@ -802,7 +802,8 @@ como Alumno» ve el portal en el idioma del alumno que eligió.
   muestran tal cual.
 - `src/layouts/StudentLanguage.tsx`: el proveedor, montado en `StudentShell`.
   Lee el grupo del alumno (`v_student_dossier.group_id` y `groups`, que el
-  alumno puede leer por `groups_select_own`) y recuerda el último idioma en
+  alumno puede leer por `groups_select_own`; **no** `v_groups`, que une el
+  perfil del maestro y al alumno le llega vacía) y recuerda el último idioma en
   `localStorage` para no parpadear en español al recargar.
 - Las bitácoras traen su versión en inglés en `WEEKLY_FORMS[].en`
   (`localizeWeeklyForm()`).
