@@ -228,14 +228,28 @@ Todas las pantallas de formulario comparten el mismo esqueleto:
    el color de acento cuando pasan más de 150 minutos sin una corrida, cuando
    una corrida no cerró, o cuando nunca ha habido ninguna. No es decoración:
    sin él, un disparador muerto se ve igual que una semana sin entregas.
-2. **Resumen** — contadores: respuestas recibidas, alumnos sin responder, entregas
-   tarde. Sin base de datos muestran `—`.
+2. **Resumen** — cuatro contadores: **Respuestas**, **Sin responder**,
+   **Entregas tarde** y **A tiempo**. Sin base de datos muestran `—`; *Entregas
+   tarde* y *A tiempo* también, si ningún alumno del alcance tiene fecha límite
+   para ese formulario en su grupo (`group_deadlines`, `0046`). Son botones:
+   un clic deja en la tabla solo esos alumnos (`?estado=respondidos`,
+   `sin_responder`, `tarde`, `a_tiempo`), la tarjeta se pinta oscura como un
+   filtro puesto y aparece *Limpiar*; otro clic en la tarjeta, o *Limpiar*, lo
+   quita. Los números se cuentan sobre la tabla completa, antes de ese filtro.
 3. **Barra de filtros** — idéntica en todas las pantallas:
    - Búsqueda por correo institucional
    - **Columnas** — qué columnas se ven y en qué orden (ver abajo)
    - Idioma · Frecuencia · Carrera · Semestre · Período
 4. **Tabla de datos** — una fila por alumno (la respuesta más reciente, vía
    `latest_submissions`). Encabezados fijos y scroll horizontal propio.
+   **Los alumnos que no han respondido también salen**, con la fila en rojo y
+   la marca *Sin responder* junto al nombre (o junto al correo, si todavía no
+   contestan el 1.0 y no hay nombre). Llevan solo lo que se sabe de ellos por
+   el registro y el directorio —matrícula, correo, idioma del grupo,
+   frecuencia, carrera, semestre, período—; las columnas del formulario van en
+   `—`. Los arma `FormPage` cruzando las respuestas con `getFormRoster`
+   (`v_students_directory` + `v_submission_status`), sin migración. Su
+   expediente se abre igual y dice que todavía no responde el formulario.
 5. **Expediente del alumno** — al hacer clic en una fila se abre con todo lo que
    se sabe del alumno, sin importar desde qué pantalla se abrió.
 
@@ -479,9 +493,9 @@ de página parametrizado por `form_code`. Cambian el título y el subtítulo.
 | Fecha de respuesta | `submitted_at` |
 | Entrega | estado calculado: a tiempo / tarde / pendiente / sin fecha |
 
-> La columna **Entrega** aparece en estas cuatro pantallas porque son los únicos
-> formularios con fecha configurada hoy en `fechas_entrega`. El componente es
-> genérico y se activa en cualquier formulario en cuanto se le configure una fecha.
+> La columna **Entrega** aparece en estas cuatro pantallas. Su estado sale de
+> `v_submission_status`, contra la fecha límite del grupo del alumno
+> (`group_deadlines`, `0046`).
 
 ### 2.7 Indeed · `form2_7`
 

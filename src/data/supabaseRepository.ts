@@ -31,7 +31,7 @@ import type {
   UserAccount,
   RegistrationResult,
   StudentRegistrationInput,
-  FormSummary,
+  FormRosterEntry,
   GradeState,
   HollandRow,
   IndeedRow,
@@ -131,6 +131,17 @@ function scopeIds(ids: string[]): string[] {
   return ids.length > 0 ? ids : ['00000000-0000-0000-0000-000000000000']
 }
 
+/** Solo el alcance de grupo de `applyFilters`. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function applyGroupScope<T extends PostgrestFilterBuilder<any, any, any, any, any>>(
+  query: T,
+  filters: PanelFilters,
+): T {
+  if (filters.group) return query.eq('group_id', filters.group) as T
+  if (filters.scopeGroups) return query.in('group_id', scopeIds(filters.scopeGroups)) as T
+  return query
+}
+
 /**
  * Filtrado de los apéndices.
  *
@@ -202,36 +213,86 @@ const SKILL_KEYS = SKILL_GROUPS.flatMap((group) => group.skills.map((s) => s.key
 export const supabaseRepository: PanelRepository = {
   isConnected: true,
 
-  async getSummary(formCode: FormCode, filters: PanelFilters): Promise<FormSummary | null> {
-    const view = VIEW_BY_FORM[formCode]
-
-    let responses = applyFilters(
-      supabase.from(view).select('*', { count: 'exact', head: true }),
-      filters,
-    )
-    if (REFLECTION_VIEW === view) responses = responses.eq('form_code', formCode)
-
-    const students = applyFilters(
-      supabase.from('v_students_directory').select('*', { count: 'exact', head: true }),
-      filters,
-    )
-
-    const [answered, total] = await Promise.all([responses, students])
-    if (answered.error) {
-      throw new Error(`No se pudo contar las respuestas: ${answered.error.message}`)
+  async getFormRoster(formCode, filters, mode): Promise<FormRosterEntry[]> {
+    // El alcance: los mismos alumnos que cuenta "Sin responder", con los
+    // mismos filtros que la pantalla. Los apéndices buscan por nombre o correo
+    // y solo filtran por período, como `fetchAppendix`.
+    let directory = supabase
+      .from('v_students_directory')
+      .select(
+        'student_id, institutional_email, full_name, student_number, language, ' +
+          'session_day, degree_code, semester, period_code',
+      )
+    if (mode === 'solo-busqueda') {
+      if (filters.search) {
+        const patron = `%${filters.search}%`
+        directory = directory.or(
+          `full_name.ilike.${patron},institutional_email.ilike.${patron}`,
+        )
+      }
+      if (filters.period) directory = directory.eq('period_code', filters.period)
+      directory = applyGroupScope(directory, filters)
+    } else {
+      directory = applyFilters(directory, filters)
     }
 
-    const responseCount = answered.count ?? 0
-    const studentCount = total.count ?? 0
+    // Quién respondió y cuándo vencía. `v_submission_status` ya resuelve la
+    // fecha límite del grupo (`0046`) y el estado, pero no incluye el 1.0
+    // (no tiene fecha límite): para ese basta saber quién lo contestó. Solo se
+    // acota por grupo — el resto de los filtros ya lo aplicó el directorio, y
+    // su columna `language` no es la misma.
+    const status =
+      formCode === 'form1_0'
+        ? // `latest_submissions` no tiene `group_id`: lo acotan RLS y el
+          // cruce con el directorio.
+          supabase
+            .from('latest_submissions')
+            .select('student_id, submitted_at')
+            .eq('form_code', formCode)
+        : applyGroupScope(
+            supabase
+              .from('v_submission_status')
+              .select('student_id, submitted_at, due_at, state')
+              .eq('form_code', formCode),
+            filters,
+          )
 
-    return {
-      responses: responseCount,
-      pending: Math.max(0, studentCount - responseCount),
-      // Sin fechas de entrega configuradas no hay forma de saber si algo llegó
-      // tarde. `null` se muestra como "—", que es honesto; un 0 haría creer que
-      // se comprobó y no hubo ninguna.
-      late: null,
+    const [students, statuses] = await Promise.all([directory, status])
+    if (students.error) {
+      throw new Error(`No se pudo cargar la lista de alumnos: ${students.error.message}`)
     }
+    if (statuses.error) {
+      throw new Error(`No se pudo cargar el estado de las entregas: ${statuses.error.message}`)
+    }
+
+    const byStudent = new Map<string, PanelRecord>()
+    for (const record of (statuses.data ?? []) as PanelRecord[]) {
+      byStudent.set(str(record.student_id) ?? '', record)
+    }
+
+    return ((students.data ?? []) as unknown as PanelRecord[]).map((record) => {
+      const studentId = str(record.student_id) ?? ''
+      const entry = byStudent.get(studentId)
+      const submittedAt = str(entry?.submitted_at)
+      return {
+        studentId,
+        institutionalEmail: str(record.institutional_email) ?? '',
+        fullName: str(record.full_name),
+        studentNumber: str(record.student_number),
+        language: (str(record.language) as 'es' | 'en' | null) ?? null,
+        sessionDay: (str(record.session_day) as SessionDay | null) ?? null,
+        degreeCode: str(record.degree_code),
+        semester: num(record.semester),
+        periodCode: str(record.period_code),
+        submittedAt,
+        dueAt: str(entry?.due_at),
+        // Sin fecha límite, `submission_status()` (`0024`) da por a tiempo
+        // cualquier entrega: el 1.0 sigue la misma regla.
+        state:
+          (str(entry?.state) as SubmissionState | null) ??
+          (submittedAt ? 'a_tiempo' : 'sin_fecha'),
+      }
+    })
   },
 
   async getDemographics(filters) {
@@ -1399,22 +1460,6 @@ function weeklyLogBase(record: PanelRecord) {
 }
 
 const REFLECTION_VIEW = 'v_panel_reflections'
-
-const VIEW_BY_FORM: Record<FormCode, string> = {
-  form1_0: 'v_panel_demographics',
-  form1_1: 'v_panel_holland',
-  form1_2: 'v_panel_mbti',
-  form1_3: 'v_panel_disc',
-  form1_4: 'v_panel_skills',
-  form1_5: 'v_panel_values',
-  form2_1: REFLECTION_VIEW,
-  form2_2: REFLECTION_VIEW,
-  form2_4: REFLECTION_VIEW,
-  form2_5: REFLECTION_VIEW,
-  form2_7: 'v_panel_indeed',
-  formA_1: 'v_panel_internships',
-  formB_1: 'v_panel_companies',
-}
 
 function toGradeEntry(record: PanelRecord): GradeEntry {
   return {

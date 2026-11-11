@@ -3,15 +3,35 @@ import { useState } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import { useSyncStatus } from '../data/hooks'
 import { repository } from '../data/repository'
-import type { FormSummary, SyncRunResult, SyncStatus } from '../data/types'
+import type { SyncRunResult, SyncStatus } from '../data/types'
 import { formatDateTime, formatRelativeTime } from '../lib/format'
 import { Toast } from './Toast'
+
+/** Filtro de la tabla que activan los contadores (`?estado=` en la URL). */
+export type StatusFilter = 'respondidos' | 'sin_responder' | 'tarde' | 'a_tiempo'
+
+/** Contadores del encabezado, calculados por `FormPage` sobre sus filas. */
+export interface FormCounts {
+  responses: number
+  pending: number
+  /**
+   * `null` cuando no se puede saber: sin fecha límite en el alcance no hay
+   * contra qué comparar. Se muestra como "—", no como 0, para no hacer creer
+   * que se comprobó y no hubo ninguna.
+   */
+  late: number | null
+  onTime: number | null
+}
 
 interface PageHeaderProps {
   label: string
   title: string
   subtitle: string
-  summary: FormSummary | null
+  counts: FormCounts | null
+  /** El contador que está filtrando la tabla, si alguno. */
+  activeStatus: StatusFilter | null
+  /** Clic en un contador: lo activa, o lo quita si ya estaba activo (`null`). */
+  onStatusChange: (status: StatusFilter | null) => void
   isConnected: boolean
   /** Los apéndices solo tienen "Exportar datos". */
   hideProcessAction?: boolean
@@ -35,7 +55,9 @@ export function PageHeader({
   label,
   title,
   subtitle,
-  summary,
+  counts,
+  activeStatus,
+  onStatusChange,
   isConnected,
   hideProcessAction = false,
 }: PageHeaderProps) {
@@ -43,6 +65,9 @@ export function PageHeader({
   const { data: sync, loading: syncLoading, isConnected: syncConnected, error: syncError, refetch } =
     useSyncStatus()
   const [toast, setToast] = useState<{ message: string; tone: 'success' | 'error' } | null>(null)
+
+  const toggle = (status: StatusFilter) =>
+    onStatusChange(activeStatus === status ? null : status)
 
   return (
     <header className="mb-6">
@@ -76,17 +101,45 @@ export function PageHeader({
         </div>
       </div>
 
-      <dl className="mt-5 grid gap-3 sm:grid-cols-3 lg:max-w-2xl">
-        <Stat label="Respuestas" value={summary?.responses} isConnected={isConnected} />
-        <Stat label="Sin responder" value={summary?.pending} isConnected={isConnected} />
-        {/* Es el único contador que pide algo del profesor: lleva el acento. */}
+      {/*
+        Los contadores también son el filtro por estado: clic en uno deja en la
+        tabla solo esos alumnos, y otro clic (o «Limpiar») lo quita.
+      */}
+      <div className="mt-5 grid gap-3 sm:grid-cols-4 lg:max-w-3xl">
+        <Stat
+          label="Respuestas"
+          value={counts?.responses}
+          isConnected={isConnected}
+          active={activeStatus === 'respondidos'}
+          onClick={() => toggle('respondidos')}
+        />
+        <Stat
+          label="Sin responder"
+          value={counts?.pending}
+          isConnected={isConnected}
+          active={activeStatus === 'sin_responder'}
+          onClick={() => toggle('sin_responder')}
+          marker="red"
+        />
+        {/* Es el contador que más pide algo del profesor: lleva el acento. */}
         <Stat
           label="Entregas tarde"
-          value={summary?.late}
+          value={counts?.late}
           isConnected={isConnected}
-          highlight
+          active={activeStatus === 'tarde'}
+          onClick={() => toggle('tarde')}
+          marker="accent"
+          emptyTitle={NO_DEADLINE}
         />
-      </dl>
+        <Stat
+          label="A tiempo"
+          value={counts?.onTime}
+          isConnected={isConnected}
+          active={activeStatus === 'a_tiempo'}
+          onClick={() => toggle('a_tiempo')}
+          emptyTitle={NO_DEADLINE}
+        />
+      </div>
 
       {toast && (
         <Toast message={toast.message} tone={toast.tone} onDismiss={() => setToast(null)} />
@@ -95,35 +148,81 @@ export function PageHeader({
   )
 }
 
+const NO_DEADLINE = 'Este formulario no tiene fecha límite en este grupo'
+
 function Stat({
   label,
   value,
   isConnected,
-  highlight = false,
+  active,
+  onClick,
+  marker,
+  emptyTitle,
 }: {
   label: string
   value: number | null | undefined
   isConnected: boolean
-  /** Marca el contador cuando hay algo que atender. */
-  highlight?: boolean
+  /** Es el filtro vigente de la tabla. */
+  active: boolean
+  onClick: () => void
+  /** Punto de color cuando hay algo que atender (valor mayor que 0). */
+  marker?: 'accent' | 'red'
+  /** Por qué no hay número, cuando el valor es `null`. */
+  emptyTitle?: string
 }) {
   const hasValue = isConnected && value != null
-  const marked = highlight && hasValue && value > 0
+  const marked = marker !== undefined && hasValue && value > 0
+  // Sin número no hay nada que filtrar; si quedó activo, se deja quitar.
+  const disabled = !hasValue && !active
 
   return (
-    <div
-      className={`rounded-xl border bg-white px-4 py-3 shadow-sm ${
-        marked ? 'border-accent-400' : 'border-ink-200'
+    <button
+      type="button"
+      aria-pressed={active}
+      disabled={disabled}
+      onClick={onClick}
+      title={
+        !hasValue && isConnected && value === null
+          ? emptyTitle
+          : active
+            ? 'Quitar este filtro'
+            : `Ver solo: ${label.toLowerCase()}`
+      }
+      className={`rounded-xl border px-4 py-3 text-left shadow-sm transition-colors disabled:cursor-default ${
+        // Activo se ve como los selects con filtro puesto (`FilterBar`).
+        active
+          ? 'border-ink-900 bg-ink-900'
+          : `bg-white enabled:hover:border-ink-300 enabled:hover:bg-ink-50 ${
+              marked && marker === 'accent'
+                ? 'border-accent-400'
+                : marked && marker === 'red'
+                  ? 'border-red-300'
+                  : 'border-ink-200'
+            }`
       }`}
     >
-      <dt className="flex items-center gap-1.5 text-xs font-medium text-ink-500">
-        {marked && <span className="size-1.5 rounded-full bg-accent-500" />}
+      <span
+        className={`flex items-center gap-1.5 text-xs font-medium ${
+          active ? 'text-ink-300' : 'text-ink-500'
+        }`}
+      >
+        {marked && (
+          <span
+            className={`size-1.5 rounded-full ${
+              marker === 'red' ? 'bg-red-500' : 'bg-accent-500'
+            }`}
+          />
+        )}
         {label}
-      </dt>
-      <dd className="tnum mt-1 text-2xl font-semibold tracking-tight text-ink-950">
+      </span>
+      <span
+        className={`tnum mt-1 block text-2xl font-semibold tracking-tight ${
+          active ? 'text-white' : 'text-ink-950'
+        }`}
+      >
         {hasValue ? value : <span className="text-ink-300">—</span>}
-      </dd>
-    </div>
+      </span>
+    </button>
   )
 }
 
