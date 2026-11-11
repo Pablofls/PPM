@@ -94,6 +94,11 @@ interface FilterBarProps {
   columnPicker?: React.ReactNode
   /** Controles adicionales de una pantalla específica, p. ej. el grupo de habilidades. */
   children?: React.ReactNode
+  /**
+   * Hay un filtro puesto fuera de la barra (el contador activo de
+   * `PageHeader`). «Limpiar» lo quita también, porque borra toda la URL.
+   */
+  extraActive?: boolean
 }
 
 export function FilterBar({
@@ -104,9 +109,11 @@ export function FilterBar({
   searchPlaceholder = 'Buscar por correo institucional…',
   columnPicker,
   children,
+  extraActive = false,
 }: FilterBarProps) {
   // El grupo no cuenta: «Limpiar» no lo quita, así que no debe aparecer por él.
-  const hasActiveFilters = (Object.keys(PARAM_NAMES) as BarFilterKey[]).some((key) => filters[key])
+  const hasActiveFilters =
+    extraActive || (Object.keys(PARAM_NAMES) as BarFilterKey[]).some((key) => filters[key])
   const showSelectors = mode === 'completos'
 
   return (
