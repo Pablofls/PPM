@@ -12,8 +12,7 @@
 - **Última migración aplicada:** `0047_rls_init_plans.sql` (2026-10-14).
   `0043_weekly_log_sequential.sql` (2026-10-14); `0044_teacher_group_admin.sql` (2026-10-14); `0045_session_days_weekdays.sql` (2026-10-14).
   `0046_group_deadlines.sql` (2026-10-14).
-  `0051_activities.sql` está escrita y documentada aquí (sección
-  [Actividades](#actividades)) pero **todavía no se pega en Supabase**.
+  `0051_activities.sql` (2026-11-11).
   `0019_student_dossier_read.sql` está escrita y documentada aquí pero
   **todavía no se pega en Supabase**.
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
@@ -1211,7 +1210,7 @@ funciones de abajo escriben.
 
 ## Actividades
 
-> Migración `0051_activities.sql` — ⏳ **escrita, todavía no ejecutada en Supabase**.
+> Migración `0051_activities.sql` — ✅ ejecutada en Supabase (2026-11-11).
 > Reemplaza a `group_deadlines` (sección siguiente) y convierte la pantalla
 > «Fechas de entrega» en «Actividades».
 
@@ -2279,7 +2278,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0048_admin_usage_stats.sql` | `admin_usage_stats()`: tamaño de BD y Storage, MAU, conexiones y tablas más pesadas para la pantalla Uso de Supabase (admin) | ✅ 2026-10-27 |
 | `0049_student_grades.sql` | pantalla `alumno_calificaciones`; el alumno lee sus `grades` y los `grade_activities` de su grupo (políticas «lo mío» y restrictivas ampliadas) | ✅ 2026-11-04 |
 | `0050_notices.sql` | `notices`, `notice_recipients`, `notice_groups`, `grade_reads`; `send_notice()`, `mark_*_read()`, `notification_sender_name()`; vistas `v_my_notifications`, `v_sent_notices`; `v_grade_center.seen_at`; pantalla `avisos` | ✅ 2026-11-04 |
-| `0051_activities.sql` | `activities` (publicar, disponible desde / fecha de entrega / disponible hasta) por grupo × formulario, sembradas con trigger; `save_activity()`, `set_activity_published()`, `activity_is_open()` y restrictivas de entrega del alumno; `group_form_deadline()` y `v_submission_status` (con el 1.0) leen `activities`; pantalla `actividades` en lugar de `fechas_entrega`; se eliminan `group_deadlines` y sus funciones | ⏳ sin ejecutar |
+| `0051_activities.sql` | `activities` (publicar, disponible desde / fecha de entrega / disponible hasta) por grupo × formulario, sembradas con trigger; `save_activity()`, `set_activity_published()`, `activity_is_open()` y restrictivas de entrega del alumno; `group_form_deadline()` y `v_submission_status` (con el 1.0) leen `activities`; pantalla `actividades` en lugar de `fechas_entrega`; se eliminan `group_deadlines` y sus funciones | ✅ 2026-11-11 |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.
