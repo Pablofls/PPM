@@ -236,7 +236,7 @@ Todas las pantallas de formulario comparten el mismo esqueleto:
 2. **Resumen** — cuatro contadores: **Respuestas**, **Sin responder**,
    **Entregas tarde** y **A tiempo**. Sin base de datos muestran `—`; *Entregas
    tarde* y *A tiempo* también, si ningún alumno del alcance tiene fecha límite
-   para ese formulario en su grupo (`group_deadlines`, `0046`). Son botones:
+   para ese formulario en su grupo (su actividad, `0051`). Son botones:
    un clic deja en la tabla solo esos alumnos (`?estado=respondidos`,
    `sin_responder`, `tarde`, `a_tiempo`), la tarjeta se pinta oscura como un
    filtro puesto y aparece *Limpiar*; otro clic en la tarjeta, o *Limpiar*, lo
@@ -501,7 +501,7 @@ de página parametrizado por `form_code`. Cambian el título y el subtítulo.
 
 > La columna **Entrega** aparece en estas cuatro pantallas. Su estado sale de
 > `v_submission_status`, contra la fecha límite del grupo del alumno
-> (`group_deadlines`, `0046`).
+> (la actividad publicada del grupo, `0051`).
 
 ### 2.7 Indeed · `form2_7`
 

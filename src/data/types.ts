@@ -438,7 +438,7 @@ export interface FormRosterEntry {
   periodCode: string | null
   /** `null` si no ha respondido. */
   submittedAt: string | null
-  /** Fecha límite del formulario en el grupo del alumno (`0046`); `null` si no hay. */
+  /** Fecha límite del formulario en el grupo del alumno (su actividad publicada, `0051`); `null` si no hay. */
   dueAt: string | null
   state: SubmissionState
 }
