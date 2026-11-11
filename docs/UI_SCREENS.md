@@ -243,8 +243,9 @@ Todas las pantallas de formulario comparten el mismo esqueleto:
 4. **Tabla de datos** — una fila por alumno (la respuesta más reciente, vía
    `latest_submissions`). Encabezados fijos y scroll horizontal propio.
    **Los alumnos que no han respondido también salen**, con la fila en rojo y
-   la marca *Sin responder* junto al nombre (o junto al correo, si todavía no
-   contestan el 1.0 y no hay nombre). Llevan solo lo que se sabe de ellos por
+   la marca *Sin responder* en la columna Nombre. Si todavía no contestan el
+   1.0 no hay nombre y la celda queda en `—` con la marca; el correo nunca se
+   pone en lugar del nombre. Llevan solo lo que se sabe de ellos por
    el registro y el directorio —matrícula, correo, idioma del grupo,
    frecuencia, carrera, semestre, período—; las columnas del formulario van en
    `—`. Los arma `FormPage` cruzando las respuestas con `getFormRoster`
