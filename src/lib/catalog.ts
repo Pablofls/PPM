@@ -203,7 +203,7 @@ export const WEEKLY_FORMS: WeeklyFormMeta[] = [
     code: 'form_busqueda',
     name: 'Reporte de Búsqueda',
     subtitle: 'Tu bitácora semanal de búsqueda de empleo',
-    path: '/alumno/reporte-de-busqueda',
+    path: '/alumno/actividades/reporte-de-busqueda',
     instructions: [
       'Se entrega una vez por semana, mientras sigas en búsqueda de prácticas.',
       'Solo puedes reportar la semana en curso: el sistema no te deja elegir otra.',
@@ -251,7 +251,7 @@ export const WEEKLY_FORMS: WeeklyFormMeta[] = [
     code: 'form_practicas',
     name: 'Reporte de Prácticas',
     subtitle: 'Tu bitácora semanal dentro de la empresa',
-    path: '/alumno/reporte-de-practicas',
+    path: '/alumno/actividades/reporte-de-practicas',
     instructions: [
       'Se entrega una vez por semana, desde que empiezas tus prácticas.',
       'Las horas son las de esa semana, no el acumulado: el total lo suma el sistema.',

@@ -5,13 +5,14 @@ import { useAuth } from '../auth/AuthProvider'
 import { usePermissions } from '../auth/PermissionsProvider'
 import { NotificationBell } from '../components/NotificationBell'
 import { RoleSwitcher } from '../components/RoleSwitcher'
+import { WEEKLY_FORMS } from '../lib/catalog'
 import { NavGroup, NavItem } from './RailNav'
 
 /**
  * Marco de la vista del alumno, gemelo del `AppShell` del profesor: rail
- * oscuro a la izquierda con sus secciones (Inicio y Calificaciones, como el
- * menú de un curso en Canvas) y la barra de cuenta arriba con la campanita
- * de notificaciones.
+ * oscuro a la izquierda con sus secciones (Inicio, Actividades y
+ * Calificaciones, como el menú de un curso en Canvas) y la barra de cuenta
+ * arriba con la campanita de notificaciones.
  *
  * En pantallas angostas —el alumno entra mucho desde el celular— el rail se
  * esconde y se abre como cajón con el botón ☰.
@@ -68,6 +69,9 @@ export function StudentShell() {
           <nav className="rail-scroll flex-1 overflow-y-auto px-2 pb-6">
             <NavGroup title="Mi curso">
               <NavItem to="/alumno" end label="" name="Inicio" />
+              {WEEKLY_FORMS.some((form) => can(form.code)) && (
+                <NavItem to="/alumno/actividades" label="" name="Actividades" />
+              )}
               {can('alumno_calificaciones') && (
                 <NavItem to="/alumno/calificaciones" label="" name="Calificaciones" />
               )}

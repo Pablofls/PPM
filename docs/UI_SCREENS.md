@@ -774,7 +774,8 @@ dentro de [Expediente del alumno](#expediente-del-alumno).
 
 Lo que ve un usuario con rol `alumno`. Vive fuera del `AppShell` y bajo su
 propio marco, `src/layouts/StudentShell.tsx`, con su **propio rail** (desde
-`0049`): **Inicio** (`/alumno`), **Calificaciones** (`/alumno/calificaciones`,
+`0049`): **Inicio** (`/alumno`), **Actividades** (`/alumno/actividades`, si
+puede ver al menos una bitácora), **Calificaciones** (`/alumno/calificaciones`,
 si tiene la pantalla `alumno_calificaciones`) y **Notificaciones** (`0050`), como el menú de un curso en
 Canvas. Las piezas del rail (`NavGroup`, `NavItem`) viven en
 `src/layouts/RailNav.tsx` y las comparte con el `AppShell`. Debajo de `lg` el
@@ -784,7 +785,7 @@ El portal está modelado como **las tareas de un curso**, no como un panel de
 resultados: una lista de tareas, y dentro de cada una las instrucciones, el
 formulario de entrega y lo que ya entregó.
 
-### Mis tareas · `/alumno`
+### Inicio · `/alumno`
 
 `src/pages/alumno/StudentHome.tsx`, protegida por `StudentRoute`.
 
@@ -792,11 +793,19 @@ formulario de entrega y lo que ya entregó.
 |---|---|
 | Aviso | Al volver de entregar, la confirmación de que se guardó. Se va solo a los 6 segundos |
 | ADN Profesional | Su propio expediente (secciones I a V: identidad, intereses, personalidad, comportamiento, valores y los datos de la práctica en curso) más su fila de Estado de Entregas (formularios) y la matriz de sus semanas de bitácora. Las secciones I-V son el mismo componente que abre el profesor, `DossierProfile`, sin las bitácoras — esas siguen siendo contexto del profesor |
-| Tareas | Una tarjeta por bitácora: nombre, para qué es, cuántas entregas lleva y cuál fue la última |
 
 Sin «Tu cuenta» ni «Próximamente»: el bloque ADN Profesional ya muestra su
 nombre y correo, y «Mis bitácoras»/«Mi expediente» —lo único que tenía esa
 lista— ya son parte de la pantalla.
+
+### Actividades · `/alumno/actividades`
+
+`src/pages/alumno/StudentActivitiesPage.tsx`, en el rail justo debajo de
+Inicio. Es la lista de tareas del curso: una tarjeta por bitácora que el alumno
+tiene permitida, con su nombre, para qué es, cuántas entregas lleva y cuál fue
+la última. Sin bitácoras permitidas, un estado vacío (y el rail no muestra la
+sección). Las bitácoras cuelgan de esta ruta, así que el rail sigue marcando
+«Actividades» mientras el alumno está dentro de una.
 
 El resumen de cada tarjeta es lo que hace útil la lista. Sin él, el alumno
 tendría que entrar a cada tarea para saber si ya entregó la semana. Si la
@@ -835,7 +844,9 @@ las 8 más recientes, «Marcar todo como leído» y «Ver todas»:
 Abrir una la marca como leída. Se refresca cada minuto y al volver a la
 pestaña. En «Ver como Alumno» el admin las ve pero no las marca.
 
-### Una bitácora · `/alumno/reporte-de-busqueda`, `/alumno/reporte-de-practicas`
+### Una bitácora · `/alumno/actividades/reporte-de-busqueda`, `/alumno/actividades/reporte-de-practicas`
+
+Las rutas anteriores (`/alumno/reporte-de-*`) redirigen aquí.
 
 `src/pages/alumno/WeeklyLogPage.tsx`. Una sola pantalla para las dos: lo único
 que cambia entre ellas son sus campos, y esos viven en `WEEKLY_FORMS`
@@ -861,7 +872,7 @@ mantener en sincronía.
 \* obligatorio.
 
 **Celebración al entregar.** Al entregar, el alumno **se queda en la
-bitácora** (no se le saca a Mis tareas) y ahí mismo sale `SubmissionCelebration`
+bitácora** (no se le saca a Actividades) y ahí mismo sale `SubmissionCelebration`
 (`src/components/SubmissionCelebration.tsx`): **confeti** por toda la pantalla
 si fue a tiempo, o un **sello «ENTREGADO»** que se estampa con golpe y
 sacudida si fue tardía. Corregir la semana en curso también da confeti (además del

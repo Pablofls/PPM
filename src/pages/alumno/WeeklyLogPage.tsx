@@ -82,8 +82,8 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
     setRefreshKey((key) => key + 1)
   }, [])
 
-  // Sin acceso a esta bitácora, de vuelta a la lista de tareas.
-  if (!loadingPermissions && !can(form.code)) return <Navigate to="/alumno" replace />
+  // Sin acceso a esta bitácora, de vuelta a Actividades.
+  if (!loadingPermissions && !can(form.code)) return <Navigate to="/alumno/actividades" replace />
 
   return (
     <>
@@ -93,10 +93,10 @@ export function WeeklyLogPage({ form }: { form: WeeklyFormMeta }) {
       )}
 
       <Link
-        to="/alumno"
+        to="/alumno/actividades"
         className="text-sm font-medium text-ink-500 transition-colors hover:text-ink-900"
       >
-        ← Mis tareas
+        ← Actividades
       </Link>
 
       <header className="mt-4">

@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../../auth/AuthProvider'
-import { Badge } from '../../components/Badge'
 import {
   SubmissionStatusGrid,
   useSubmissionStatus,
@@ -11,18 +10,14 @@ import {
 } from '../../components/SubmissionStatusGrid'
 import { DossierProfile, useStudentDossier } from '../../components/StudentDossier'
 import { Toast } from '../../components/Toast'
-import { useWeeklyLogRows } from '../../data/hooks'
-import { WEEKLY_FORMS, type WeeklyFormMeta } from '../../lib/catalog'
-import { formatRelativeTime, formatWeekRange } from '../../lib/format'
 import { usePermissions } from '../../auth/PermissionsProvider'
 import { targetWeek } from '../../lib/weeks'
 
 /**
- * Índice del portal del alumno: su ADN Profesional y sus tareas.
+ * Inicio del portal del alumno: su ADN Profesional y su Estado de Entregas.
  *
- * Las tareas son la lista de tareas de un curso, no un panel de resultados.
- * Hoy son las dos bitácoras semanales, que son los únicos formularios que el
- * alumno contesta aquí; los otros trece se siguen contestando en Google Forms.
+ * Las bitácoras que entrega viven en su propia sección, Actividades
+ * (`StudentActivitiesPage`).
  */
 export function StudentHome() {
   const { profile, session, portalStudentId, portalReadOnly } = useAuth()
@@ -39,7 +34,6 @@ export function StudentHome() {
   // Lo que el rol alumno puede ver (0038): cada parte del portal es una
   // pantalla con permiso.
   const { can } = usePermissions()
-  const forms = WEEKLY_FORMS.filter((form) => can(form.code))
   const { statuses, error: statusError } = useSubmissionStatus(studentId)
   const { weeks, error: weeksError } = useWeeklyLogStatus(studentId)
 
@@ -91,82 +85,8 @@ export function StudentHome() {
         </section>
       )}
 
-      {forms.length > 0 && (
-        <section className="mt-8">
-          <h2 className="px-1 text-[11px] font-semibold tracking-widest text-ink-500 uppercase">
-            Tareas
-          </h2>
-          <ul className="mt-2 grid gap-3 sm:grid-cols-2">
-            {forms.map((form) => (
-              <li key={form.code}>
-                <AssignmentCard form={form} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
     </>
   )
-}
-
-/**
- * La tarjeta de una tarea, con su última entrega.
- *
- * El resumen es lo que convierte la lista en algo útil: sin él, el alumno tiene
- * que entrar a cada tarea para saber si ya entregó la semana.
- */
-function AssignmentCard({ form }: { form: WeeklyFormMeta }) {
-  const { entregas, ultima, loading } = useLastEntry(form)
-
-  return (
-    <Link
-      to={form.path}
-      className="block rounded-xl border border-ink-200 bg-white px-5 py-4 shadow-sm transition-colors hover:border-ink-300 hover:bg-ink-50/50"
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-ink-900">{form.name}</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-ink-500">{form.subtitle}</p>
-        </div>
-        <Badge tone="violet">Semanal</Badge>
-      </div>
-
-      <p className="mt-3 border-t border-ink-100 pt-3 text-xs text-ink-500">
-        {loading
-          ? 'Cargando tus entregas…'
-          : entregas === 0
-            ? 'Sin entregas todavía'
-            : `${entregas} ${entregas === 1 ? 'entrega' : 'entregas'} · última: ${
-                formatWeekRange(ultima?.weekStart ?? null, ultima?.weekEnd ?? null) ||
-                'semana sin fecha'
-              }${
-                ultima?.submittedAt ? ` (${formatRelativeTime(ultima.submittedAt)})` : ''
-              }`}
-      </p>
-    </Link>
-  )
-}
-
-interface LastEntry {
-  weekStart: string | null
-  weekEnd: string | null
-  submittedAt: string | null
-}
-
-/**
- * Cuántas entregas lleva el alumno en una bitácora y cuál fue la última.
- *
- * Trae la bitácora completa y se queda con la primera fila: son como mucho diez
- * entregas por alumno, y el repositorio ya las devuelve ordenadas de la más
- * reciente a la más antigua.
- */
-function useLastEntry(form: WeeklyFormMeta) {
-  const { portalStudentId: studentId } = useAuth()
-  // Un error aquí deja la tarjeta sin resumen, no sin tarea: el alumno
-  // todavía puede entrar y entregar, que es lo que vino a hacer.
-  const { data: rows, loading } = useWeeklyLogRows(form.code, studentId)
-
-  return { entregas: rows.length, ultima: (rows[0] ?? null) as LastEntry | null, loading }
 }
 
 /**

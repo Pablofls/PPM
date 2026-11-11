@@ -28,7 +28,7 @@ export function ProfilePage() {
         to="/alumno"
         className="text-sm font-medium text-ink-500 transition-colors hover:text-ink-900"
       >
-        ← Mis tareas
+        ← Inicio
       </Link>
 
       <header className="mt-4 text-center">

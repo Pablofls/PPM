@@ -94,7 +94,8 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   `create_student_accounts()`, y el alumno entra a `/alumno`. Las cuentas ya se
   dieron de alta (2026-09-20).
 - **Calificaciones del alumno** (`0049`, ejecutada el 2026-11-04): el portal
-  tiene rail (Inicio y Calificaciones, estilo Canvas) y el alumno lee sus
+  tiene rail (Inicio, Actividades y Calificaciones, estilo Canvas; los reportes
+  están en **Actividades**, ya no en Inicio) y el alumno lee sus
   calificaciones, comentarios y total. Calificar mide la **similitud en %**
   de cada respuesta contra sus otras semanas y contra sus compañeros.
 - **Avisos y notificaciones** (`0050`, ejecutada el 2026-11-04): campanita

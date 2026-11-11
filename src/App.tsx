@@ -20,6 +20,7 @@ import { ValuesPage } from './pages/modulo1/ValuesPage'
 import { CompaniesPage } from './pages/apendices/CompaniesPage'
 import { InternshipsPage } from './pages/apendices/InternshipsPage'
 import { ProfilePage } from './pages/alumno/ProfilePage'
+import { StudentActivitiesPage } from './pages/alumno/StudentActivitiesPage'
 import { StudentGradesPage } from './pages/alumno/StudentGradesPage'
 import { StudentHome } from './pages/alumno/StudentHome'
 import { StudentNotificationsPage } from './pages/alumno/StudentNotificationsPage'
@@ -74,14 +75,30 @@ export default function App() {
               <Route path="calificaciones" element={<StudentGradesPage />} />
               <Route path="notificaciones" element={<StudentNotificationsPage />} />
 
-              {/* Las dos bitácoras comparten pantalla: solo cambian sus campos. */}
+              {/*
+                Las bitácoras cuelgan de Actividades para que el rail siga
+                marcando la sección mientras el alumno está dentro de una.
+                Las dos comparten pantalla: solo cambian sus campos.
+              */}
+              <Route path="actividades">
+                <Route index element={<StudentActivitiesPage />} />
+                <Route
+                  path="reporte-de-busqueda"
+                  element={<WeeklyLogPage form={weeklyFormByCode('form_busqueda')} />}
+                />
+                <Route
+                  path="reporte-de-practicas"
+                  element={<WeeklyLogPage form={weeklyFormByCode('form_practicas')} />}
+                />
+              </Route>
+              {/* Las rutas de antes de Actividades, por si alguien las guardó. */}
               <Route
                 path="reporte-de-busqueda"
-                element={<WeeklyLogPage form={weeklyFormByCode('form_busqueda')} />}
+                element={<Navigate to="/alumno/actividades/reporte-de-busqueda" replace />}
               />
               <Route
                 path="reporte-de-practicas"
-                element={<WeeklyLogPage form={weeklyFormByCode('form_practicas')} />}
+                element={<Navigate to="/alumno/actividades/reporte-de-practicas" replace />}
               />
 
               <Route path="*" element={<Navigate to="/alumno" replace />} />
