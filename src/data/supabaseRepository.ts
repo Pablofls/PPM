@@ -240,26 +240,17 @@ export const supabaseRepository: PanelRepository = {
       directory = applyFilters(directory, filters)
     }
 
-    // Quién respondió y cuándo vencía. `v_submission_status` ya resuelve la
-    // fecha límite del grupo (`0046`) y el estado, pero no incluye el 1.0
-    // (no tiene fecha límite): para ese basta saber quién lo contestó. Solo se
-    // acota por grupo — el resto de los filtros ya lo aplicó el directorio, y
-    // su columna `language` no es la misma.
-    const status =
-      formCode === 'form1_0'
-        ? // `latest_submissions` no tiene `group_id`: lo acotan RLS y el
-          // cruce con el directorio.
-          supabase
-            .from('latest_submissions')
-            .select('student_id, submitted_at')
-            .eq('form_code', formCode)
-        : applyGroupScope(
-            supabase
-              .from('v_submission_status')
-              .select('student_id, submitted_at, due_at, state')
-              .eq('form_code', formCode),
-            filters,
-          )
+    // Quién respondió y cuándo vencía. `v_submission_status` resuelve la
+    // fecha límite de la actividad del grupo (`0051`, ya con el 1.0) y el
+    // estado. Solo se acota por grupo: el resto de los filtros ya lo aplicó el
+    // directorio, y su columna `language` no es la misma.
+    const status = applyGroupScope(
+      supabase
+        .from('v_submission_status')
+        .select('student_id, submitted_at, due_at, state')
+        .eq('form_code', formCode),
+      filters,
+    )
 
     const [students, statuses] = await Promise.all([directory, status])
     if (students.error) {
@@ -290,8 +281,8 @@ export const supabaseRepository: PanelRepository = {
         periodCode: str(record.period_code),
         submittedAt,
         dueAt: str(entry?.due_at),
-        // Sin fecha límite, `submission_status()` (`0024`) da por a tiempo
-        // cualquier entrega: el 1.0 sigue la misma regla.
+        // Un alumno sin fila en la vista (no debería pasar) se trata con la
+        // misma regla que `submission_status()` (`0024`) sin fecha límite.
         state:
           (str(entry?.state) as SubmissionState | null) ??
           (submittedAt ? 'a_tiempo' : 'sin_fecha'),

@@ -272,8 +272,8 @@ function matchesStatus(row: BaseRow, status: StatusFilter): boolean {
 
 /**
  * Adapta una columna a las filas de alumnos sin responder: las columnas del
- * alumno se pintan igual, el nombre lleva la marca «Sin responder» (con el
- * correo si todavía no hay nombre) y el resto queda en «—».
+ * alumno se pintan igual, el nombre lleva la marca «Sin responder» (con «—»
+ * si todavía no hay nombre) y el resto queda en «—».
  */
 function missingAware<T extends BaseRow>(column: Column<T>): Column<T> {
   return {
@@ -292,11 +292,9 @@ function MissingName({ row }: { row: BaseRow }) {
       {row.fullName ? (
         <span className="font-medium text-ink-900">{row.fullName}</span>
       ) : (
-        // Sin 1.0 no hay nombre; el correo es lo que lo identifica (los
-        // apéndices ni siquiera tienen columna de correo).
-        <span className="block max-w-44 truncate text-ink-600" title={row.institutionalEmail}>
-          {row.institutionalEmail}
-        </span>
+        // Sin 1.0 no hay nombre. El correo no se pone en su lugar: el nombre
+        // es nombre, y el correo ya tiene su columna.
+        <Dash />
       )}
       <span className="shrink-0 rounded-md bg-red-100 px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap text-red-800">
         Sin responder
