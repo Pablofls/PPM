@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 
-import type { FormCode, WeeklyFormCode } from '../lib/catalog'
+import type { WeeklyFormCode } from '../lib/catalog'
 import { repository } from './repository'
 import { fetchEntry, getEntry, setSnapshot, stableStringify } from './queryCache'
 import type {
-  FormSummary,
   InternshipLogRow,
   JobSearchLogRow,
   PanelFilters,
@@ -131,15 +130,6 @@ export function useRepositoryQuery<T>(
     // cuando todavía no hay dato.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snapshot, mutate, refetch])
-}
-
-export function useFormSummary(formCode: FormCode, filters: PanelFilters) {
-  return useRepositoryQuery<FormSummary | null>(
-    () => repository.getSummary(formCode, filters),
-    null,
-    [formCode, filters],
-    'formSummary',
-  )
 }
 
 /**

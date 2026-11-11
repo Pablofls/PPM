@@ -106,6 +106,12 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   un grupo con `language = 'en'` ve todo su portal en inglés; el panel del
   profesor sigue en español. Ver
   [docs/UI_SCREENS.md](docs/UI_SCREENS.md#idioma-del-portal).
+- **Alumnos sin responder en las tablas** (sin migración): todas las
+  pantallas de formulario (Módulo 1, 2 y apéndices) muestran también a los
+  alumnos del grupo que no han respondido, en rojo y con lo que se sabe de ellos
+  por el registro. Los contadores (Respuestas, Sin responder, Entregas tarde,
+  A tiempo) filtran la tabla. Ver
+  [docs/UI_SCREENS.md](docs/UI_SCREENS.md#estructura-común-de-una-pantalla).
 - El **portal del alumno son sus tareas**, al estilo de Canvas: instrucciones,
   formulario de entrega y las entregas anteriores. Hoy tiene las dos bitácoras
   semanales, y son los **únicos** formularios que se contestan dentro del panel;

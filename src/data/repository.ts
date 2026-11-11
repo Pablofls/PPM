@@ -31,7 +31,7 @@ import type {
   UserAccount,
   RegistrationResult,
   StudentRegistrationInput,
-  FormSummary,
+  FormRosterEntry,
   HollandRow,
   IndeedRow,
   InternshipLogInput,
@@ -70,7 +70,16 @@ export interface PanelRepository {
    */
   readonly isConnected: boolean
 
-  getSummary(formCode: FormCode, filters: PanelFilters): Promise<FormSummary | null>
+  /**
+   * Todos los alumnos del alcance (grupo + filtros) con su estado frente al
+   * formulario, hayan respondido o no. `mode` replica el filtrado de la
+   * pantalla: los apéndices buscan por nombre y solo filtran por período.
+   */
+  getFormRoster(
+    formCode: FormCode,
+    filters: PanelFilters,
+    mode: 'completos' | 'solo-busqueda',
+  ): Promise<FormRosterEntry[]>
 
   getDemographics(filters: PanelFilters): Promise<DemographicsRow[]>
   getHolland(filters: PanelFilters): Promise<HollandRow[]>
@@ -373,8 +382,8 @@ export interface PanelRepository {
 export const emptyRepository: PanelRepository = {
   isConnected: false,
 
-  async getSummary() {
-    return null
+  async getFormRoster() {
+    return []
   },
   async getDemographics() {
     return []

@@ -32,6 +32,13 @@ export interface SubmissionColumns {
   submissionId: string
   submittedAt: string | null
   submissionState: SubmissionState
+  /**
+   * Fila de un alumno que todavía no responde el formulario. No viene de la
+   * vista `v_panel_*` (que solo trae respuestas): la arma `FormPage` con lo
+   * que se sabe del alumno por `v_students_directory`, y la tabla la pinta en
+   * rojo. Sus columnas propias del formulario quedan en «—».
+   */
+  missing?: boolean
 }
 
 export type BaseRow = StudentColumns & SubmissionColumns
@@ -392,16 +399,28 @@ export interface SubmissionStatusRow {
   statuses: Partial<Record<FormCode, SubmissionStatusCell>>
 }
 
-/** Contadores del encabezado de cada pantalla. */
-export interface FormSummary {
-  responses: number
-  pending: number
-  /**
-   * `null` cuando no se puede saber: sin fechas de entrega configuradas no hay
-   * contra qué comparar. Se muestra como "—", no como 0, para no hacer creer
-   * que se comprobó y no hubo ninguna.
-   */
-  late: number | null
+/**
+ * Un alumno del alcance de la pantalla (grupo + filtros) y su estado frente a
+ * un formulario, haya respondido o no. Es lo que deja a `FormPage` mostrar a
+ * los que faltan y contar a tiempo / tarde. Ver `getFormRoster`.
+ */
+export interface FormRosterEntry {
+  studentId: string
+  institutionalEmail: string
+  fullName: string | null
+  /** Del registro del profesor (`0031`) o del 1.0, lo que haya. */
+  studentNumber: string | null
+  /** El idioma del grupo; sin grupo, el del 1.0. */
+  language: Language | null
+  sessionDay: SessionDay | null
+  degreeCode: string | null
+  semester: number | null
+  periodCode: string | null
+  /** `null` si no ha respondido. */
+  submittedAt: string | null
+  /** Fecha límite del formulario en el grupo del alumno (`0046`); `null` si no hay. */
+  dueAt: string | null
+  state: SubmissionState
 }
 
 /**
