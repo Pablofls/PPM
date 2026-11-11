@@ -21,7 +21,8 @@ import type {
   CompanyRow,
   DemographicsRow,
   DiscRow,
-  FormDeadline,
+  Activity,
+  ActivityInput,
   Group,
   GroupInput,
   RegisteredStudent,
@@ -169,14 +170,21 @@ export interface PanelRepository {
    */
   getUsageStats(): Promise<UsageStats>
 
-  /** Fechas límite de un grupo (`group_deadlines`, 0046). */
-  getFormDeadlines(groupId: string): Promise<FormDeadline[]>
+  /** Las actividades de un grupo (`activities`, 0051), para el profesor. */
+  getActivities(groupId: string): Promise<Activity[]>
 
-  /** Fija (o cambia) la misma fecha límite para varios formularios de un grupo. */
-  setFormDeadlines(groupId: string, formCodes: string[], dueAt: string): Promise<void>
+  /**
+   * Las actividades que ve el alumno de la sesión: RLS deja solo las de su
+   * grupo, publicadas y cuyo «Disponible desde» ya pasó. Con «Ver como
+   * Alumno» el admin pasa el grupo del alumno que está viendo.
+   */
+  getMyActivities(groupId?: string | null): Promise<Activity[]>
 
-  /** Quita la fecha límite de un formulario en un grupo. */
-  deleteFormDeadline(groupId: string, formCode: string): Promise<void>
+  /** Guarda instrucciones, publicación y fechas de una actividad (`save_activity`). */
+  saveActivity(input: ActivityInput): Promise<void>
+
+  /** Publica o despublica una actividad (`set_activity_published`). */
+  setActivityPublished(groupId: string, formCode: string, published: boolean): Promise<void>
 
   /**
    * Da de alta alumnos sin que contesten el 1.0 (`admin_register_students()`,
@@ -444,14 +452,17 @@ export const emptyRepository: PanelRepository = {
   async getUsageStats(): Promise<UsageStats> {
     throw new Error('No hay conexión con la base de datos.')
   },
-  async getFormDeadlines() {
+  async getActivities() {
     return []
   },
-  async setFormDeadlines() {
-    throw new Error('No hay conexión con la base de datos. La fecha no se guardó.')
+  async getMyActivities() {
+    return []
   },
-  async deleteFormDeadline() {
-    throw new Error('No hay conexión con la base de datos. La fecha no se borró.')
+  async saveActivity() {
+    throw new Error('No hay conexión con la base de datos. La actividad no se guardó.')
+  },
+  async setActivityPublished() {
+    throw new Error('No hay conexión con la base de datos. La actividad no cambió.')
   },
   async registerStudents() {
     throw new Error('No hay conexión con la base de datos. No se registró a nadie.')

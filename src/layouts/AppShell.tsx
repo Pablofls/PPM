@@ -94,6 +94,13 @@ export function AppShell() {
             </NavGroup>
           ))}
 
+          {can('actividades') && (
+            <NavGroup title="Actividades">
+              <NavItem to="/actividades" end label="" name="Actividades" />
+              <NavItem to="/actividades/semanas" label="" name="Semanas del semestre" />
+            </NavGroup>
+          )}
+
           {can('calificaciones') && (
             <NavGroup title="Calificaciones">
               <NavItem to="/calificaciones/calificar" label="" name="Calificar" onHover={prefetchGrades} />
@@ -113,14 +120,9 @@ export function AppShell() {
             </NavGroup>
           )}
 
-          {(can('estado_entregas') || can('fechas_entrega')) && (
+          {can('estado_entregas') && (
             <NavGroup title="Entregas">
-              {can('estado_entregas') && (
-                <NavItem to="/entregas/estado-de-entregas" label="" name="Estado de Entregas" />
-              )}
-              {can('fechas_entrega') && (
-                <NavItem to="/entregas/fechas-de-entrega" label="" name="Fechas de entrega" />
-              )}
+              <NavItem to="/entregas/estado-de-entregas" label="" name="Estado de Entregas" />
             </NavGroup>
           )}
 

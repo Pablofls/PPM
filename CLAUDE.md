@@ -10,8 +10,8 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
 
 - Supabase configurado (ref `sovinakodrmgxytgapry`) y Vercel desplegado.
 - Las migraciones `0001`–`0050` **ya se ejecutaron** (salvo `0019`, ver
-  `docs/DATABASE_SCHEMA.md`). Un archivo ejecutado no se vuelve a editar: el
-  siguiente cambio es `0051_…`.
+  `docs/DATABASE_SCHEMA.md`). `0051` está escrita y sin ejecutar. Un archivo
+  ejecutado no se vuelve a editar: el siguiente cambio es `0052_…`.
 - Alcance del esquema: **autenticación + los 11 formularios de Módulo 1 y 2 +
   los dos apéndices + las dos bitácoras semanales**. Las hojas `alumnos` y
   `fechas_entrega` quedan para después.
@@ -83,6 +83,16 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
 - **Maestros y coordinadores administran** (`0044`, ejecutada el 2026-10-14): por defecto «Puede editar» en *Alumnos registrados* y *Administrar grupos*, acotados a sus grupos (maestro) o a los de sus maestros (coordinador); columna y filtro **Maestro**; `admin_register_students` acepta `maestro_id`.
 - **Frecuencia de lunes a viernes** (`0045`, ejecutada el 2026-10-14): el enum `session_day` suma martes, jueves y viernes. El maestro crea grupos solo a su nombre (campo de solo lectura). Aviso de versión nueva rediseñado.
 - **Fechas de entrega por grupo** (`0046`, ejecutada el 2026-10-14): el calendario semanal y las fechas límite pasan de globales a `group_weeks`/`group_deadlines`; cada maestro configura los de sus grupos. Ver [docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md#fechas-de-entrega-por-grupo).
+- **Actividades** (`0051`, **escrita, sin ejecutar**): sección propia del
+  rail, al estilo de las *Assignments* de Canvas. Cada formulario asignado a
+  un grupo es una actividad (`activities`): publicar, *Disponible desde*
+  (antes el alumno no la ve), *Fecha de entrega* (después es tardía) y
+  *Disponible hasta* (después la ve Cerrada y no entrega). Las semanas del
+  semestre viven ahí también. Reemplaza a *Fechas de entrega* y a
+  `group_deadlines`; los 12 Google Forms solo llevan fecha de entrega y no
+  salen en el portal. Siguiente fase: el 1.0 se contesta en el portal sin
+  preguntar periodo, frecuencia ni idioma (los da el grupo). Ver
+  [docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md#actividades).
 - **Uso de Supabase** (`0048`, ejecutada el 2026-10-27): Configuración → *Uso
   de Supabase*, solo admin. BD, Storage y MAU contra el plan gratuito, con
   proyección de cuándo se llena la BD; egress y API solo en el panel de Supabase.
@@ -246,8 +256,9 @@ completo»), porque ya no se puede: la semana pasada.
 ### 9. Alcance de las pantallas
 
 Ya están construidos **Módulo 1, Módulo 2 y los Apéndices A/B**, las bitácoras
-semanales (dentro del expediente del alumno), Estado de Entregas, Fechas de
-entrega (antes «Panel de Administrador»), Mis grupos y, en su menú
+semanales (dentro del expediente del alumno), Estado de Entregas,
+Actividades y Semanas del semestre (antes «Fechas de entrega» y «Panel de
+Administrador»), Mis grupos y, en su menú
 Configuración, Alumnos Registrados (`0031`, alta de alumnos sin 1.0),
 Administrar grupos (`0032`) y Usuarios y permisos (`0037`–`0038`).
 

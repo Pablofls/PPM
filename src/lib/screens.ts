@@ -94,13 +94,14 @@ export const SCREENS: ScreenMeta[] = [
     path: '/entregas/estado-de-entregas',
   },
   {
-    code: 'fechas_entrega',
-    name: 'Fechas de entrega',
-    section: 'Entregas',
+    code: 'actividades',
+    name: 'Actividades',
+    section: 'Actividades',
     maxAccess: 'edicion',
     audience: 'panel',
-    path: '/entregas/fechas-de-entrega',
-    editHint: 'Asignar fechas y semanas de sus grupos',
+    // Incluye /actividades/semanas y el editor de cada actividad.
+    path: '/actividades',
+    editHint: 'Publicar actividades, sus fechas y las semanas de sus grupos',
   },
   {
     code: 'alumnos_registrados',

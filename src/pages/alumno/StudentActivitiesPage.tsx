@@ -4,26 +4,34 @@ import { useAuth } from '../../auth/AuthProvider'
 import { usePermissions } from '../../auth/PermissionsProvider'
 import { Badge } from '../../components/Badge'
 import { useWeeklyLogRows } from '../../data/hooks'
+import type { Activity } from '../../data/types'
+import { activityState } from '../../lib/activities'
 import { localizeWeeklyForm, WEEKLY_FORMS, type WeeklyFormMeta } from '../../lib/catalog'
 import { useLang, useT } from '../../lib/i18n'
-import { formatRelativeTime, formatWeekRange } from '../../lib/format'
+import { formatDateTime, formatRelativeTime, formatWeekRange } from '../../lib/format'
+import { useMyActivities } from './useMyActivities'
 
 /**
  * Actividades del alumno: la lista de tareas de un curso, como en Canvas.
  *
  * Hoy son las dos bitácoras semanales, que son los únicos formularios que el
  * alumno contesta aquí; los otros trece se siguen contestando en Google Forms.
+ * Solo aparecen las que el profesor publicó y ya están disponibles (`0051`);
+ * una que ya pasó «Disponible hasta» se ve Cerrada.
  * Cada tarjeta lleva a su reporte, que vive debajo de esta ruta para que el
  * rail siga marcando «Actividades» mientras el alumno está dentro.
  */
 export function StudentActivitiesPage() {
   // Lo que el rol alumno puede ver (0038): cada bitácora es una pantalla con permiso.
-  const { can, loading } = usePermissions()
+  const { can, loading: loadingPermissions } = usePermissions()
+  const { byCode, loading: loadingActivities } = useMyActivities()
+  const loading = loadingPermissions || loadingActivities
   const t = useT()
   const lang = useLang()
-  const forms = WEEKLY_FORMS.filter((form) => can(form.code)).map((form) =>
-    localizeWeeklyForm(form, lang),
-  )
+  const assignments = WEEKLY_FORMS.flatMap((form) => {
+    const activity = byCode(form.code)
+    return can(form.code) && activity ? [{ form: localizeWeeklyForm(form, lang), activity }] : []
+  })
 
   return (
     <>
@@ -39,11 +47,11 @@ export function StudentActivitiesPage() {
         </p>
       </header>
 
-      {forms.length > 0 ? (
+      {assignments.length > 0 ? (
         <ul className="mt-6 grid gap-3 sm:grid-cols-2">
-          {forms.map((form) => (
+          {assignments.map(({ form, activity }) => (
             <li key={form.code}>
-              <AssignmentCard form={form} />
+              <AssignmentCard form={form} activity={activity} />
             </li>
           ))}
         </ul>
@@ -64,10 +72,11 @@ export function StudentActivitiesPage() {
  * El resumen es lo que convierte la lista en algo útil: sin él, el alumno tiene
  * que entrar a cada actividad para saber si ya entregó la semana.
  */
-function AssignmentCard({ form }: { form: WeeklyFormMeta }) {
+function AssignmentCard({ form, activity }: { form: WeeklyFormMeta; activity: Activity }) {
   const { entregas, ultima, loading } = useLastEntry(form)
   const t = useT()
   const lang = useLang()
+  const closed = activityState(activity) === 'cerrada'
   const lastWeek =
     formatWeekRange(ultima?.weekStart ?? null, ultima?.weekEnd ?? null, lang) ||
     t('semana sin fecha', 'undated week')
@@ -83,8 +92,26 @@ function AssignmentCard({ form }: { form: WeeklyFormMeta }) {
           <p className="text-sm font-semibold text-ink-900">{form.name}</p>
           <p className="mt-0.5 text-xs leading-relaxed text-ink-500">{form.subtitle}</p>
         </div>
-        <Badge tone="violet">{t('Semanal', 'Weekly')}</Badge>
+        {closed ? (
+          <Badge tone="red">{t('Cerrada', 'Closed')}</Badge>
+        ) : (
+          <Badge tone="violet">{t('Semanal', 'Weekly')}</Badge>
+        )}
       </div>
+
+      {activity.availableUntil && (
+        <p className="mt-2 text-xs text-ink-500">
+          {closed
+            ? t(
+                `Cerró el ${formatDateTime(activity.availableUntil, lang)}`,
+                `Closed on ${formatDateTime(activity.availableUntil, lang)}`,
+              )
+            : t(
+                `Disponible hasta el ${formatDateTime(activity.availableUntil, lang)}`,
+                `Available until ${formatDateTime(activity.availableUntil, lang)}`,
+              )}
+        </p>
+      )}
 
       <p className="mt-3 border-t border-ink-100 pt-3 text-xs text-ink-500">
         {loading

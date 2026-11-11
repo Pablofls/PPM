@@ -28,7 +28,6 @@ import { NoticesPage } from './pages/avisos/NoticesPage'
 import { WeeklyLogPage } from './pages/alumno/WeeklyLogPage'
 import { IndeedPage } from './pages/modulo2/IndeedPage'
 import { ReflectionPage } from './pages/modulo2/ReflectionPage'
-import { DeadlinesPage } from './pages/admin/DeadlinesPage'
 import { GroupPickerPage } from './pages/GroupPickerPage'
 import { MyProfilePage } from './pages/MyProfilePage'
 import { GroupsPage } from './pages/admin/GroupsPage'
@@ -38,6 +37,9 @@ import { RegisteredStudentsPage } from './pages/admin/RegisteredStudentsPage'
 import { GradeActivitiesPage } from './pages/calificaciones/GradeActivitiesPage'
 import { GradeCenterPage } from './pages/calificaciones/GradeCenterPage'
 import { GradeSettingsPage } from './pages/calificaciones/GradeSettingsPage'
+import { ActivitiesPage } from './pages/actividades/ActivitiesPage'
+import { ActivityEditorPage } from './pages/actividades/ActivityEditorPage'
+import { SemesterWeeksPage } from './pages/actividades/SemesterWeeksPage'
 import { SubmissionStatusPage } from './pages/admin/SubmissionStatusPage'
 import { weeklyFormByCode } from './lib/catalog'
 
@@ -187,6 +189,33 @@ export default function App() {
                   <Route path="formulario-de-inicio" element={<CompaniesPage />} />
                 </Route>
 
+                <Route path="actividades">
+                  <Route
+                    index
+                    element={
+                      <ScreenRoute screen="actividades">
+                        <ActivitiesPage />
+                      </ScreenRoute>
+                    }
+                  />
+                  <Route
+                    path="semanas"
+                    element={
+                      <ScreenRoute screen="actividades">
+                        <SemesterWeeksPage />
+                      </ScreenRoute>
+                    }
+                  />
+                  <Route
+                    path=":formCode"
+                    element={
+                      <ScreenRoute screen="actividades">
+                        <ActivityEditorPage />
+                      </ScreenRoute>
+                    }
+                  />
+                </Route>
+
                 <Route path="calificaciones">
                   <Route index element={<Navigate to="calificar" replace />} />
                   <Route path="calificar" element={<GradeActivitiesPage />} />
@@ -198,19 +227,13 @@ export default function App() {
 
                 <Route path="entregas">
                   <Route path="estado-de-entregas" element={<SubmissionStatusPage />} />
-                  <Route
-                    path="fechas-de-entrega"
-                    element={
-                      <ScreenRoute screen="fechas_entrega">
-                        <DeadlinesPage />
-                      </ScreenRoute>
-                    }
-                  />
+                  {/* Fechas de entrega pasó a Actividades (0051). */}
+                  <Route path="fechas-de-entrega" element={<Navigate to="/actividades" replace />} />
                 </Route>
 
                 {/* Rutas viejas: siguen funcionando si alguien las guardó. */}
                 <Route path="administrador">
-                  <Route path="panel" element={<Navigate to="/entregas/fechas-de-entrega" replace />} />
+                  <Route path="panel" element={<Navigate to="/actividades" replace />} />
                   <Route
                     path="alumnos-registrados"
                     element={<Navigate to="/configuracion/alumnos-registrados" replace />}

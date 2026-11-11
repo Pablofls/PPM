@@ -201,9 +201,8 @@ export function PermissionsMatrix() {
 
       <p className="border-t border-ink-100 px-5 py-3 text-xs leading-relaxed text-ink-500">
         «Puede editar» de un maestro o coordinador vale solo dentro de sus propios grupos y
-        alumnos. Fechas de entrega es la excepción: sus reglas son por periodo, frecuencia e
-        idioma, así que se cambian para todos. Usuarios y permisos y Procesar datos son siempre
-        solo del administrador.
+        alumnos; en Actividades, las fechas y las semanas de sus grupos. Usuarios y permisos y
+        Procesar datos son siempre solo del administrador.
       </p>
     </section>
   )

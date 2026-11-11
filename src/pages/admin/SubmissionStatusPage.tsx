@@ -174,7 +174,7 @@ export function SubmissionStatusPage() {
         <>
           {!loading && !loadingWeeks && !weeksError && rows.length > 0 && !hasWeeks && (
             <p className="mb-3 rounded-lg border border-ink-200 bg-white px-4 py-3 text-sm text-ink-500">
-              No hay semanas configuradas para estos grupos. Se configuran en Fechas de entrega.
+              No hay semanas configuradas para estos grupos. Se configuran en Actividades → Semanas del semestre.
             </p>
           )}
           <DataTable

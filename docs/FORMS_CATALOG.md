@@ -93,6 +93,9 @@ agregados; ningún dato de alumno se versiona en este repositorio.
 
 > **Implementado en `0017_form_deadlines.sql`.** Ver
 > [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#fechas-de-entrega-y-estado-de-las-entregas).
+> Desde `0046` las fechas son de cada grupo, y desde `0051` viven en
+> [Actividades](DATABASE_SCHEMA.md#actividades) (`activities.due_at`); lo de
+> abajo es la historia de la hoja original.
 
 La hoja `fechas_entrega` original solo tenía 4 filas configuradas (`form2_1`,
 `form2_2`, `form2_4`, `form2_5`, todas del periodo `PR-26`), con `idioma` y

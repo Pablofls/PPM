@@ -6,7 +6,7 @@
  * del formulario, a través de `latest_submissions`.
  */
 
-import type { FormCode, SkillLevel, WeeklyFormCode } from '../lib/catalog'
+import type { ActivityFormCode, FormCode, SkillLevel, WeeklyFormCode } from '../lib/catalog'
 
 export type Language = 'es' | 'en'
 export type SessionDay = 'lunes' | 'martes' | 'miercoles' | 'jueves' | 'viernes'
@@ -236,10 +236,10 @@ export interface InternshipLogRow extends WeeklyLogBase {
 }
 
 /**
- * Una semana del semestre (`semester_weeks`), definida por el admin.
+ * Una semana del semestre de un grupo (`group_weeks`, 0046).
  *
- * El alumno elige `weekNumber` de una lista de estas; el profesor las genera
- * desde Fechas de entrega. Cada grupo tiene las suyas.
+ * El profesor las genera en Actividades → Semanas del semestre; cada grupo
+ * tiene las suyas. Cada semana es un «Reporte semana N».
  */
 export interface SemesterWeek {
   groupId: string
@@ -349,11 +349,31 @@ export const EMPTY_FILTERS: PanelFilters = {
   scopeGroups: null,
 }
 
-/** La fecha límite de un formulario en un grupo (`group_deadlines`, 0046). */
-export interface FormDeadline {
+/**
+ * Una actividad: un formulario asignado a un grupo, al estilo de una tarea de
+ * Canvas (`activities`, 0051). Las fechas son ISO con zona; null = sin límite.
+ * «Programada», «Abierta» y «Cerrada» se derivan (`src/lib/activities.ts`).
+ */
+export interface Activity {
   groupId: string
-  formCode: FormCode
-  dueAt: string
+  formCode: ActivityFormCode
+  instructions: string | null
+  isPublished: boolean
+  availableFrom: string | null
+  dueAt: string | null
+  availableUntil: string | null
+  updatedAt: string
+}
+
+/** Lo que guarda el editor: fechas en hora local de Monterrey (`YYYY-MM-DDTHH:mm`). */
+export interface ActivityInput {
+  groupId: string
+  formCode: ActivityFormCode
+  instructions: string | null
+  isPublished: boolean
+  availableFrom: string | null
+  dueAt: string | null
+  availableUntil: string | null
 }
 
 /** Una celda de la matriz de "Estado de Entregas": un alumno, un formulario. */

@@ -28,6 +28,8 @@ import { Toast } from '../../components/Toast'
 import { useStudentDossier } from '../../components/StudentDossier'
 import { useWeeklyLogStatus } from '../../components/SubmissionStatusGrid'
 import { usePermissions } from '../../auth/PermissionsProvider'
+import { activityState } from '../../lib/activities'
+import { useMyActivities } from './useMyActivities'
 
 /**
  * Una bitácora semanal, como una tarea de Canvas: instrucciones arriba, el
@@ -101,8 +103,18 @@ export function WeeklyLogPage({ form: baseForm }: { form: WeeklyFormMeta }) {
     setRefreshKey((key) => key + 1)
   }, [])
 
-  // Sin acceso a esta bitácora, de vuelta a Actividades.
+  // La actividad (0051): sin publicar o programada, el alumno no la ve; si ya
+  // pasó «Disponible hasta», la ve Cerrada, con sus entregas, sin formulario.
+  const { byCode, loading: loadingActivities } = useMyActivities()
+  const activity = byCode(form.code)
+  const closed = activity !== undefined && activityState(activity) === 'cerrada'
+  const instructions = activity?.instructions
+    ? activity.instructions.split('\n').filter((line) => line.trim() !== '')
+    : form.instructions
+
+  // Sin acceso a esta bitácora, o sin publicar, de vuelta a Actividades.
   if (!loadingPermissions && !can(form.code)) return <Navigate to="/alumno/actividades" replace />
+  if (!loadingActivities && !activity) return <Navigate to="/alumno/actividades" replace />
 
   return (
     <>
@@ -131,7 +143,7 @@ export function WeeklyLogPage({ form: baseForm }: { form: WeeklyFormMeta }) {
       <section className="mt-6 rounded-xl border border-ink-200 bg-white p-6 shadow-sm">
         <h2 className="text-sm font-semibold text-ink-900">{t('Instrucciones', 'Instructions')}</h2>
         <ul className="mt-3 space-y-2">
-          {form.instructions.map((linea) => (
+          {instructions.map((linea) => (
             <li key={linea} className="flex gap-2 text-sm leading-relaxed text-ink-600">
               <span aria-hidden="true" className="text-ink-300">
                 •
@@ -142,18 +154,30 @@ export function WeeklyLogPage({ form: baseForm }: { form: WeeklyFormMeta }) {
         </ul>
       </section>
 
-      <SubmissionForm
-        form={form}
-        onSubmitted={onSubmitted}
-        celebrating={celebration !== null}
-        readOnly={portalReadOnly || !can(form.code, 'edicion')}
-        weeks={studentWeeks}
-        weeksLoading={weeksLoading}
-        weeksError={weeksError}
-        entries={entries}
-        entriesLoading={loading || !statusLoaded}
-        statusCells={statusCells}
-      />
+      {closed && activity?.availableUntil ? (
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50/60 p-6 text-sm text-red-900">
+          <p className="font-semibold">{t('Actividad cerrada', 'Assignment closed')}</p>
+          <p className="mt-1 text-red-800">
+            {t(
+              `Cerró el ${formatDateTime(activity.availableUntil, lang)}. Ya no se puede entregar; abajo están tus entregas.`,
+              `It closed on ${formatDateTime(activity.availableUntil, lang)}. You can no longer submit; your submissions are below.`,
+            )}
+          </p>
+        </div>
+      ) : (
+        <SubmissionForm
+          form={form}
+          onSubmitted={onSubmitted}
+          celebrating={celebration !== null}
+          readOnly={portalReadOnly || !can(form.code, 'edicion')}
+          weeks={studentWeeks}
+          weeksLoading={weeksLoading}
+          weeksError={weeksError}
+          entries={entries}
+          entriesLoading={loading || !statusLoaded}
+          statusCells={statusCells}
+        />
+      )}
 
       <div className="mt-8 flex justify-end">
         <DownloadPdfButton

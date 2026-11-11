@@ -32,21 +32,26 @@ PPM
 │   └── A.1 Carta Formal de Aceptación
 ├── APÉNDICE B · REPORTES
 │   └── B.1 Formulario de Inicio
+├── ACTIVIDADES
+│   ├── Actividades
+│   └── Semanas del semestre
 ├── CALIFICACIONES
 │   ├── Calificar
 │   ├── Centro de calificaciones
 │   └── Configurar actividades
+├── COMUNICACIÓN
+│   └── Avisos
 └── ENTREGAS
-    ├── Estado de Entregas
-    └── Fechas de entrega
+    └── Estado de Entregas
 ```
 
 Antes del rail está **Mis grupos** (abajo), y arriba del rail el grupo actual.
 Lo que se configura fuera de un grupo —Alumnos registrados y Administrar
 grupos— no está en el rail: vive en el menú del **engrane** (Configuración) de la barra de
 Mis grupos (`HomeShell`). La sección «Administrador» del rail desapareció:
-«Panel de Administrador» pasó a Entregas como **Fechas de entrega**. Las rutas
-viejas (`/administrador/…`) redirigen a las nuevas.
+«Panel de Administrador» pasó a Entregas como Fechas de entrega, y desde `0051`
+es la sección **Actividades**. Las rutas viejas (`/administrador/panel`,
+`/entregas/fechas-de-entrega`) redirigen a `/actividades`.
 
 Las secciones de «Próximamente» se muestran deshabilitadas a propósito: le comunican
 al profesor el alcance completo del proyecto sin prometer que ya funcionan.
@@ -110,8 +115,8 @@ lectura» arriba. Se recuerda en el navegador. Cambia:
 - **El panel:** sin grupo elegido, filtra por los grupos de la vista
   (`scopeGroups`); el subtítulo del rail dice «Panel del administrador /
   coordinador / maestro».
-- **Lo que solo hace el admin** se oculta en las otras vistas: Fechas de
-  entrega en el rail, la sección Configuración del engrane, *Procesar datos* y
+- **Lo que solo hace el admin** se oculta en las otras vistas: la sección
+  Configuración del engrane, *Procesar datos* y
   *Corregir semana* en el expediente. Sus rutas mandan a Mis grupos
   (`AdminRoute`).
 
@@ -677,59 +682,61 @@ grupos».
   alumno con su puntaje y comentario (el panel lo dice), y el panel muestra
   «Visto por el alumno el …» o «El alumno todavía no la ha visto».
 
-## Estado de Entregas y Fechas de entrega
+## Actividades
 
-> `0017_form_deadlines.sql` y `0018_semester_weeks.sql`. Ver
-> [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#fechas-de-entrega-y-estado-de-las-entregas).
-> Las únicas dos pantallas del rail que no cuelgan de un `form_code` fijo ni de
-> `FormPage`: no muestran un formulario, sino **todos** a la vez.
+> `0051_activities.sql`. Ver [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#actividades).
+> Pantalla con permiso `actividades` (antes `fechas_entrega`). Todo es del
+> grupo elegido en Mis grupos; sin grupo, un estado vacío lleva a elegirlo.
 
-### Fechas de entrega
+Como las *Assignments* de Canvas: el profesor publica, programa y cierra las
+actividades de su grupo. Todavía no se crean formularios: las actividades son
+los quince del catálogo.
 
-> Ruta `/entregas/fechas-de-entrega`. Hasta la fase 1 de grupos se llamaba
-> «Panel de Administrador» y vivía en su propia sección del rail.
+### Actividades · `/actividades`
 
-Asigna la fecha límite que "Estado de Entregas" necesita para comparar. No
-existía en la plataforma anterior: ahí la fecha se editaba a mano en la hoja
-`fechas_entrega` del Sheets.
+`src/pages/actividades/ActivitiesPage.tsx`. Bloques como los del rail (Módulo 1,
+Módulo 2, Apéndice A, Apéndice B y Bitácoras semanales); cada fila lleva:
 
-- **Grupo**: selects de Idioma, Frecuencia y Período — igual que los filtros
-  compartidos, vacío = "todos". No hay selector de Carrera ni Semestre: la
-  fecha se piensa por cohorte (idioma/frecuencia/periodo), no por carrera.
-- **Fecha límite**: un solo `<input type="date">`. El panel completa la hora a
-  `23:59:59` hora de Monterrey — el profesor piensa en un día, no en un
-  instante.
-- **Formularios**: checklist de los 12 formularios que pueden llevar fecha
-  (todos salvo 1.0 Datos Demográficos y las dos bitácoras). "Seleccionar
-  todos"/"Limpiar".
-- **Guardar fechas** crea una regla por formulario marcado, con el mismo grupo
-  y fecha. Las reglas viven abajo, en "Fechas asignadas": Formulario, Idioma,
-  Frecuencia, Período, Fecha Límite, Creado, y un botón para borrarla.
-- **No hay edición.** Corregir una fecha es borrarla y crear otra.
+- **Ícono** con el número (`1.0`, `2.7`), verde si es del panel y está publicada.
+- **Nombre**, que abre el editor.
+- **Estado** (solo las que se contestan en el panel): *Borrador*, *Programada*
+  (publicada, pero «Disponible desde» no llega), *Abierta* o *Cerrada* (pasó
+  «Disponible hasta»). Se deriva en `src/lib/activities.ts`, no se guarda.
+  Las de Google Forms llevan la etiqueta **Google Forms**.
+- **Fechas**: «No disponible hasta …», «Disponible hasta …» / «Cerró …» y
+  «Fecha de entrega …» (o «Vence cada semana» en las bitácoras, «Sin fecha de
+  entrega» si no hay).
+- **Publicar / Publicada**, el interruptor de Canvas, solo en las del panel.
 
-### Semanas del semestre
+### Editar una actividad · `/actividades/:formCode`
 
-> `0018_semester_weeks.sql`. Ver
-> [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#semanas-del-semestre). Segunda
-> herramienta de la misma pantalla, no una pantalla aparte.
+`ActivityEditorPage.tsx`, como *Edit Assignment*:
 
-Define las semanas que después elige el alumno al entregar una bitácora, en
-vez de que las escriba a mano (la causa más común de captura mal hecha en el
-Sheets original).
+- **Instrucciones** (solo las del panel): lo que el alumno lee antes de
+  contestar; vacío, ve las del catálogo (se muestran de sugerencia).
+- **Publicada** (solo las del panel).
+- **Asignar**: *Para* (el grupo, solo lectura), *Fecha de entrega*, *Disponible
+  desde* y *Disponible hasta*. Fecha y hora por separado; al elegir el día la
+  hora se llena sola (23:59, o 00:00 en «Disponible desde»). Las horas son de
+  Monterrey: la base las convierte (`save_activity`).
+  - Bitácoras: sin fecha de entrega; un aviso dice que cada semana vence el
+    domingo y lleva a *Semanas del semestre*.
+  - Google Forms: solo *Fecha de entrega* (para Estado de Entregas); el alumno
+    no las ve en su portal.
+- Con «Solo lectura», todo deshabilitado.
 
-- **Periodo**: el mismo `Select` de `PERIOD_OPTIONS` que usa "Asignar fecha de
-  entrega" — un periodo nuevo (`PR-27`) se agrega a ese catálogo antes de
-  poder configurarle semanas.
-- **Semana 1 empieza (lunes)**: `<input type="date">`. Un aviso en rojo avisa
-  si la fecha elegida no cae en lunes; la base lo vuelve a validar.
-- **Número de semanas**: numérico, 1–53. Las semanas 2 en adelante salen solas,
-  sumando 7 días cada vez.
-- **Generar semanas** crea las N filas. Abajo, un resumen por periodo ya
-  configurado (periodo · número de semanas · rango completo) con un botón para
-  borrarlas todas — es la forma de corregir la fecha de la semana 1: borrar y
-  volver a generar, no editar una semana a la mitad de la serie.
+### Semanas del semestre · `/actividades/semanas`
 
-### Estado de Entregas
+`SemesterWeeksPage.tsx` (antes, una sección de Fechas de entrega). El profesor
+da el lunes de la semana 1 y cuántas hay (1–53); la base suma 7 días
+(`create_group_weeks`). Abajo, **cada semana** —Semana N, lunes, domingo (vence)—
+con la de hoy marcada *En curso*. «Borrar todas» pide confirmación; es la forma
+de corregir la semana 1. Mismo permiso que Actividades.
+
+## Estado de Entregas
+
+> `0017_form_deadlines.sql`; las fechas salen de `activities` desde `0051`
+> (incluido el 1.0).
 
 La matriz alumno × formulario. Filtros completos (Idioma, Frecuencia, Carrera,
 Semestre, Período), igual que las pantallas de Módulo 1.
@@ -830,8 +837,11 @@ lista— ya son parte de la pantalla.
 
 `src/pages/alumno/StudentActivitiesPage.tsx`, en el rail justo debajo de
 Inicio. Es la lista de tareas del curso: una tarjeta por bitácora que el alumno
-tiene permitida, con su nombre, para qué es, cuántas entregas lleva y cuál fue
-la última. Sin bitácoras permitidas, un estado vacío (y el rail no muestra la
+tiene permitida **y que el profesor publicó** (`0051`, `useMyActivities`), con
+su nombre, para qué es, «Disponible hasta …» si cierra, cuántas entregas lleva
+y cuál fue la última. Antes de «Disponible desde» no aparece; después de
+«Disponible hasta» aparece **Cerrada**: dentro se ven las entregas, sin
+formulario. Sin actividades visibles, un estado vacío (y el rail no muestra la
 sección). Las bitácoras cuelgan de esta ruta, así que el rail sigue marcando
 «Actividades» mientras el alumno está dentro de una.
 

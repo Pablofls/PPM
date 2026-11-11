@@ -276,7 +276,11 @@ Desde `0044` maestro y coordinador traen «Puede editar» por defecto en
 *Alumnos registrados* y *Administrar grupos*; los alumnos **sin grupo** solo los
 ve y asigna el admin. Cuando varios maestros tienen un grupo con el mismo
 periodo, día e idioma, el alta recibe el `maestro_id` para distinguirlos.
-Fechas de entrega (`0046`) también se acota: cada quien configura el calendario y las fechas de sus grupos. La interfaz usa
+Actividades (`0051`, antes Fechas de entrega de `0046`) también se acota: con
+«Puede editar» —maestro y coordinador lo traen por defecto— cada quien publica
+las actividades, pone sus fechas y genera las semanas **de sus grupos**. Al
+alumno, además de «Puede editar» en la bitácora, la base le exige que la
+actividad esté publicada y dentro de su ventana (`activity_is_open()`). La interfaz usa
 los permisos del rol elegido en «Ver como»; la base, la unión de los roles de
 la persona.
 

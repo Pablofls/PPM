@@ -382,11 +382,65 @@ export function localizeWeeklyForm(form: WeeklyFormMeta, lang: 'es' | 'en'): Wee
 export const REFLECTION_FORMS = ['form2_1', 'form2_2', 'form2_4', 'form2_5'] as const
 
 /**
- * Los formularios que pueden llevar fecha límite: todos salvo `form1_0` (es un
- * perfil, no una entrega con plazo). Las dos bitácoras semanales nunca
- * estuvieron en `forms`, así que ya quedan fuera solo con filtrar `FORMS`.
+ * Los formularios con fecha límite única (Estado de Entregas): los trece de
+ * `FORMS`. Desde `0051` el 1.0 también es una actividad con fecha de entrega.
+ * Las bitácoras vencen semana por semana y tienen su propia cuadrícula.
  */
-export const DEADLINE_FORMS: FormMeta[] = FORMS.filter((form) => form.code !== 'form1_0')
+export const DEADLINE_FORMS: FormMeta[] = FORMS
+
+// ---------------------------------------------------------------------------
+// Actividades (`activities`, 0051)
+// ---------------------------------------------------------------------------
+
+/** Una actividad es uno de los quince formularios de `forms`, asignado a un grupo. */
+export type ActivityFormCode = FormCode | WeeklyFormCode
+
+/**
+ * Las actividades que el alumno contesta dentro del panel y ve en su portal.
+ * Las demás se siguen contestando en Google Forms: en Actividades solo llevan
+ * fecha de entrega, y el portal no las muestra.
+ */
+export const PANEL_ACTIVITY_FORMS: ActivityFormCode[] = ['form_busqueda', 'form_practicas']
+
+export const isPanelActivity = (code: ActivityFormCode): boolean =>
+  PANEL_ACTIVITY_FORMS.includes(code)
+
+export const isWeeklyActivity = (code: ActivityFormCode): code is WeeklyFormCode =>
+  code === 'form_busqueda' || code === 'form_practicas'
+
+export interface ActivityMeta {
+  code: ActivityFormCode
+  moduleCode: ModuleCode
+  /** «1.0», «2.7»; vacío en las bitácoras. */
+  label: string
+  name: string
+  subtitle: string
+  /** Lo que el alumno lee si el profesor no escribió instrucciones propias. */
+  defaultInstructions: string[]
+}
+
+/** Las quince actividades en el orden del rail: módulos, apéndices y bitácoras. */
+export const ACTIVITIES: ActivityMeta[] = [
+  ...FORMS.map((form) => ({
+    code: form.code,
+    moduleCode: form.moduleCode,
+    label: form.label,
+    name: form.name,
+    subtitle: form.subtitle,
+    defaultInstructions: [],
+  })),
+  ...WEEKLY_FORMS.map((form) => ({
+    code: form.code,
+    moduleCode: 'W' as const,
+    label: '',
+    name: form.name,
+    subtitle: form.subtitle,
+    defaultInstructions: form.instructions,
+  })),
+]
+
+export const activityByCode = (code: string): ActivityMeta | undefined =>
+  ACTIVITIES.find((activity) => activity.code === code)
 
 /** Secciones del proyecto que todavía no tienen pantalla. Ver regla «Alcance de las pantallas» de CLAUDE.md. */
 export const UPCOMING_SECTIONS: string[] = [

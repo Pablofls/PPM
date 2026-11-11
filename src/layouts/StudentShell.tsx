@@ -7,6 +7,7 @@ import { NotificationBell } from '../components/NotificationBell'
 import { RoleSwitcher } from '../components/RoleSwitcher'
 import { WEEKLY_FORMS } from '../lib/catalog'
 import { useT } from '../lib/i18n'
+import { useMyActivities } from '../pages/alumno/useMyActivities'
 import { NavGroup, NavItem } from './RailNav'
 import { StudentLanguageProvider } from './StudentLanguage'
 
@@ -33,6 +34,8 @@ function StudentFrame() {
   const t = useT()
   const { signOut, portalReadOnly, portalStudentId } = useAuth()
   const { can } = usePermissions()
+  // Actividades aparece cuando hay al menos una publicada y disponible (0051).
+  const { activities, loading: loadingActivities } = useMyActivities()
   const location = useLocation()
   const [railOpen, setRailOpen] = useState(false)
 
@@ -84,7 +87,7 @@ function StudentFrame() {
           <nav className="rail-scroll flex-1 overflow-y-auto px-2 pb-6">
             <NavGroup title={t('Mi curso', 'My course')}>
               <NavItem to="/alumno" end label="" name={t('Inicio', 'Home')} />
-              {WEEKLY_FORMS.some((form) => can(form.code)) && (
+              {WEEKLY_FORMS.some((form) => can(form.code)) && (loadingActivities || activities.length > 0) && (
                 <NavItem to="/alumno/actividades" label="" name={t('Actividades', 'Assignments')} />
               )}
               {can('alumno_calificaciones') && (

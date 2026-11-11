@@ -77,6 +77,10 @@ const SERVER_TEXT: [RegExp, (match: RegExpMatchArray) => string][] = [
     /^No se pudo guardar tu entrega\. Verifica que tu cuenta sea la de un alumno y vuelve a intentarlo\.$/,
     () => 'Your submission could not be saved. Make sure you are signed in with a student account and try again.',
   ],
+  [
+    /^Esta actividad ya está cerrada o todavía no está disponible\.$/,
+    () => 'This assignment is closed or not available yet.',
+  ],
   // Los errores de carga del repositorio: «No se pudo … : <detalle técnico>».
   [/^No se pudieron? [^:]+: (.*)$/s, (m) => `Something went wrong: ${m[1]}`],
 ]

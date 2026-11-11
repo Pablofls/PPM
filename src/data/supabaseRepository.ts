@@ -11,7 +11,7 @@
 
 import type { PostgrestFilterBuilder } from '@supabase/postgrest-js'
 
-import type { FormCode, SkillLevel, WeeklyFormCode } from '../lib/catalog'
+import type { ActivityFormCode, FormCode, SkillLevel, WeeklyFormCode } from '../lib/catalog'
 import { SKILL_GROUPS } from '../lib/catalog'
 import type { AccessLevel } from '../lib/screens'
 import type { PanelRepository } from './repository'
@@ -21,7 +21,8 @@ import type {
   SessionDay,
   DemographicsRow,
   DiscRow,
-  FormDeadline,
+  Activity,
+  ActivityInput,
   Group,
   GroupInput,
   RegisteredStudent,
@@ -685,38 +686,47 @@ export const supabaseRepository: PanelRepository = {
     }
   },
 
-  async getFormDeadlines(groupId: string): Promise<FormDeadline[]> {
+  async getActivities(groupId: string): Promise<Activity[]> {
     const { data, error } = await supabase
-      .from('group_deadlines')
+      .from('activities')
       .select('*')
       .eq('group_id', groupId)
-      .order('due_at', { ascending: true })
 
-    if (error) throw new Error(`No se pudieron cargar las fechas límite: ${error.message}`)
-
-    return ((data ?? []) as PanelRecord[]).map((record) => ({
-      groupId: str(record.group_id) ?? '',
-      formCode: record.form_code as FormCode,
-      dueAt: str(record.due_at) ?? '',
-    }))
+    if (error) throw new Error(`No se pudieron cargar las actividades: ${error.message}`)
+    return ((data ?? []) as PanelRecord[]).map(toActivity)
   },
 
-  async setFormDeadlines(groupId: string, formCodes: string[], dueAt: string): Promise<void> {
-    const { error } = await supabase.rpc('set_group_deadlines', {
-      p_group_id: groupId,
-      p_form_codes: formCodes,
-      p_due_at: dueAt,
+  async getMyActivities(groupId?: string | null): Promise<Activity[]> {
+    let query = supabase.from('activities').select('*')
+    if (groupId) query = query.eq('group_id', groupId)
+    const { data, error } = await query
+
+    if (error) throw new Error(`No se pudieron cargar las actividades: ${error.message}`)
+    return ((data ?? []) as PanelRecord[]).map(toActivity)
+  },
+
+  async saveActivity(input: ActivityInput): Promise<void> {
+    const { error } = await supabase.rpc('save_activity', {
+      p_group_id: input.groupId,
+      p_form_code: input.formCode,
+      p_instructions: input.instructions,
+      p_is_published: input.isPublished,
+      p_available_from: input.availableFrom,
+      p_due_at: input.dueAt,
+      p_available_until: input.availableUntil,
     })
 
-    if (error) throw new Error(`No se pudo guardar la fecha límite: ${error.message}`)
+    if (error) throw new Error(`No se pudo guardar la actividad: ${error.message}`)
   },
 
-  async deleteFormDeadline(groupId: string, formCode: string): Promise<void> {
-    const { error } = await supabase.rpc('delete_group_deadline', {
+  async setActivityPublished(groupId: string, formCode: string, published: boolean): Promise<void> {
+    const { error } = await supabase.rpc('set_activity_published', {
       p_group_id: groupId,
       p_form_code: formCode,
+      p_published: published,
     })
-    if (error) throw new Error(`No se pudo borrar la fecha límite: ${error.message}`)
+
+    if (error) throw new Error(`No se pudo cambiar la publicación: ${error.message}`)
   },
 
   async registerStudents(rows: StudentRegistrationInput[]): Promise<RegistrationResult[]> {
@@ -1380,6 +1390,10 @@ async function fetchLogs(view: string, studentId: string): Promise<PanelRecord[]
  * una política de RLS o de un constraint, que habla de nombres de tablas.
  */
 function submissionError(message: string): string {
+  // La actividad cerró (o se despublicó) mientras el alumno tenía el formulario abierto (0051).
+  if (/activity_open/.test(message)) {
+    return 'Esta actividad ya está cerrada o todavía no está disponible.'
+  }
   if (/row-level security|violates|constraint|permission denied/i.test(message)) {
     return 'No se pudo guardar tu entrega. Verifica que tu cuenta sea la de un alumno y vuelve a intentarlo.'
   }
@@ -1414,6 +1428,19 @@ const VIEW_BY_FORM: Record<FormCode, string> = {
   form2_7: 'v_panel_indeed',
   formA_1: 'v_panel_internships',
   formB_1: 'v_panel_companies',
+}
+
+function toActivity(record: PanelRecord): Activity {
+  return {
+    groupId: str(record.group_id) ?? '',
+    formCode: record.form_code as ActivityFormCode,
+    instructions: str(record.instructions),
+    isPublished: bool(record.is_published) ?? false,
+    availableFrom: str(record.available_from),
+    dueAt: str(record.due_at),
+    availableUntil: str(record.available_until),
+    updatedAt: str(record.updated_at) ?? '',
+  }
 }
 
 function toGradeEntry(record: PanelRecord): GradeEntry {

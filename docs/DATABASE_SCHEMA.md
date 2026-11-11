@@ -12,6 +12,8 @@
 - **Última migración aplicada:** `0047_rls_init_plans.sql` (2026-10-14).
   `0043_weekly_log_sequential.sql` (2026-10-14); `0044_teacher_group_admin.sql` (2026-10-14); `0045_session_days_weekdays.sql` (2026-10-14).
   `0046_group_deadlines.sql` (2026-10-14).
+  `0051_activities.sql` está escrita y documentada aquí (sección
+  [Actividades](#actividades)) pero **todavía no se pega en Supabase**.
   `0019_student_dossier_read.sql` está escrita y documentada aquí pero
   **todavía no se pega en Supabase**.
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
@@ -30,7 +32,9 @@
 9. [Bitácoras semanales](#bitácoras-semanales)
 10. [Registro de alumnos](#registro-de-alumnos)
 11. [Grupos](#grupos)
-12. [Semanas del semestre](#semanas-del-semestre)
+12. [Actividades](#actividades)
+    - [Fechas de entrega por grupo](#fechas-de-entrega-por-grupo)
+    - [Semanas del semestre](#semanas-del-semestre)
     - [Calificaciones](#calificaciones)
     - [Calificaciones del alumno](#calificaciones-del-alumno)
     - [Avisos y notificaciones](#avisos-y-notificaciones)
@@ -180,6 +184,27 @@ erDiagram
     COORDINATOR_TEACHERS {
         uuid coordinator_id PK "FK profiles"
         uuid teacher_id PK "FK profiles"
+    }
+
+    GROUPS ||--o{ GROUP_WEEKS : "calendario"
+    GROUPS ||--o{ ACTIVITIES : "asigna"
+    FORMS ||--o{ ACTIVITIES : "es"
+
+    GROUP_WEEKS {
+        uuid group_id PK "FK groups"
+        smallint week_number PK
+        date week_start "lunes"
+        date week_end "domingo"
+    }
+    ACTIVITIES {
+        uuid group_id PK "FK groups"
+        text form_code PK "FK forms"
+        text instructions "nulo = las del catálogo"
+        boolean is_published
+        timestamptz available_from "nulo = desde que se publica"
+        timestamptz due_at "nulo = sin fecha"
+        timestamptz available_until "nulo = nunca cierra"
+        timestamptz updated_at
     }
 
     GROUPS ||--o{ GRADE_ACTIVITIES : "puntos de"
@@ -609,8 +634,8 @@ Todas `SECURITY DEFINER`.
   `*_logs_screen_write` (update), restrictivas, exigen «Puede editar» en la
   bitácora. Solo muerden a una sesión de alumno.
 - **Escritura del staff con «Puede editar»**, siempre dentro de sus grupos y
-  alumnos: `group_weeks`/`group_deadlines` (`0046`, vía funciones `create_group_weeks()`,
-  `set_group_deadlines()`… acotadas por grupo), `groups` (delete/update), y las funciones
+  alumnos: `group_weeks` y `activities` (`0046`/`0051`, vía funciones `create_group_weeks()`,
+  `save_activity()`… acotadas por grupo y por la pantalla `actividades`), `groups` (delete/update), y las funciones
   `admin_register_students()`, `admin_create_group()`, `admin_move_student()`
   y `admin_set_weekly_log_week_number()` redefinidas con el permiso en vez de
   `is_admin()`. `guard_user_roles()` deja que quien registra alumnos les dé el
@@ -975,7 +1000,7 @@ mismo emparejamiento de `v_weekly_submission_status`).
 | `v_grade_center.is_late` | Entrega tardía, para Calificar y el Centro de calificaciones |
 
 **Entrega tardía** = `submissions.submitted_at` posterior al cierre de la
-semana a la que resuelve la entrega (`semester_weeks.week_end`, 23:59:59
+semana a la que resuelve la entrega (`group_weeks.week_end` desde `0046`, 23:59:59
 America/Monterrey: el mismo corte que `due_at` y que el estado `tarde` de
 `v_weekly_submission_status`). **No se agrega tabla ni columna**: el hecho ya lo
 determinan `submitted_at` y `week_end`, y guardarlo aparte permitiría que se
@@ -1184,9 +1209,93 @@ funciones de abajo escriben.
 - **`v_groups`** — cada grupo con `teacher_name`, `teacher_email` y
   `student_count`. Alimenta la pantalla Grupos y el selector del encabezado.
 
+## Actividades
+
+> Migración `0051_activities.sql` — ⏳ **escrita, todavía no ejecutada en Supabase**.
+> Reemplaza a `group_deadlines` (sección siguiente) y convierte la pantalla
+> «Fechas de entrega» en «Actividades».
+
+Cada formulario asignado a un grupo es una **actividad**, como una tarea de
+Canvas: el profesor la publica, programa desde cuándo la ve el alumno, le pone
+fecha de entrega y decide hasta cuándo se puede entregar. Todavía no se crean
+formularios nuevos: las actividades son los quince de `forms`.
+
+### `activities`
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `group_id` | `uuid` PK, FK `groups` (cascade) | |
+| `form_code` | `text` PK, FK `forms` | |
+| `instructions` | `text` ≤ 5000 | Nulo = las instrucciones del catálogo de la interfaz |
+| `is_published` | `boolean` | Borrador o publicada |
+| `available_from` | `timestamptz` | «Disponible desde». Antes, el alumno no la ve. Nulo = desde que se publica |
+| `due_at` | `timestamptz` | «Fecha de entrega». Después, la entrega es tardía. Nulo = sin fecha; las bitácoras siempre nulo (vencen por semana, `group_weeks`) |
+| `available_until` | `timestamptz` | «Disponible hasta». Después ya no se entrega; el alumno la ve Cerrada. Nulo = nunca cierra |
+| `updated_at` | `timestamptz` | |
+
+CHECK: `available_from ≤ due_at ≤ available_until` y `available_from < available_until`
+(cada uno solo si los dos existen).
+
+**Normalización (4FN).** Llave `(group_id, form_code)`; cada columna depende de
+la llave completa y de nada más. «Programada», «Abierta», «Tardía» y «Cerrada»
+**se derivan** de las fechas y de `now()`, no se guardan (el mismo criterio que
+la entrega tardía de `0043`). `group_deadlines` desaparece: su único dato,
+`due_at`, vive aquí, y tenerlo en dos tablas sería guardar el mismo hecho dos
+veces.
+
+**Qué llega al portal.** Solo las actividades que se contestan en el panel (hoy
+las dos bitácoras). Los otros trece formularios siguen en Google Forms: en
+Actividades solo llevan fecha de entrega, que usa Estado de Entregas.
+
+**Datos.** Una fila por grupo × formulario. Las bitácoras y los Google Forms
+nacen publicados (nada cambia para el alumno); el `form1_0`, en borrador. Las
+fechas de `group_deadlines` se copian a `due_at`. El trigger
+`groups_seed_activities` (`seed_group_activities()`) siembra las quince filas de
+cada grupo nuevo, sin fechas.
+
+**RLS.** Lectura: `activities_select_admin`, `activities_select_scope`
+(`group_id in visible_group_ids()`) y `activities_select_own`: el grupo del
+alumno, **publicada y con `available_from` ya pasado** (la regla «oculta antes»
+vive en la base; después de `available_until` la sigue viendo). Sin restrictiva
+de pantalla, como `group_weeks`. **No hay escritura directa.**
+
+**Funciones** (`SECURITY DEFINER`, validan `can_edit_group_dates(group)` = admin, o
+«Puede editar» en `actividades` y el grupo en su alcance):
+
+| Función | Qué hace |
+|---|---|
+| `save_activity(group, form, instructions, is_published, available_from, due_at, available_until)` | Upsert. Las tres fechas llegan como `timestamp` en hora de Monterrey y se convierten con `at time zone 'America/Monterrey'`. En una bitácora ignora `due_at`. Valida el orden con mensajes en español |
+| `set_activity_published(group, form, published)` | El interruptor de la lista |
+| `activity_is_open(form)` | Para el alumno de la sesión: su actividad está publicada, ya empezó y no ha cerrado. `false` sin grupo o sin fila |
+| `default_activity_published(form)` | `true` salvo `form1_0`; la usan la carga inicial y el trigger |
+
+**Escritura del alumno acotada a la ventana.** Políticas **restrictivas**, que
+solo muerden a una sesión de alumno (`current_student_id()` no nulo; el staff y
+la sincronización del Sheets no cambian):
+
+- `submissions_activity_open` (insert): `activity_is_open(form_code)`.
+- `job_search_logs_activity_open` y `internship_logs_activity_open` (update):
+  corregir la semana en curso (`0020`) también exige que siga abierta.
+
+**Fechas límite.** `group_form_deadline(group, form)` lee `activities.due_at`, y
+solo de una actividad **publicada** (un borrador no vence). `v_submission_status`
+se rehace con las mismas columnas e **incluye el 1.0**.
+
+**Permisos.** Pantalla `actividades` (`edicion`, `panel`) en lugar de
+`fechas_entrega`: se copian a ella los permisos por rol y por persona que tenía
+la vieja, y maestro y coordinador quedan con «Puede editar» (siempre en sus
+grupos). `fechas_entrega` se borra de `app_screens` (cascade a
+`role_screen_access`/`user_screen_access`). Las semanas del semestre también
+se editan con este permiso.
+
+**Se eliminan:** `group_deadlines`, `set_group_deadlines()` y `delete_group_deadline()`.
+
 ## Fechas de entrega por grupo
 
 > Migración `0046_group_deadlines.sql` — ✅ ejecutada en Supabase (2026-10-14).
+> ⚠️ Desde `0051`, `group_deadlines` se reemplaza por `activities.due_at` y el
+> permiso `fechas_entrega` por `actividades` (ver [Actividades](#actividades));
+> `group_weeks` sigue igual.
 > Sustituye a `semester_weeks` y `form_deadlines` (secciones de abajo, que
 > describen el modelo anterior). Cada maestro fija el calendario y las fechas
 > límite de **cada uno de sus grupos**; nada se comparte entre grupos ni entre
@@ -2170,6 +2279,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0048_admin_usage_stats.sql` | `admin_usage_stats()`: tamaño de BD y Storage, MAU, conexiones y tablas más pesadas para la pantalla Uso de Supabase (admin) | ✅ 2026-10-27 |
 | `0049_student_grades.sql` | pantalla `alumno_calificaciones`; el alumno lee sus `grades` y los `grade_activities` de su grupo (políticas «lo mío» y restrictivas ampliadas) | ✅ 2026-11-04 |
 | `0050_notices.sql` | `notices`, `notice_recipients`, `notice_groups`, `grade_reads`; `send_notice()`, `mark_*_read()`, `notification_sender_name()`; vistas `v_my_notifications`, `v_sent_notices`; `v_grade_center.seen_at`; pantalla `avisos` | ✅ 2026-11-04 |
+| `0051_activities.sql` | `activities` (publicar, disponible desde / fecha de entrega / disponible hasta) por grupo × formulario, sembradas con trigger; `save_activity()`, `set_activity_published()`, `activity_is_open()` y restrictivas de entrega del alumno; `group_form_deadline()` y `v_submission_status` (con el 1.0) leen `activities`; pantalla `actividades` en lugar de `fechas_entrega`; se eliminan `group_deadlines` y sus funciones | ⏳ sin ejecutar |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un
 > archivo nuevo.
