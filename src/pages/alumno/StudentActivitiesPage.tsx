@@ -35,47 +35,78 @@ export function StudentActivitiesPage() {
   const loading = loadingPermissions || loadingActivities
   const t = useT()
   const lang = useLang()
-  const assignments = WEEKLY_FORMS.flatMap((form) => {
+  const weeklyReports = WEEKLY_FORMS.flatMap((form) => {
     const activity = byCode(form.code)
     return can(form.code) && activity ? [{ form: localizeWeeklyForm(form, lang), activity }] : []
   })
   const demographics = can('form1_0') ? byCode('form1_0') : undefined
 
+  // Una sola página, dividida por título: primero los reportes semanales y
+  // abajo las demás actividades. Una tarjeta por fila en las dos.
   return (
     <>
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink-950">
-          {t('Actividades', 'Assignments')}
-        </h1>
-        <p className="mt-1 text-sm text-ink-600">
-          {t(
-            'Tus tareas del curso: entra a cada una para entregarla y ver lo que ya entregaste.',
-            'Your course assignments: open each one to submit it and see what you have already submitted.',
-          )}
-        </p>
-      </header>
+      <h1 className="sr-only">{t('Actividades', 'Assignments')}</h1>
 
-      {assignments.length > 0 || demographics ? (
-        <ul className="mt-6 grid gap-3 sm:grid-cols-2">
-          {demographics && (
-            <li>
-              <DemographicsCard activity={demographics} />
-            </li>
+      {weeklyReports.length > 0 && (
+        <ActivitySection
+          title={t('Reportes semanales', 'Weekly Reports')}
+          description={t(
+            'Entra a cada uno para entregar la semana y ver lo que ya entregaste.',
+            'Open each one to submit this week and see what you have already submitted.',
           )}
-          {assignments.map(({ form, activity }) => (
+        >
+          {weeklyReports.map(({ form, activity }) => (
             <li key={form.code}>
               <AssignmentCard form={form} activity={activity} />
             </li>
           ))}
-        </ul>
-      ) : (
-        !loading && (
+        </ActivitySection>
+      )}
+
+      {demographics && (
+        <ActivitySection
+          title={t('Actividades', 'Assignments')}
+          description={t(
+            'Entra a cada una para entregarla y ver lo que ya entregaste.',
+            'Open each one to submit it and see what you have already submitted.',
+          )}
+        >
+          <li>
+            <DemographicsCard activity={demographics} />
+          </li>
+        </ActivitySection>
+      )}
+
+      {weeklyReports.length === 0 && !demographics && !loading && (
+        <>
+          <h2 className="text-2xl font-semibold tracking-tight text-ink-950">
+            {t('Actividades', 'Assignments')}
+          </h2>
           <p className="mt-6 rounded-xl border border-dashed border-ink-200 bg-white px-5 py-8 text-center text-sm text-ink-500">
             {t('Todavía no tienes actividades asignadas.', 'You have no assignments yet.')}
           </p>
-        )
+        </>
       )}
     </>
+  )
+}
+
+/** Un bloque de la página: título del tamaño de la página y una tarjeta por fila. */
+function ActivitySection({
+  title,
+  description,
+  children,
+}: {
+  title: string
+  description: string
+  children: React.ReactNode
+}) {
+  return (
+    <section className="mb-10 last:mb-0">
+      <h2 className="text-2xl font-semibold tracking-tight text-ink-950">{title}</h2>
+      <p className="mt-1 text-sm text-ink-600">{description}</p>
+      <ul className="mt-6 space-y-3">{children}</ul>
+    </section>
   )
 }
 

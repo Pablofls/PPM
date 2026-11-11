@@ -865,6 +865,11 @@ formulario. Sin actividades visibles, un estado vacío (y el rail no muestra la
 sección). Las bitácoras cuelgan de esta ruta, así que el rail sigue marcando
 «Actividades» mientras el alumno está dentro de una.
 
+Es una sola página dividida por títulos del mismo tamaño: arriba
+**Reportes semanales** (*Weekly Reports*) con las bitácoras, y abajo
+**Actividades** (*Assignments*) con lo demás (hoy el 1.0). Una tarjeta por
+fila en los dos bloques; un bloque sin tarjetas no se muestra.
+
 El resumen de cada tarjeta es lo que hace útil la lista. Sin él, el alumno
 tendría que entrar a cada tarea para saber si ya entregó la semana. Si la
 consulta falla, la tarjeta se queda sin resumen pero no sin tarea: todavía se
