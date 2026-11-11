@@ -102,6 +102,10 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   en el portal del alumno con sus calificaciones (puntaje y comentario, al
   guardar en Calificar) y los avisos del profesor, que se mandan desde el ADN
   Profesional (a un alumno) o desde **Avisos** en el rail (a todo un grupo).
+- **Portal en inglés para grupos de Inglés** (sin migración): el alumno de
+  un grupo con `language = 'en'` ve todo su portal en inglés; el panel del
+  profesor sigue en español. Ver
+  [docs/UI_SCREENS.md](docs/UI_SCREENS.md#idioma-del-portal).
 - El **portal del alumno son sus tareas**, al estilo de Canvas: instrucciones,
   formulario de entrega y las entregas anteriores. Hoy tiene las dos bitácoras
   semanales, y son los **únicos** formularios que se contestan dentro del panel;
@@ -157,6 +161,10 @@ enseña al profesor.
 | Variables y funciones | inglés, `camelCase` | `getLatestSubmissions` |
 | **Texto visible al usuario** | **español** | `"Datos Demográficos"` |
 | Códigos de formulario | los del Sheets | `form1_0`, `form2_7` |
+
+Excepción: el **portal del alumno** de un grupo de Inglés va en inglés. Todo
+texto nuevo del portal se escribe con `t('español', 'English')`
+(`src/lib/i18n.ts`); el panel del profesor sigue solo en español.
 
 El mapeo entre los encabezados en español del Sheets y las columnas en inglés está
 en [docs/DATA_MAPPING.md](docs/DATA_MAPPING.md).

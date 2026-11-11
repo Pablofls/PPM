@@ -196,6 +196,17 @@ export interface WeeklyFormMeta {
   /** Lo que el alumno lee antes de contestar, como en una tarea de Canvas. */
   instructions: string[]
   fields: WeeklyField[]
+  /**
+   * La versión en inglés, para el portal de los alumnos de un grupo de Inglés
+   * (`src/lib/i18n.ts`). Los campos se traducen por su `key`. El profesor
+   * siempre ve la versión en español.
+   */
+  en: {
+    name: string
+    subtitle: string
+    instructions: string[]
+    fields: Record<string, { label: string; help: string }>
+  }
 }
 
 export const WEEKLY_FORMS: WeeklyFormMeta[] = [
@@ -246,6 +257,37 @@ export const WEEKLY_FORMS: WeeklyFormMeta[] = [
         required: true,
       },
     ],
+    en: {
+      name: 'Job Search Report',
+      subtitle: 'Your weekly internship search log',
+      instructions: [
+        'Submit it once a week, for as long as you are still looking for an internship.',
+        'You can only report the current week: the system does not let you choose another one.',
+        'You can edit it as many times as you want while it is still this week; once the week is over, it can no longer be edited.',
+      ],
+      fields: {
+        activities: {
+          label: 'Activities',
+          help: 'What did you do this week to look for an internship?',
+        },
+        applications: {
+          label: 'Applications',
+          help: 'Which openings did you apply to? Write the company and the position.',
+        },
+        interviews: {
+          label: 'Interviews',
+          help: 'Did you have any interviews? With whom, and how did they go?',
+        },
+        learnings: {
+          label: 'Learnings',
+          help: 'What did you learn from this week’s search?',
+        },
+        nextSteps: {
+          label: 'Next steps',
+          help: 'What will you do next week?',
+        },
+      },
+    },
   },
   {
     code: 'form_practicas',
@@ -287,11 +329,54 @@ export const WEEKLY_FORMS: WeeklyFormMeta[] = [
         required: true,
       },
     ],
+    en: {
+      name: 'Internship Report',
+      subtitle: 'Your weekly log at the company',
+      instructions: [
+        'Submit it once a week, starting when your internship begins.',
+        'Hours are for that week only, not the running total: the system adds them up.',
+        'You can only report the current week, and you can edit it while it is still in progress; once the week is over, it can no longer be edited.',
+      ],
+      fields: {
+        activities: {
+          label: 'Activities',
+          help: 'What activities did you do at the company this week?',
+        },
+        hoursWorked: {
+          label: 'Hours worked',
+          help: 'Hours for this week. Decimals are accepted (for example, 31.5).',
+        },
+        skillsPracticed: {
+          label: 'Skills',
+          help: 'Which skills did you put into practice?',
+        },
+        proposal: {
+          label: 'Proposal',
+          help: 'What would you propose to improve the area where you work?',
+        },
+      },
+    },
   },
 ]
 
 export const weeklyFormByCode = (code: WeeklyFormCode): WeeklyFormMeta =>
   WEEKLY_FORMS.find((form) => form.code === code)!
+
+/**
+ * La bitácora en el idioma del portal: en inglés reemplaza nombre,
+ * subtítulo, instrucciones y el texto de cada campo; todo lo demás (código,
+ * ruta, claves y tipos de los campos) es el mismo.
+ */
+export function localizeWeeklyForm(form: WeeklyFormMeta, lang: 'es' | 'en'): WeeklyFormMeta {
+  if (lang === 'es') return form
+  return {
+    ...form,
+    name: form.en.name,
+    subtitle: form.en.subtitle,
+    instructions: form.en.instructions,
+    fields: form.fields.map((field) => ({ ...field, ...form.en.fields[field.key] })),
+  }
+}
 
 /** Los cuatro formularios que comparten la tabla `reflections`. */
 export const REFLECTION_FORMS = ['form2_1', 'form2_2', 'form2_4', 'form2_5'] as const
@@ -377,6 +462,16 @@ export const HOLLAND_LABELS: Record<string, string> = {
   S: 'Social',
   E: 'Emprendedora',
   C: 'Convencional',
+}
+
+/** Los mismos tipos de Holland en inglés, para el portal de un grupo de Inglés. */
+export const HOLLAND_LABELS_EN: Record<string, string> = {
+  R: 'Realistic',
+  I: 'Investigative',
+  A: 'Artistic',
+  S: 'Social',
+  E: 'Enterprising',
+  C: 'Conventional',
 }
 
 /** Escala del formulario 1.4, de menor a mayor dominio. Mismo orden que el enum. */

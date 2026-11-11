@@ -300,14 +300,19 @@ export const ROLE_LABELS: Record<RoleCode, string> = {
  * contraseña desde `ProfilePage`): los dos devuelven el mismo tipo de error y
  * varios casos —red, rate limit— son idénticos en ambos flujos.
  */
-export function translateAuthError(message: string): string {
+export function translateAuthError(message: string, lang: 'es' | 'en' = 'es'): string {
   const normalized = message.toLowerCase()
+  // El portal de un grupo de Inglés (`src/lib/i18n.ts`).
+  const t = (es: string, en: string) => (lang === 'en' ? en : es)
 
   if (normalized.includes('invalid login credentials')) {
-    return 'Correo o contraseña incorrectos.'
+    return t('Correo o contraseña incorrectos.', 'Incorrect email or password.')
   }
   if (normalized.includes('email not confirmed')) {
-    return 'Tu cuenta todavía no está confirmada. Revisa tu correo.'
+    return t(
+      'Tu cuenta todavía no está confirmada. Revisa tu correo.',
+      'Your account is not confirmed yet. Check your email.',
+    )
   }
   // El número lo saca del mensaje de Supabase en vez de tenerlo fijo: es la
   // longitud mínima que de verdad tiene configurada el dashboard
@@ -315,16 +320,28 @@ export function translateAuthError(message: string): string {
   // archivo se entere.
   const longitudMinima = message.match(/at least (\d+) characters?/i)?.[1]
   if (longitudMinima) {
-    return `La contraseña debe tener al menos ${longitudMinima} caracteres.`
+    return t(
+      `La contraseña debe tener al menos ${longitudMinima} caracteres.`,
+      `The password must be at least ${longitudMinima} characters long.`,
+    )
   }
   if (normalized.includes('should be different from the old password')) {
-    return 'La nueva contraseña debe ser diferente a la actual.'
+    return t(
+      'La nueva contraseña debe ser diferente a la actual.',
+      'The new password must be different from the current one.',
+    )
   }
   if (normalized.includes('too many requests') || normalized.includes('rate limit')) {
-    return 'Demasiados intentos. Espera un momento y vuelve a intentarlo.'
+    return t(
+      'Demasiados intentos. Espera un momento y vuelve a intentarlo.',
+      'Too many attempts. Wait a moment and try again.',
+    )
   }
   if (normalized.includes('failed to fetch') || normalized.includes('network')) {
-    return 'No se pudo conectar con el servidor. Revisa tu conexión.'
+    return t(
+      'No se pudo conectar con el servidor. Revisa tu conexión.',
+      'Could not connect to the server. Check your connection.',
+    )
   }
-  return `No se pudo completar la operación: ${message}`
+  return t(`No se pudo completar la operación: ${message}`, `The operation could not be completed: ${message}`)
 }

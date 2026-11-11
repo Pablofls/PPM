@@ -20,7 +20,8 @@ import {
   formatWeekRange,
   toHref,
 } from '../lib/format'
-import { HOLLAND_LABELS } from '../lib/catalog'
+import { HOLLAND_LABELS, HOLLAND_LABELS_EN } from '../lib/catalog'
+import { useLang, useT, type Lang } from '../lib/i18n'
 import { usePermissions } from '../auth/PermissionsProvider'
 import { useGroups } from '../layouts/GroupProvider'
 import { Badge, Dash } from './Badge'
@@ -380,6 +381,8 @@ function Identity({
   // Solo en el panel del profesor: el portal del alumno no tiene la lista de
   // grupos (ni la necesita para verse a sí mismo).
   const group = useGroups()?.groups.find((candidate) => candidate.id === dossier?.groupId)
+  const t = useT()
+  const lang = useLang()
 
   return (
     <section>
@@ -390,7 +393,11 @@ function Identity({
       <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-600">
         {institutionalEmail && <span>{institutionalEmail}</span>}
         {dossier?.personalEmail && <span>{dossier.personalEmail}</span>}
-        {dossier?.studentNumber && <span>Matrícula {dossier.studentNumber}</span>}
+        {dossier?.studentNumber && (
+          <span>
+            {t('Matrícula', 'Student ID')} {dossier.studentNumber}
+          </span>
+        )}
         {group && <span>Grupo {formatGroupLabel(group)}</span>}
         {linkedin && (
           <a
@@ -405,14 +412,14 @@ function Identity({
       </div>
 
       <dl className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <InfoCard label="Fecha nac." value={formatDate(dossier?.birthDate ?? null)} />
-        <InfoCard label="Edad" value={age(dossier?.birthDate ?? null)} />
-        <InfoCard label="Carrera" value={degreeCode} />
-        <InfoCard label="Semestre" value={formatSemester(semester)} />
-        <InfoCard label="Período" value={periodCode} />
-        <InfoCard label="País" value={dossier?.birthCountry ?? null} />
-        <InfoCard label="Sexo" value={formatGender(dossier?.gender ?? null)} />
-        <InfoCard label="Frecuencia" value={formatSessionDay(sessionDay)} />
+        <InfoCard label={t('Fecha nac.', 'Birth date')} value={formatDate(dossier?.birthDate ?? null, lang)} />
+        <InfoCard label={t('Edad', 'Age')} value={age(dossier?.birthDate ?? null, lang)} />
+        <InfoCard label={t('Carrera', 'Degree')} value={degreeCode} />
+        <InfoCard label={t('Semestre', 'Semester')} value={formatSemester(semester, lang)} />
+        <InfoCard label={t('Período', 'Term')} value={periodCode} />
+        <InfoCard label={t('País', 'Country')} value={dossier?.birthCountry ?? null} />
+        <InfoCard label={t('Sexo', 'Sex')} value={formatGender(dossier?.gender ?? null, lang)} />
+        <InfoCard label={t('Frecuencia', 'Class day')} value={formatSessionDay(sessionDay, lang)} />
       </dl>
     </section>
   )
@@ -420,7 +427,10 @@ function Identity({
 
 /** I — Intereses Profesionales (Holland): radar y puntuaciones. */
 function Interests({ dossier }: { dossier: Dossier | null }) {
+  const t = useT()
+  const lang = useLang()
   if (!dossier?.hollandTypes.length) return null
+  const hollandLabels = lang === 'en' ? HOLLAND_LABELS_EN : HOLLAND_LABELS
 
   // El formulario solo guarda los tres intereses más altos. Los otros tres ejes
   // del radar van en cero: es la información que existe, no un dato inventado.
@@ -431,7 +441,7 @@ function Interests({ dossier }: { dossier: Dossier | null }) {
 
   return (
     <Section
-      title="I — Intereses Profesionales"
+      title={t('I — Intereses Profesionales', 'I — Career Interests')}
       hint="Holland Codes"
       badge={dossier.hollandCode}
     >
@@ -451,7 +461,7 @@ function Interests({ dossier }: { dossier: Dossier | null }) {
                 {interes.score ?? '—'}
               </p>
               <p className="mt-0.5 text-[10px] text-ink-500">
-                {HOLLAND_LABELS[interes.type] ?? interes.type}
+                {hollandLabels[interes.type] ?? interes.type}
               </p>
             </div>
           ))}
@@ -463,6 +473,7 @@ function Interests({ dossier }: { dossier: Dossier | null }) {
 
 /** II y III — Personalidad (MBTI) y Comportamiento (DISC), juntos. */
 function Personality({ dossier }: { dossier: Dossier | null }) {
+  const t = useT()
   const hasMbti = Boolean(dossier?.mbtiType)
   const hasDisc = Boolean(dossier?.discStyle || dossier?.discCategory)
   if (!dossier || (!hasMbti && !hasDisc)) return null
@@ -472,19 +483,19 @@ function Personality({ dossier }: { dossier: Dossier | null }) {
   return (
     <div className="space-y-6">
       {hasMbti && (
-        <Section title="II — Personalidad" hint="Myers-Briggs">
+        <Section title={t('II — Personalidad', 'II — Personality')} hint="Myers-Briggs">
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone="violet">
               {dossier.mbtiType}
               {dossier.mbtiIdentity ? ` — ${dossier.mbtiIdentity}` : ''}
             </Badge>
-            {report && <ExternalLink href={report}>Ver perfil</ExternalLink>}
+            {report && <ExternalLink href={report}>{t('Ver perfil', 'View profile')}</ExternalLink>}
           </div>
         </Section>
       )}
 
       {hasDisc && (
-        <Section title="III — Comportamiento" hint="DISC">
+        <Section title={t('III — Comportamiento', 'III — Behavior')} hint="DISC">
           <div className="flex flex-wrap items-center gap-2">
             {dossier.discStyle && <Badge tone="amber">{dossier.discStyle}</Badge>}
             {dossier.discCategory && <Badge>{dossier.discCategory}</Badge>}
@@ -493,7 +504,7 @@ function Personality({ dossier }: { dossier: Dossier | null }) {
               automáticas, texto libre). Se marca en vez de esconderla: el dato
               existe, solo no es de fiar.
             */}
-            {dossier.discNeedsReview && <Badge tone="red">Revisar</Badge>}
+            {dossier.discNeedsReview && <Badge tone="red">{t('Revisar', 'Review')}</Badge>}
           </div>
         </Section>
       )}
@@ -503,18 +514,19 @@ function Personality({ dossier }: { dossier: Dossier | null }) {
 
 /** IV — Valores. */
 function Values({ dossier }: { dossier: Dossier | null }) {
+  const t = useT()
   if (!dossier?.topValues.length) return null
   const report = toHref(dossier.valuesReportUrl)
 
   return (
-    <Section title="IV — Valores">
+    <Section title={t('IV — Valores', 'IV — Values')}>
       <div className="flex flex-wrap items-center gap-2">
         {dossier.topValues.map((valor) => (
           <Badge key={valor} tone="green">
             {valor}
           </Badge>
         ))}
-        {report && <ExternalLink href={report}>Ver</ExternalLink>}
+        {report && <ExternalLink href={report}>{t('Ver', 'View')}</ExternalLink>}
       </div>
     </Section>
   )
@@ -522,34 +534,36 @@ function Values({ dossier }: { dossier: Dossier | null }) {
 
 /** V — Datos de la práctica en curso, del formulario B.1. */
 function Internship({ dossier }: { dossier: Dossier | null }) {
+  const t = useT()
+  const lang = useLang()
   if (!dossier) return null
 
   const campos: [string, string | null][] = [
-    ['Empresa', dossier.companyName],
-    ['Giro', dossier.industry],
-    ['Dirección', dossier.address],
-    ['Departamento', dossier.department],
-    ['Jefe', dossier.supervisorInfo],
-    ['Correo jefe', dossier.supervisorEmail],
-    ['Tel. jefe', dossier.supervisorPhone],
-    ['Página web', dossier.companyWebsite],
-    ['Contrato', boolLabel(dossier.hasContract)],
-    ['Sueldo', dossier.salary === null ? null : formatMoney(dossier.salary)],
+    [t('Empresa', 'Company'), dossier.companyName],
+    [t('Giro', 'Industry'), dossier.industry],
+    [t('Dirección', 'Address'), dossier.address],
+    [t('Departamento', 'Department'), dossier.department],
+    [t('Jefe', 'Supervisor'), dossier.supervisorInfo],
+    [t('Correo jefe', 'Supervisor email'), dossier.supervisorEmail],
+    [t('Tel. jefe', 'Supervisor phone'), dossier.supervisorPhone],
+    [t('Página web', 'Website'), dossier.companyWebsite],
+    [t('Contrato', 'Contract'), boolLabel(dossier.hasContract, lang)],
+    [t('Sueldo', 'Salary'), dossier.salary === null ? null : formatMoney(dossier.salary)],
   ]
   const presentes = campos.filter(([, valor]) => valor)
   if (!presentes.length) return null
 
   return (
-    <Section title="V — Datos de Prácticas Profesionales">
+    <Section title={t('V — Datos de Prácticas Profesionales', 'V — Internship Details')}>
       <div className="overflow-hidden rounded-lg border border-ink-200">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr>
               <th className="w-40 border-b border-ink-200 bg-ink-50 px-3 py-2 text-left text-[11px] font-semibold tracking-wider text-ink-500 uppercase">
-                Campo
+                {t('Campo', 'Field')}
               </th>
               <th className="border-b border-ink-200 bg-ink-50 px-3 py-2 text-left text-[11px] font-semibold tracking-wider text-ink-500 uppercase">
-                Información
+                {t('Información', 'Information')}
               </th>
             </tr>
           </thead>
@@ -991,8 +1005,9 @@ function entryCount(n: number): string {
   return n === 1 ? '1 entrada' : `${n} entradas`
 }
 
-function boolLabel(value: boolean | null): string | null {
+function boolLabel(value: boolean | null, lang: Lang = 'es'): string | null {
   if (value === null) return null
+  if (lang === 'en') return value ? 'Yes' : 'No'
   return value ? 'Sí' : 'No'
 }
 
@@ -1006,7 +1021,7 @@ function formatMoney(value: number): string {
   return MONEY.format(value)
 }
 
-function age(birthDate: string | null): string {
+function age(birthDate: string | null, lang: Lang = 'es'): string {
   if (!birthDate) return ''
   const nacimiento = new Date(birthDate)
   if (Number.isNaN(nacimiento.getTime())) return ''
@@ -1018,7 +1033,8 @@ function age(birthDate: string | null): string {
 
   // Las fechas de nacimiento vienen del Sheets y algunas llegaron corruptas.
   // Una edad absurda dice más si se oculta que si se muestra como un hecho.
-  return años > 0 && años < 120 ? `${años} años` : ''
+  if (!(años > 0 && años < 120)) return ''
+  return lang === 'en' ? `${años} years` : `${años} años`
 }
 
 // ---------------------------------------------------------------------------

@@ -5,6 +5,7 @@ import { repository } from '../data/repository'
 import type { SubmissionState, SubmissionStatusCell, WeeklyLogStatusCell } from '../data/types'
 import { DEADLINE_FORMS, type FormCode } from '../lib/catalog'
 import { formatDateTime } from '../lib/format'
+import { useT } from '../lib/i18n'
 
 export const SUBMISSION_STATE_COLOR: Record<SubmissionState, string> = {
   a_tiempo: 'bg-emerald-500',
@@ -26,14 +27,18 @@ export function SubmissionStatusSquare({
   /** Anillo alrededor del cuadro: la semana que le toca entregar al alumno. */
   highlight?: boolean
 }) {
+  const t = useT()
   const state = cell?.state ?? 'sin_fecha'
   const label = cell?.submittedAt
-    ? `${state === 'tarde' ? 'Entrega tardía · e' : 'E'}ntregado: ${formatDateTime(cell.submittedAt)}`
+    ? t(
+        `${state === 'tarde' ? 'Entrega tardía · e' : 'E'}ntregado: ${formatDateTime(cell.submittedAt)}`,
+        `${state === 'tarde' ? 'Late · s' : 'S'}ubmitted: ${formatDateTime(cell.submittedAt, 'en')}`,
+      )
     : state === 'pendiente'
-      ? 'No entregado'
+      ? t('No entregado', 'Not submitted')
       : cell?.dueAt
-        ? `Todavía no vence: ${formatDateTime(cell.dueAt)}`
-        : 'Sin fecha límite configurada'
+        ? t(`Todavía no vence: ${formatDateTime(cell.dueAt)}`, `Not due yet: ${formatDateTime(cell.dueAt, 'en')}`)
+        : t('Sin fecha límite configurada', 'No deadline set')
 
   return (
     <span className="group/cell relative inline-block">
@@ -85,8 +90,13 @@ export function WeeklyLogStatusGrid({
   /** Número de la semana que le toca entregar (solo en el portal del alumno). */
   highlightWeek?: number
 }) {
+  const t = useT()
   if (!weeks.length) {
-    return <p className="text-sm text-ink-500">El profesor no ha configurado tus semanas.</p>
+    return (
+      <p className="text-sm text-ink-500">
+        {t('El profesor no ha configurado tus semanas.', 'Your professor has not set up your weeks yet.')}
+      </p>
+    )
   }
 
   return (

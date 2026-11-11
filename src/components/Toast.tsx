@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 
+import { useT } from '../lib/i18n'
+
 /**
  * Aviso flotante y efímero.
  *
@@ -24,6 +26,7 @@ export function Toast({
   tone?: 'success' | 'error'
 }) {
   const [leaving, setLeaving] = useState(false)
+  const t = useT()
 
   useEffect(() => {
     // Dos tiempos: primero se desvanece, luego se desmonta. Sin esto el aviso
@@ -55,7 +58,7 @@ export function Toast({
       <button
         type="button"
         onClick={onDismiss}
-        aria-label="Cerrar aviso"
+        aria-label={t('Cerrar aviso', 'Close')}
         className={`shrink-0 rounded-md px-1 transition-colors ${palette.button}`}
       >
         ✕

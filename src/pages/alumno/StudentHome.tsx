@@ -12,6 +12,7 @@ import { DossierProfile, useStudentDossier } from '../../components/StudentDossi
 import { Toast } from '../../components/Toast'
 import { usePermissions } from '../../auth/PermissionsProvider'
 import { targetWeek } from '../../lib/weeks'
+import { translateServerText, useLang, useT } from '../../lib/i18n'
 
 /**
  * Inicio del portal del alumno: su ADN Profesional y su Estado de Entregas.
@@ -20,6 +21,8 @@ import { targetWeek } from '../../lib/weeks'
  * (`StudentActivitiesPage`).
  */
 export function StudentHome() {
+  const t = useT()
+  const lang = useLang()
   const { profile, session, portalStudentId, portalReadOnly } = useAuth()
   const studentId = portalStudentId
   const [toast, dismissToast] = useHandoffToast()
@@ -44,7 +47,9 @@ export function StudentHome() {
       {(can('alumno_adn') || can('alumno_estado')) && (
         <section className="rounded-xl border border-ink-200 bg-white p-6 shadow-sm">
           <h2 className="text-sm font-semibold text-ink-900">
-            {can('alumno_adn') ? 'ADN Profesional' : 'Estado de Entregas'}
+            {can('alumno_adn')
+              ? t('ADN Profesional', 'Professional DNA')
+              : t('Estado de Entregas', 'Submission Status')}
           </h2>
           <div className="mt-4 space-y-7">
             {can('alumno_adn') && (
@@ -56,23 +61,25 @@ export function StudentHome() {
 
             {can('alumno_estado') && (
               <section>
-                <h3 className="mb-3 text-sm font-semibold text-ink-950">Estado de Entregas</h3>
+                <h3 className="mb-3 text-sm font-semibold text-ink-950">
+                  {t('Estado de Entregas', 'Submission Status')}
+                </h3>
                 {statusError ? (
-                  <p className="text-sm text-red-800">{statusError}</p>
+                  <p className="text-sm text-red-800">{translateServerText(statusError, lang)}</p>
                 ) : (
                   <div className="flex flex-wrap gap-8">
                     <div className="space-y-2">
                       <p className="text-[11px] font-semibold tracking-wider text-ink-500 uppercase">
-                        Formularios
+                        {t('Formularios', 'Forms')}
                       </p>
                       <SubmissionStatusGrid statuses={statuses} />
                     </div>
                     <div className="space-y-2">
                       <p className="text-[11px] font-semibold tracking-wider text-ink-500 uppercase">
-                        Semanas
+                        {t('Semanas', 'Weeks')}
                       </p>
                       {weeksError ? (
-                        <p className="text-sm text-red-800">{weeksError}</p>
+                        <p className="text-sm text-red-800">{translateServerText(weeksError, lang)}</p>
                       ) : (
                         <WeeklyLogStatusGrid weeks={weeks} highlightWeek={targetWeek(weeks)?.cell.weekNumber} />
                       )}
