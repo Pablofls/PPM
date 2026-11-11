@@ -411,6 +411,10 @@ Columnas, en el mismo orden que la plataforma actual:
 | Semestre | `semester` | `6to`, `8vo` |
 | Período | `period_code` | badge |
 
+Desde `0052` el 1.0 también se contesta en el portal. Periodo, frecuencia,
+idioma y matrícula salen del grupo y del registro del alumno (no se los
+pregunta), así que la tabla los muestra igual venga la respuesta de donde venga.
+
 ### 1.1 Intereses Profesionales · `form1_1`
 
 Resultados del inventario Holland (RIASEC).
@@ -850,7 +854,8 @@ lista— ya son parte de la pantalla.
 ### Actividades · `/alumno/actividades`
 
 `src/pages/alumno/StudentActivitiesPage.tsx`, en el rail justo debajo de
-Inicio. Es la lista de tareas del curso: una tarjeta por bitácora que el alumno
+Inicio. Es la lista de tareas del curso: el 1.0 (`0052`, con su fecha de
+entrega y si ya lo entregó) y una tarjeta por bitácora que el alumno
 tiene permitida **y que el profesor publicó** (`0051`, `useMyActivities`), con
 su nombre, para qué es, «Disponible hasta …» si cierra, cuántas entregas lleva
 y cuál fue la última. Antes de «Disponible desde» no aparece; después de
@@ -895,6 +900,24 @@ las 8 más recientes, «Marcar todo como leído» y «Ver todas»:
 
 Abrir una la marca como leída. Se refresca cada minuto y al volver a la
 pestaña. En «Ver como Alumno» el admin las ve pero no las marca.
+
+### 1.0 Datos Demográficos · `/alumno/actividades/datos-demograficos`
+
+`src/pages/alumno/DemographicsActivityPage.tsx` (`0052`). Aparece en
+Actividades, antes de las bitácoras, cuando el profesor publica el 1.0. Mismo
+esqueleto que una bitácora:
+
+| Bloque | Contenido |
+|---|---|
+| Encabezado | Nombre, «1.0», *Vence* y *Disponible hasta*; «Cerrada» si ya pasó |
+| Instrucciones | Las del profesor (Actividades) o las del catálogo (`DEMOGRAPHICS_FORM`) |
+| Esto ya lo tenemos | Correo institucional, matrícula, periodo, frecuencia e idioma, de su expediente y su grupo; si algo está mal, que avise al profesor |
+| Tu entrega | Nombre completo, correo personal, fecha de nacimiento, país de nacimiento, sexo (con «Prefiero no decir» = `no_especificado`), carrera y semestre (1–12). Nace prellenado con su entrega más reciente (también la del Google Form). Después de la fecha de entrega se llama «Entrega tardía» con aviso amarillo, y la celebración es el sello |
+| Tus entregas | Todas, la más reciente marcada «Vigente», con «Tardía» y «Google Forms» si aplica |
+
+Corregir es **volver a entregar**: no se edita una entrega. Con la actividad
+cerrada se ven las entregas sin formulario. Los campos usan `Field`/`INPUT` de
+`src/components/ActivityField.tsx`, compartidos con las bitácoras.
 
 ### Una bitácora · `/alumno/actividades/reporte-de-busqueda`, `/alumno/actividades/reporte-de-practicas`
 

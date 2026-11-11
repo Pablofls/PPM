@@ -378,6 +378,93 @@ export function localizeWeeklyForm(form: WeeklyFormMeta, lang: 'es' | 'en'): Wee
   }
 }
 
+// ---------------------------------------------------------------------------
+// 1.0 Datos Demográficos en el portal (0052)
+// ---------------------------------------------------------------------------
+
+/** Un campo del 1.0. Las opciones de los `opcion` las arma la página (catálogos y formatos). */
+export interface DemographicsField {
+  key: 'fullName' | 'personalEmail' | 'birthDate' | 'birthCountry' | 'gender' | 'degreeCode' | 'semester'
+  label: string
+  help: string
+  type: 'texto' | 'correo' | 'fecha' | 'opcion'
+  en: { label: string; help: string }
+}
+
+/**
+ * El 1.0 como lo contesta el alumno en su portal. Son las preguntas del Google
+ * Form menos periodo, frecuencia e idioma (las da el grupo) y matrícula y
+ * correo institucional (las da el registro).
+ */
+export const DEMOGRAPHICS_FORM = {
+  path: '/alumno/actividades/datos-demograficos',
+  name: 'Datos Demográficos',
+  subtitle: 'Tus datos generales para el periodo de prácticas',
+  instructions: [
+    'Contesta con tus datos actuales. Tu periodo, frecuencia, idioma y matrícula ya los tenemos por tu grupo.',
+    'Si algo cambia, vuelve a entregarlo: tu profesor ve siempre la entrega más reciente.',
+  ],
+  en: {
+    name: 'Demographic Information',
+    subtitle: 'Your general information for the internship term',
+    instructions: [
+      'Answer with your current information. We already have your term, schedule, language and student ID from your group.',
+      'If something changes, submit it again: your professor always sees your latest submission.',
+    ],
+  },
+  fields: [
+    {
+      key: 'fullName',
+      label: 'Nombre completo',
+      help: 'Nombre(s) y apellidos, como aparecen en tu credencial.',
+      type: 'texto',
+      en: { label: 'Full name', help: 'First and last names, as on your student ID.' },
+    },
+    {
+      key: 'personalEmail',
+      label: 'Correo personal',
+      help: 'Uno que no sea el institucional.',
+      type: 'correo',
+      en: { label: 'Personal email', help: 'Not your university email.' },
+    },
+    {
+      key: 'birthDate',
+      label: 'Fecha de nacimiento',
+      help: '',
+      type: 'fecha',
+      en: { label: 'Date of birth', help: '' },
+    },
+    {
+      key: 'birthCountry',
+      label: 'País de nacimiento',
+      help: '',
+      type: 'texto',
+      en: { label: 'Country of birth', help: '' },
+    },
+    {
+      key: 'gender',
+      label: 'Sexo',
+      help: '',
+      type: 'opcion',
+      en: { label: 'Sex', help: '' },
+    },
+    {
+      key: 'degreeCode',
+      label: 'Carrera',
+      help: '',
+      type: 'opcion',
+      en: { label: 'Degree program', help: '' },
+    },
+    {
+      key: 'semester',
+      label: 'Semestre',
+      help: 'El que cursas este periodo.',
+      type: 'opcion',
+      en: { label: 'Semester', help: 'The one you are taking this term.' },
+    },
+  ] satisfies DemographicsField[],
+}
+
 /** Los cuatro formularios que comparten la tabla `reflections`. */
 export const REFLECTION_FORMS = ['form2_1', 'form2_2', 'form2_4', 'form2_5'] as const
 
@@ -400,7 +487,7 @@ export type ActivityFormCode = FormCode | WeeklyFormCode
  * Las demás se siguen contestando en Google Forms: en Actividades solo llevan
  * fecha de entrega, y el portal no las muestra.
  */
-export const PANEL_ACTIVITY_FORMS: ActivityFormCode[] = ['form_busqueda', 'form_practicas']
+export const PANEL_ACTIVITY_FORMS: ActivityFormCode[] = ['form1_0', 'form_busqueda', 'form_practicas']
 
 export const isPanelActivity = (code: ActivityFormCode): boolean =>
   PANEL_ACTIVITY_FORMS.includes(code)
@@ -427,7 +514,7 @@ export const ACTIVITIES: ActivityMeta[] = [
     label: form.label,
     name: form.name,
     subtitle: form.subtitle,
-    defaultInstructions: [],
+    defaultInstructions: form.code === 'form1_0' ? DEMOGRAPHICS_FORM.instructions : [],
   })),
   ...WEEKLY_FORMS.map((form) => ({
     code: form.code,

@@ -5,7 +5,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { usePermissions } from '../auth/PermissionsProvider'
 import { NotificationBell } from '../components/NotificationBell'
 import { RoleSwitcher } from '../components/RoleSwitcher'
-import { WEEKLY_FORMS } from '../lib/catalog'
+import { PANEL_ACTIVITY_FORMS } from '../lib/catalog'
 import { useT } from '../lib/i18n'
 import { useMyActivities } from '../pages/alumno/useMyActivities'
 import { NavGroup, NavItem } from './RailNav'
@@ -87,7 +87,7 @@ function StudentFrame() {
           <nav className="rail-scroll flex-1 overflow-y-auto px-2 pb-6">
             <NavGroup title={t('Mi curso', 'My course')}>
               <NavItem to="/alumno" end label="" name={t('Inicio', 'Home')} />
-              {WEEKLY_FORMS.some((form) => can(form.code)) && (loadingActivities || activities.length > 0) && (
+              {PANEL_ACTIVITY_FORMS.some((code) => can(code)) && (loadingActivities || activities.length > 0) && (
                 <NavItem to="/alumno/actividades" label="" name={t('Actividades', 'Assignments')} />
               )}
               {can('alumno_calificaciones') && (

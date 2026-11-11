@@ -10,8 +10,8 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
 
 - Supabase configurado (ref `sovinakodrmgxytgapry`) y Vercel desplegado.
 - Las migraciones `0001`–`0051` **ya se ejecutaron** (salvo `0019`, ver
-  `docs/DATABASE_SCHEMA.md`). Un archivo ejecutado no se vuelve a editar: el
-  siguiente cambio es `0052_…`.
+  `docs/DATABASE_SCHEMA.md`). `0052` está escrita y sin ejecutar. Un archivo
+  ejecutado no se vuelve a editar: el siguiente cambio es `0053_…`.
 - Alcance del esquema: **autenticación + los 11 formularios de Módulo 1 y 2 +
   los dos apéndices + las dos bitácoras semanales**. Las hojas `alumnos` y
   `fechas_entrega` quedan para después.
@@ -90,9 +90,14 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   *Disponible hasta* (después la ve Cerrada y no entrega). Las semanas del
   semestre viven ahí también. Reemplaza a *Fechas de entrega* y a
   `group_deadlines`; los 12 Google Forms solo llevan fecha de entrega y no
-  salen en el portal. Siguiente fase: el 1.0 se contesta en el portal sin
-  preguntar periodo, frecuencia ni idioma (los da el grupo). Ver
+  salen en el portal. Ver
   [docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md#actividades).
+- **1.0 en el portal** (`0052`, **escrita, sin ejecutar**): el alumno
+  contesta Datos Demográficos en Actividades cuando el profesor lo publica.
+  No se pregunta ni se guarda periodo, frecuencia, idioma ni matrícula: los
+  da el grupo y el registro. Corregir es volver a entregar. El Google Form
+  sigue sincronizándose. Ver
+  [docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md#el-10-se-contesta-en-el-portal).
 - **Uso de Supabase** (`0048`, ejecutada el 2026-10-27): Configuración → *Uso
   de Supabase*, solo admin. BD, Storage y MAU contra el plan gratuito, con
   proyección de cuándo se llena la BD; egress y API solo en el panel de Supabase.
@@ -124,8 +129,9 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   [docs/UI_SCREENS.md](docs/UI_SCREENS.md#estructura-común-de-una-pantalla).
 - El **portal del alumno son sus tareas**, al estilo de Canvas: instrucciones,
   formulario de entrega y las entregas anteriores. Hoy tiene las dos bitácoras
-  semanales, y son los **únicos** formularios que se contestan dentro del panel;
-  los otros trece siguen en Google Forms (`0016`, ejecutada).
+  semanales (`0016`, ejecutada) y el 1.0 Datos Demográficos (`0052`), los
+  **únicos** formularios que se contestan dentro del panel; los otros doce
+  siguen en Google Forms.
 - Las **bitácoras semanales** (`form_busqueda`, `form_practicas`) no son una
   pantalla del rail: se leen dentro del **expediente del alumno**, que reemplaza
   al panel lateral por formulario. Es como funcionaba la tarjeta *ADN
@@ -248,8 +254,9 @@ La vista del alumno sigue la misma regla desde el otro lado: su guardia es
 `StudentRoute` y su condición de lectura **y de escritura** es siempre
 `student_id = public.current_student_id()`. Nunca `authenticated`.
 
-El alumno solo escribe sus dos bitácoras, y la política lo acota por código de
-formulario (`0016`). Además marca como leídas **sus** notificaciones, solo con
+El alumno solo escribe sus dos bitácoras y su 1.0 (`0052`), y la política lo
+acota por código de formulario (`0016`) y por la ventana de la actividad
+(`activity_is_open()`, `0051`). Además marca como leídas **sus** notificaciones, solo con
 las funciones `mark_*_read()` de `0050` (no hay política de `UPDATE`). Abrirle un formulario más es una decisión que se pide, no
 se asume. **Nunca hay política de `DELETE`.** Tampoco hay `UPDATE`, con una
 única excepción, acotada por fecha y no por confianza en la pantalla: mientras

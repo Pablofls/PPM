@@ -23,6 +23,9 @@ import type {
   DiscRow,
   Activity,
   ActivityInput,
+  DemographicsEntry,
+  DemographicsInput,
+  Gender,
   Group,
   GroupInput,
   RegisteredStudent,
@@ -764,6 +767,49 @@ export const supabaseRepository: PanelRepository = {
 
     if (error) throw new Error(`No se pudieron cargar las actividades: ${error.message}`)
     return ((data ?? []) as PanelRecord[]).map(toActivity)
+  },
+
+  async submitDemographics(input: DemographicsInput): Promise<void> {
+    const { error } = await supabase.rpc('submit_demographics', {
+      p_full_name: input.fullName,
+      p_personal_email: input.personalEmail,
+      p_birth_date: input.birthDate,
+      p_birth_country: input.birthCountry,
+      p_gender: input.gender,
+      p_degree_code: input.degreeCode,
+      p_semester: input.semester,
+    })
+
+    if (error) throw new Error(submissionError(error.message))
+  },
+
+  async getMyDemographicsEntries(studentId: string): Promise<DemographicsEntry[]> {
+    const { data, error } = await supabase
+      .from('submissions')
+      .select('id, submitted_at, source_row_key, demographics(*)')
+      .eq('student_id', studentId)
+      .eq('form_code', 'form1_0')
+      .order('submitted_at', { ascending: false })
+
+    if (error) throw new Error(`No se pudieron cargar tus entregas: ${error.message}`)
+
+    return ((data ?? []) as PanelRecord[]).map((record) => {
+      // demographics cuelga 1:1 de submissions; PostgREST lo puede dar como objeto o lista.
+      const raw = record.demographics as PanelRecord | PanelRecord[] | null
+      const d = (Array.isArray(raw) ? raw[0] : raw) ?? {}
+      return {
+        submissionId: str(record.id) ?? '',
+        submittedAt: str(record.submitted_at) ?? '',
+        fromPortal: record.source_row_key == null,
+        fullName: str(d.full_name) ?? undefined,
+        personalEmail: str(d.personal_email) ?? undefined,
+        birthDate: str(d.birth_date) ?? undefined,
+        birthCountry: str(d.birth_country) ?? undefined,
+        gender: (str(d.gender) as Gender | null) ?? undefined,
+        degreeCode: str(d.degree_code) ?? undefined,
+        semester: num(d.semester) ?? undefined,
+      }
+    })
   },
 
   async saveActivity(input: ActivityInput): Promise<void> {

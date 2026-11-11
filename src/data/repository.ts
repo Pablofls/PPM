@@ -23,6 +23,8 @@ import type {
   DiscRow,
   Activity,
   ActivityInput,
+  DemographicsEntry,
+  DemographicsInput,
   Group,
   GroupInput,
   RegisteredStudent,
@@ -188,6 +190,12 @@ export interface PanelRepository {
    * Alumno» el admin pasa el grupo del alumno que está viendo.
    */
   getMyActivities(groupId?: string | null): Promise<Activity[]>
+
+  /** El alumno entrega el 1.0 en su portal (`submit_demographics`, 0052). */
+  submitDemographics(input: DemographicsInput): Promise<void>
+
+  /** Las entregas del 1.0 de un alumno, la más reciente primero. */
+  getMyDemographicsEntries(studentId: string): Promise<DemographicsEntry[]>
 
   /** Guarda instrucciones, publicación y fechas de una actividad (`save_activity`). */
   saveActivity(input: ActivityInput): Promise<void>
@@ -465,6 +473,12 @@ export const emptyRepository: PanelRepository = {
     return []
   },
   async getMyActivities() {
+    return []
+  },
+  async submitDemographics() {
+    throw new Error('No hay conexión con la base de datos. Tu entrega no se guardó.')
+  },
+  async getMyDemographicsEntries() {
     return []
   },
   async saveActivity() {

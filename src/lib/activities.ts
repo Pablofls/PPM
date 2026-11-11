@@ -25,8 +25,8 @@ export const isActivityOpen = (activity: Activity, now: Date = new Date()): bool
   activityState(activity, now) === 'abierta'
 
 /** ¿La entrega llegó después de la fecha de entrega? */
-export const isLateSubmission = (activity: Activity, submittedAt: string | null): boolean =>
-  !!activity.dueAt && !!submittedAt && new Date(submittedAt) > new Date(activity.dueAt)
+export const isLateSubmission = (dueAt: string | null, submittedAt: string | null): boolean =>
+  !!dueAt && !!submittedAt && new Date(submittedAt) > new Date(dueAt)
 
 const MONTERREY_PARTS = new Intl.DateTimeFormat('en-CA', {
   timeZone: 'America/Monterrey',

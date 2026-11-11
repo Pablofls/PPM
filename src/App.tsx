@@ -20,6 +20,7 @@ import { ValuesPage } from './pages/modulo1/ValuesPage'
 import { CompaniesPage } from './pages/apendices/CompaniesPage'
 import { InternshipsPage } from './pages/apendices/InternshipsPage'
 import { ProfilePage } from './pages/alumno/ProfilePage'
+import { DemographicsActivityPage } from './pages/alumno/DemographicsActivityPage'
 import { StudentActivitiesPage } from './pages/alumno/StudentActivitiesPage'
 import { StudentGradesPage } from './pages/alumno/StudentGradesPage'
 import { StudentHome } from './pages/alumno/StudentHome'
@@ -84,6 +85,7 @@ export default function App() {
               */}
               <Route path="actividades">
                 <Route index element={<StudentActivitiesPage />} />
+                <Route path="datos-demograficos" element={<DemographicsActivityPage />} />
                 <Route
                   path="reporte-de-busqueda"
                   element={<WeeklyLogPage form={weeklyFormByCode('form_busqueda')} />}

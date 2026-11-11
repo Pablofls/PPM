@@ -42,8 +42,10 @@ export const SCREENS: ScreenMeta[] = [
     code: form.code,
     name: `${form.label} ${form.name}`,
     section: MODULE_TITLES[form.moduleCode],
-    maxAccess: 'lectura',
-    audience: 'panel',
+    // El 1.0 se contesta también en el portal (0052): el alumno lo entrega.
+    maxAccess: form.code === 'form1_0' ? 'edicion' : 'lectura',
+    audience: form.code === 'form1_0' ? 'ambos' : 'panel',
+    editHint: form.code === 'form1_0' ? 'Alumno: entregar' : undefined,
     path: form.path,
     // El nombre, la carrera y el semestre de cada alumno salen del 1.0.
     note:

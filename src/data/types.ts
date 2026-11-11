@@ -372,6 +372,30 @@ export interface Activity {
   updatedAt: string
 }
 
+/**
+ * El 1.0 que el alumno entrega en su portal (`submit_demographics`, 0052).
+ * No lleva periodo, frecuencia, idioma ni matrícula: los da su grupo y su
+ * registro.
+ */
+export interface DemographicsInput {
+  fullName: string
+  personalEmail: string
+  /** `YYYY-MM-DD` */
+  birthDate: string
+  birthCountry: string
+  gender: Gender
+  degreeCode: string
+  semester: number
+}
+
+/** Una entrega del 1.0 del alumno, venga del portal o de Google Forms. */
+export interface DemographicsEntry extends Partial<DemographicsInput> {
+  submissionId: string
+  submittedAt: string
+  /** `true` si se contestó en el portal; `false` si llegó del Sheets. */
+  fromPortal: boolean
+}
+
 /** Lo que guarda el editor: fechas en hora local de Monterrey (`YYYY-MM-DDTHH:mm`). */
 export interface ActivityInput {
   groupId: string

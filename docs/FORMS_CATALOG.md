@@ -91,6 +91,10 @@ agregados; ningún dato de alumno se versiona en este repositorio.
 
 ## Fechas de entrega
 
+> El **1.0** también se contesta en el portal del alumno desde `0052`, sin
+> periodo, frecuencia ni idioma (los da el grupo); el Google Form sigue
+> sincronizándose. Ver [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#el-10-se-contesta-en-el-portal).
+
 > **Implementado en `0017_form_deadlines.sql`.** Ver
 > [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#fechas-de-entrega-y-estado-de-las-entregas).
 > Desde `0046` las fechas son de cada grupo, y desde `0051` viven en

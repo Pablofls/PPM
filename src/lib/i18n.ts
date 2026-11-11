@@ -77,6 +77,10 @@ const SERVER_TEXT: [RegExp, (match: RegExpMatchArray) => string][] = [
     /^No se pudo guardar tu entrega\. Verifica que tu cuenta sea la de un alumno y vuelve a intentarlo\.$/,
     () => 'Your submission could not be saved. Make sure you are signed in with a student account and try again.',
   ],
+  [/^Contesta todas las preguntas\.$/, () => 'Answer every question.'],
+  [/^Escribe un correo personal válido\.$/, () => 'Enter a valid personal email.'],
+  [/^Revisa tu fecha de nacimiento\.$/, () => 'Check your date of birth.'],
+  [/^El semestre tiene que estar entre 1 y 12\.$/, () => 'Semester must be between 1 and 12.'],
   [
     /^Esta actividad ya está cerrada o todavía no está disponible\.$/,
     () => 'This assignment is closed or not available yet.',

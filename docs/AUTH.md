@@ -27,7 +27,7 @@ Desde `0035` una cuenta puede tener **varios roles** (`user_roles`); René es
 | Rol | Qué puede hacer |
 |---|---|
 | (sin roles) | Iniciar sesión y ver su propio perfil. **Nada más.** Así nace todo usuario |
-| `alumno` | Iniciar sesión, entregar sus dos bitácoras semanales, leer **sus propias** entregas, su propio expediente (ADN Profesional) y su propio estado de entregas. Nada de ningún otro alumno, nada de los otros trece formularios. **No se combina con otro rol** |
+| `alumno` | Iniciar sesión, entregar sus dos bitácoras semanales y su 1.0 Datos Demográficos (`0052`, cuando el profesor lo publica), leer **sus propias** entregas, su propio expediente (ADN Profesional) y su propio estado de entregas. Nada de ningún otro alumno, nada de los otros doce formularios. **No se combina con otro rol** |
 | `maestro` | Leer el panel **de sus grupos**: sus alumnos y sus entregas (`0036`). Desde `0044` también **crea sus grupos** (solo a su nombre) y **da de alta a sus alumnos**, porque nace con «Puede editar» en *Alumnos registrados* y *Administrar grupos*; el admin puede quitárselo |
 | `coordinador` | Leer el panel de los grupos **de los maestros que tiene asignados** (`coordinator_teachers`) (`0036`). Desde `0044`, mismo «Puede editar» en esas dos pantallas, acotado a los grupos de sus maestros: puede crear grupos para ellos y registrar alumnos en ellos |
 | `admin` | Leer todo, escribir lo que el panel escribe (fechas, semanas, alumnos, grupos, sincronización) y administrar roles |
