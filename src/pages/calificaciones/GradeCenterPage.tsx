@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 
 import { usePermissions } from '../../auth/PermissionsProvider'
 import { Dash } from '../../components/Badge'
@@ -7,6 +8,7 @@ import { DataTable, type Column } from '../../components/DataTable'
 import { FilterBar, useFilters } from '../../components/FilterBar'
 import { StudentDossier, useDossierParam } from '../../components/StudentDossier'
 import { Toast } from '../../components/Toast'
+import { ViewToggle, type ViewOption } from '../../components/ViewToggle'
 import type { ActivityGradeEntry, GradeEntry } from '../../data/types'
 import { activityTitle } from '../../lib/catalog'
 import { formatSemester } from '../../lib/format'
@@ -14,6 +16,16 @@ import { todayMonterrey } from '../../lib/weeks'
 import { computeTotal, formatPoints, parseScore, studentLabel } from './gradeUtils'
 import { useActivityGradeEntries } from './useActivityGradeEntries'
 import { useGradeEntries } from './useGradeEntries'
+
+const VIEW_PARAM = 'vista'
+
+/** Igual que Estado de Entregas: los formularios de la plataforma o los reportes semanales. */
+type GradeView = 'formularios' | 'reportes'
+
+const VIEW_OPTIONS: ViewOption<GradeView>[] = [
+  { value: 'formularios', label: 'Formularios' },
+  { value: 'reportes', label: 'Reportes' },
+]
 
 interface StudentRow {
   studentId: string
@@ -84,9 +96,25 @@ const TONE_TITLES: Record<DeliveryTone, string> = {
  * «sin calificar»; el color dice cómo entregó: rojo no entregó, amarillo
  * tarde, verde a tiempo. El total solo cuenta lo ya calificado, como el Total de
  * Blackboard.
+ *
+ * El switch Formularios / Reportes (como en Estado de Entregas, `?vista=`)
+ * elige qué columnas se ven; el Total y el % son siempre de todo lo
+ * calificado, de las dos vistas.
  */
 export function GradeCenterPage() {
   const [filters, setFilter, clearFilters] = useFilters()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const view: GradeView = searchParams.get(VIEW_PARAM) === 'reportes' ? 'reportes' : 'formularios'
+  const chooseView = (next: GradeView) =>
+    setSearchParams(
+      (current) => {
+        const params = new URLSearchParams(current)
+        if (next === 'reportes') params.set(VIEW_PARAM, 'reportes')
+        else params.delete(VIEW_PARAM)
+        return params
+      },
+      { replace: true },
+    )
   const { entries, loading, error, isConnected, save } = useGradeEntries(filters)
   const activityGrades = useActivityGradeEntries(filters)
   const canEdit = usePermissions().can('calificaciones', 'edicion')
@@ -170,7 +198,7 @@ export function GradeCenterPage() {
         </div>
       ),
     },
-    ...weeks.map<Column<StudentRow>>((week) => ({
+    ...(view === 'reportes' ? weeks : []).map<Column<StudentRow>>((week) => ({
       key: `week-${week.weekNumber}`,
       header: `Semana ${week.weekNumber} · ${formatPoints(week.pointsPossible)} pts`,
       render: (row) => {
@@ -189,7 +217,7 @@ export function GradeCenterPage() {
         )
       },
     })),
-    ...activities.map<Column<StudentRow>>((activity) => ({
+    ...(view === 'formularios' ? activities : []).map<Column<StudentRow>>((activity) => ({
       key: `activity-${activity.formCode}`,
       header:
         activity.pointsPossible === null
@@ -240,7 +268,10 @@ export function GradeCenterPage() {
     },
   ]
 
-  const { visibleColumns, picker } = useColumnPreferences('centro-calificaciones', columns)
+  const { visibleColumns, picker } = useColumnPreferences(
+    view === 'reportes' ? 'centro-calificaciones' : 'centro-calificaciones-formularios',
+    columns,
+  )
 
   if (dossier.selected) {
     return (
@@ -270,8 +301,8 @@ export function GradeCenterPage() {
           <span className="rounded border border-amber-200 bg-amber-50 px-1.5 text-ink-700">amarillo</span>{' '}
           entregó tarde y{' '}
           <span className="rounded border border-emerald-200 bg-emerald-50 px-1.5 text-ink-700">verde</span>{' '}
-          a tiempo. <span className="text-ink-400">«–»</span> es sin calificar; el total solo cuenta lo
-          ya calificado.
+          a tiempo. <span className="text-ink-400">«–»</span> es sin calificar; el total suma
+          formularios y reportes, y solo cuenta lo ya calificado.
         </p>
       </header>
 
@@ -279,8 +310,16 @@ export function GradeCenterPage() {
         filters={filters}
         onChange={setFilter}
         onClear={clearFilters}
+        viewToggle={<ViewToggle options={VIEW_OPTIONS} value={view} onChange={chooseView} />}
         columnPicker={picker}
       />
+
+      {view === 'formularios' && !activityGrades.loading && !activityGrades.error && activities.length === 0 && (
+        <p className="mb-4 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm text-ink-600 shadow-sm">
+          Todavía no hay formularios de la plataforma publicados en este grupo (hoy, el 1.0 Datos
+          Demográficos). Se publican en Actividades.
+        </p>
+      )}
 
       <DataTable
         columns={visibleColumns}

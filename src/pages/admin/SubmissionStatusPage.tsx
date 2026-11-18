@@ -157,16 +157,14 @@ export function SubmissionStatusPage() {
               : 'Compara la marca temporal de cada entrega contra la fecha límite asignada.'}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-4">
-          <SubmissionStatusLegend />
-          <ViewToggle options={VIEW_OPTIONS} value={view} onChange={chooseView} />
-        </div>
+        <SubmissionStatusLegend />
       </header>
 
       <FilterBar
         filters={filters}
         onChange={setFilter}
         onClear={clearFilters}
+        viewToggle={<ViewToggle options={VIEW_OPTIONS} value={view} onChange={chooseView} />}
         columnPicker={view === 'reportes' ? weekPicker : picker}
       />
 

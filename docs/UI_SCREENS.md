@@ -676,8 +676,13 @@ completa, con la misma navegación que el ADN Profesional:
 ### Centro de calificaciones
 
 Como el Full Grade Center: una fila por estudiante, una columna por
-actividad (`Semana N · pts` y, después, `1.0 Datos Demográficos · pts`),
-**Total** (puntos obtenidos / posibles, reportes y actividades) y **%**.
+actividad, **Total** (puntos obtenidos / posibles) y **%**. Junto al buscador,
+el mismo toggle **Formularios | Reportes** de Estado de Entregas
+(`?vista=reportes`; sin parámetro, Formularios): *Formularios* muestra las
+columnas de los formularios de la plataforma (`1.0 Datos Demográficos · pts`)
+y *Reportes* las de cada semana (`Semana N · pts`). El Total y el % son siempre
+de todo lo calificado, de las dos vistas. Cada vista guarda su propia elección
+de columnas.
 La celda se edita ahí mismo (Enter guarda, Tab pasa a la siguiente); «–» es
 sin calificar. El color de la celda dice cómo entregó el alumno: **rojo** no
 entregó (solo cuando la semana ya cerró o pasó la fecha de entrega; antes, sin
@@ -779,7 +784,7 @@ Semestre, Período), igual que las pantallas de Módulo 1.
 | una por cada uno de los 12 formularios | un cuadro de color: verde *a tiempo* (o entregado, si el formulario no tiene fecha límite), ámbar *tarde*, rojo *no entregado y la fecha ya pasó*, gris *sin entregar y sin nada que reprocharle todavía* |
 | Resumen | conteo de verdes/ámbares/rojos de esa fila |
 
-Un toggle **Formularios | Reportes** en el encabezado (`?vista=reportes`)
+Un toggle **Formularios | Reportes** junto al buscador (`?vista=reportes`)
 cambia a la matriz alumno × semana de las bitácoras
 (`v_weekly_submission_status`, la misma de `WeeklyLogStatusGrid` en el
 expediente). Esa vista no trae columnas de filtro, así que los alumnos salen
