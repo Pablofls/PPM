@@ -747,11 +747,11 @@ Módulo 2, Apéndice A, Apéndice B y Bitácoras semanales); cada fila lleva:
   Calificaciones. En el Reporte de Búsqueda y el de Prácticas es **el mismo
   campo** —valen lo mismo y se repite cada semana— y el editor lo dice.
 - **Asignar**: *Para* (el grupo, solo lectura) y, en dos columnas: a la
-  izquierda *Fecha de entrega* y debajo *Disponible hasta*; a la derecha
-  *Disponible desde*. Fecha y hora por separado; al elegir el día la
+  izquierda *Disponible desde*; a la derecha *Fecha de entrega* y debajo
+  *Disponible hasta*. Fecha y hora por separado; al elegir el día la
   hora se llena sola (23:59, o 00:00 en «Disponible desde»). Las horas son de
   Monterrey: la base las convierte (`save_activity`).
-  - Bitácoras: sin fecha de entrega; en su lugar (izquierda) un aviso dice que
+  - Bitácoras: sin fecha de entrega; en su lugar (derecha) un aviso dice que
     cada semana vence el domingo y lleva a *Semanas del semestre*.
   - Google Forms: solo *Fecha de entrega* (para Estado de Entregas); el alumno
     no las ve en su portal.

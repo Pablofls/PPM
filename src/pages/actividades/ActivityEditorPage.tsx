@@ -240,10 +240,10 @@ export function ActivityEditorPage() {
                 <p className="text-sm font-medium text-ink-900">{formatGroupLabel(group)}</p>
               </div>
 
-              {/* Izquierda: Fecha de entrega y, debajo, Disponible hasta.
-                  Derecha: Disponible desde. */}
+              {/* Izquierda: Disponible desde. Derecha: Fecha de entrega y,
+                  debajo, Disponible hasta. */}
               {weekly ? (
-                <div className="self-start rounded-lg border border-ink-200 bg-ink-50 px-3 py-2.5 text-xs text-ink-600 sm:col-start-1 sm:row-start-2">
+                <div className="self-start rounded-lg border border-ink-200 bg-ink-50 px-3 py-2.5 text-xs text-ink-600 sm:col-start-2 sm:row-start-2">
                   Cada semana vence el domingo a las 23:59; lo que llegue después es entrega tardía.
                   Las semanas se configuran en{' '}
                   <Link
@@ -257,7 +257,7 @@ export function ActivityEditorPage() {
               ) : (
                 <DateTimeField
                   id="fecha-entrega"
-                  className="sm:col-start-1 sm:row-start-2"
+                  className="sm:col-start-2 sm:row-start-2"
                   label="Fecha de entrega"
                   hint="Lo que llegue después es entrega tardía."
                   value={draft.dueAt}
@@ -271,7 +271,7 @@ export function ActivityEditorPage() {
                 <>
                   <DateTimeField
                     id="disponible-desde"
-                    className="sm:col-start-2 sm:row-start-2"
+                    className="sm:col-start-1 sm:row-start-2"
                     label="Disponible desde"
                     hint="Antes de esta hora el alumno no la ve. Vacío: desde que se publica."
                     value={draft.availableFrom}
@@ -281,7 +281,7 @@ export function ActivityEditorPage() {
                   />
                   <DateTimeField
                     id="disponible-hasta"
-                    className="sm:col-start-1 sm:row-start-3"
+                    className="sm:col-start-2 sm:row-start-3"
                     label="Disponible hasta"
                     hint="Después ya no puede entregar; la ve cerrada. Vacío: nunca cierra."
                     value={draft.availableUntil}
