@@ -307,7 +307,7 @@ que el enum rechazaría tal cual:
 | Columna Sheets | Columna Postgres | Transformación |
 |---|---|---|
 | `link` | `report_url` | texto libre, sin validar |
-| `valoresFuertes` | `top_values` | separar por `, ` → `text[]`. `"Benevolencia, Universalidad"` → `{Benevolencia,Universalidad}`. Entre 1 y 4 valores por alumno |
+| `valoresFuertes` | `values_top` (desde `0054`; antes `top_values text[]`) | separar por `, ` y una fila por valor con su código de `human_values` (`human_value_code()`: sin acentos ni mayúsculas, también en inglés). `"Benevolencia, Universalidad"` → `benevolencia`, `universalidad`. Un valor que no se reconoce se omite. Entre 1 y 4 valores por alumno |
 | `puntuacion` | `score` | float → `smallint` |
 
 ---

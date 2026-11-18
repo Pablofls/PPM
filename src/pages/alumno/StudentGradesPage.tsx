@@ -14,6 +14,7 @@ import {
   weeklyFormByCode,
 } from '../../lib/catalog'
 import { translateServerText, useLang, useT, type Lang } from '../../lib/i18n'
+import { PORTAL_FORMS, portalFormPath } from '../../lib/portalForms'
 import { formatDate, formatDateTime } from '../../lib/format'
 import { computeTotal, formatPoints } from '../../lib/grades'
 
@@ -23,6 +24,7 @@ const ACTIVITY_PARAM = 'actividad'
 /** Dónde contesta el alumno cada actividad que no es bitácora. */
 const ACTIVITY_PATHS: Record<string, string> = {
   form1_0: DEMOGRAPHICS_FORM.path,
+  ...Object.fromEntries(PORTAL_FORMS.map((form) => [form.code, portalFormPath(form)])),
 }
 
 /** Una fila de la tabla: un reporte semanal o una actividad (`0053`). */

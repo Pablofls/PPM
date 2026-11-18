@@ -10,7 +10,8 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
 
 - Supabase configurado (ref `sovinakodrmgxytgapry`) y Vercel desplegado.
 - Las migraciones `0001`–`0053` **ya se ejecutaron** (salvo `0019`, ver
-  `docs/DATABASE_SCHEMA.md`). Un archivo ejecutado no se vuelve a editar: el siguiente cambio es `0054_…`.
+  `docs/DATABASE_SCHEMA.md`); `0054` está escrita y **todavía no se ejecuta**.
+  Un archivo ejecutado no se vuelve a editar: el siguiente cambio es `0055_…`.
 - Alcance del esquema: **autenticación + los 11 formularios de Módulo 1 y 2 +
   los dos apéndices + las dos bitácoras semanales**. Las hojas `alumnos` y
   `fechas_entrega` quedan para después.
@@ -136,8 +137,11 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   [docs/UI_SCREENS.md](docs/UI_SCREENS.md#estructura-común-de-una-pantalla).
 - El **portal del alumno son sus tareas**, al estilo de Canvas: instrucciones,
   formulario de entrega y las entregas anteriores. Hoy tiene las dos bitácoras
-  semanales (`0016`, ejecutada) y el 1.0 Datos Demográficos (`0052`), los
-  **únicos** formularios que se contestan dentro del panel; los otros doce
+  semanales (`0016`, ejecutada) y el **Módulo 1 completo**: el 1.0 Datos
+  Demográficos (`0052`) y 1.1–1.5 (`0054`, **pendiente de ejecutar**; una sola
+  pantalla, `FormActivityPage`, con las preguntas en `src/lib/portalForms.ts`,
+  en el idioma del grupo). Son para los grupos siguientes: los actuales ya los
+  contestaron en Google Forms, que sigue sincronizándose. Los otros siete
   siguen en Google Forms.
 - Las **bitácoras semanales** (`form_busqueda`, `form_practicas`) no son una
   pantalla del rail: se leen dentro del **expediente del alumno**, que reemplaza
@@ -261,7 +265,8 @@ La vista del alumno sigue la misma regla desde el otro lado: su guardia es
 `StudentRoute` y su condición de lectura **y de escritura** es siempre
 `student_id = public.current_student_id()`. Nunca `authenticated`.
 
-El alumno solo escribe sus dos bitácoras y su 1.0 (`0052`), y la política lo
+El alumno solo escribe sus dos bitácoras y el Módulo 1 (1.0 en `0052`, 1.1–1.5
+en `0054`), y la política lo
 acota por código de formulario (`0016`) y por la ventana de la actividad
 (`activity_is_open()`, `0051`). Además marca como leídas **sus** notificaciones, solo con
 las funciones `mark_*_read()` de `0050` (no hay política de `UPDATE`). Abrirle un formulario más es una decisión que se pide, no

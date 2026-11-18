@@ -885,7 +885,8 @@ sección). Las bitácoras cuelgan de esta ruta, así que el rail sigue marcando
 
 Es una sola página dividida por títulos del mismo tamaño: arriba
 **Reportes semanales** (*Weekly Reports*) con las bitácoras, y abajo
-**Actividades** (*Assignments*) con lo demás (hoy el 1.0). Una tarjeta por
+**Actividades** (*Assignments*) con lo demás (el Módulo 1: 1.0–1.5, cada uno
+cuando el profesor lo publica). Una tarjeta por
 fila en los dos bloques; un bloque sin tarjetas no se muestra.
 
 El resumen de cada tarjeta es lo que hace útil la lista. Sin él, el alumno
@@ -951,6 +952,29 @@ el siguiente formulario que se pase a la plataforma solo arma su contenido.
 Corregir es **volver a entregar**: no se edita una entrega. Con la actividad
 cerrada se ven las entregas sin formulario. Los campos usan `Field`/`INPUT` de
 `src/components/ActivityField.tsx`, compartidos con las bitácoras.
+
+### 1.1–1.5 · `/alumno/actividades/<intereses|personalidad|estilos-de-comportamiento|habilidades|valores>`
+
+`src/pages/alumno/FormActivityPage.tsx` (`0054`): una sola pantalla para los
+cinco, con el esqueleto del 1.0 (encabezado con *Vence* y *Disponible hasta*,
+instrucciones, formulario prellenado con la entrega más reciente, entrega
+tardía, celebración, **Descargar PDF** y «Tus entregas»). Las preguntas y las
+instrucciones viven en `src/lib/portalForms.ts`, en español e inglés: el
+alumno las ve en el idioma de su grupo y ya **no se le pregunta el idioma** ni
+el correo. Todas son obligatorias; el botón dice cuántas faltan.
+
+| Formulario | Preguntas |
+|---|---|
+| 1.1 Intereses | área con el puntaje más alto, segundo y tercero (RIASEC) con su puntuación, y el código Holland |
+| 1.2 Personalidad | link de 16Personalities, tipo (16), identidad A/T, los cinco porcentajes y Energía/Mente/Naturaleza/Tácticas |
+| 1.3 Estilos de Comportamiento | estilo DISC (con mayúsculas y minúsculas), categoría y si se identifica, con justificación |
+| 1.4 Habilidades | 33 habilidades en cinco bloques, cada una con Novato…Experto (un botón por nivel), y si es PEFista que se gradúa |
+| 1.5 Valores | link del assessment, valores más fuertes (casillas, de `human_values`) y la puntuación 1–10 |
+
+El PDF (`src/lib/formPdf.ts`) es el del 1.0: título, nombre, matrícula, fecha y
+hora de descarga y la tabla Pregunta / Respuesta, con los bloques como
+subtítulos. En **Calificar** se leen las mismas respuestas (la entrega más
+reciente de cada alumno, venga del portal o del Google Form).
 
 ### Una bitácora · `/alumno/actividades/reporte-de-busqueda`, `/alumno/actividades/reporte-de-practicas`
 

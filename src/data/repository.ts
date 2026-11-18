@@ -51,6 +51,7 @@ import type {
   AppNotification,
   GradeEntry,
   ActivityGradeEntry,
+  PortalEntry,
   NoticeInput,
   SentNotice,
   WeeklyReport,
@@ -194,6 +195,15 @@ export interface PanelRepository {
 
   /** El alumno entrega el 1.0 en su portal (`submit_demographics`, 0052). */
   submitDemographics(input: DemographicsInput): Promise<void>
+
+  /** Las entregas de un formulario del Módulo 1 (1.1–1.5) de un alumno, la más reciente primero. */
+  getMyFormEntries(studentId: string, formCode: string): Promise<PortalEntry[]>
+
+  /** La entrega más reciente de cada alumno en un formulario 1.1–1.5, para Calificar. */
+  getLatestFormEntries(formCode: string, studentIds: string[]): Promise<PortalEntry[]>
+
+  /** El alumno entrega un formulario 1.1–1.5 en su portal (`submit_*`, 0054). */
+  submitForm(formCode: string, values: Record<string, string | string[]>): Promise<void>
 
   /** Las entregas del 1.0 de un alumno, la más reciente primero. */
   getMyDemographicsEntries(studentId: string): Promise<DemographicsEntry[]>
@@ -497,6 +507,15 @@ export const emptyRepository: PanelRepository = {
   },
   async getMyDemographicsEntries() {
     return []
+  },
+  async getMyFormEntries() {
+    return []
+  },
+  async getLatestFormEntries() {
+    return []
+  },
+  async submitForm() {
+    throw new Error('No hay conexión con la base de datos. Tu entrega no se guardó.')
   },
   async saveActivity() {
     throw new Error('No hay conexión con la base de datos. La actividad no se guardó.')

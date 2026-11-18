@@ -26,6 +26,8 @@ import type {
 } from '../../data/types'
 import { activityTitle, weeklyFormByCode, type WeeklyFormCode } from '../../lib/catalog'
 import { demographicsAnswers, type AnswerLine } from '../../lib/formAnswers'
+import { portalAnswerLines } from '../../lib/formPdf'
+import { PORTAL_FORMS, type PortalFormMeta } from '../../lib/portalForms'
 import { formatDate, formatDateTime, formatSemester, formatWeekRange } from '../../lib/format'
 import {
   findSimilar,
@@ -695,11 +697,23 @@ function GradingHeader({ nav, title }: { nav: GradingNavigation; title: string }
  * mientras no la tenga, Calificar lo deja calificar y avisa que sus
  * respuestas se ven en su pantalla.
  */
-const FORM_ANSWER_LOADERS: Record<
-  string,
-  (filters: PanelFilters) => Promise<Map<string, AnswerLine[]>>
-> = {
-  form1_0: async (filters) => {
+type AnswerLoader = (context: {
+  filters: PanelFilters
+  /** Los alumnos que entregaron: los que hay que leer. */
+  studentIds: string[]
+}) => Promise<Map<string, AnswerLine[]>>
+
+/** 1.1–1.5 (0054): la entrega más reciente de cada alumno, con las preguntas del portal. */
+const portalLoader =
+  (form: PortalFormMeta): AnswerLoader =>
+  async ({ studentIds }) => {
+    const entries = await repository.getLatestFormEntries(form.code, studentIds)
+    return new Map(entries.map((entry) => [entry.studentId, portalAnswerLines(form, entry.values)]))
+  }
+
+const FORM_ANSWER_LOADERS: Record<string, AnswerLoader> = {
+  ...Object.fromEntries(PORTAL_FORMS.map((form) => [form.code, portalLoader(form)])),
+  form1_0: async ({ filters }) => {
     const rows: DemographicsRow[] = await repository.getDemographics(filters)
     return new Map(
       rows.map((row) => [
@@ -747,10 +761,17 @@ function FormGradingView({
   const title = activityTitle(formCode)
 
   const loader = FORM_ANSWER_LOADERS[formCode]
+  const submittedIds = useMemo(
+    () => formEntries.filter((entry) => entry.submissionId).map((entry) => entry.studentId),
+    [formEntries],
+  )
   const { data: answers, loading: loadingAnswers } = useRepositoryQuery(
-    () => (loader ? loader(filters) : Promise.resolve(new Map<string, AnswerLine[]>())),
+    () =>
+      loader
+        ? loader({ filters, studentIds: submittedIds })
+        : Promise.resolve(new Map<string, AnswerLine[]>()),
     new Map<string, AnswerLine[]>(),
-    [formCode, filters],
+    [formCode, filters, submittedIds.join(',')],
   )
   const lines = current ? answers.get(current.studentId) : undefined
 

@@ -401,6 +401,19 @@ export interface DemographicsEntry extends Partial<DemographicsInput> {
   fromPortal: boolean
 }
 
+/**
+ * Una entrega de un formulario del Módulo 1 contestado en el portal (`0054`):
+ * las respuestas por la `key` de `PortalField` (la columna de su tabla).
+ */
+export interface PortalEntry {
+  studentId: string
+  submissionId: string
+  submittedAt: string
+  /** `true` si se contestó en el portal; `false` si llegó del Sheets. */
+  fromPortal: boolean
+  values: Record<string, string | string[]>
+}
+
 /** Lo que guarda el editor: fechas en hora local de Monterrey (`YYYY-MM-DDTHH:mm`). */
 export interface ActivityInput {
   groupId: string

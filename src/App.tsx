@@ -20,6 +20,7 @@ import { ValuesPage } from './pages/modulo1/ValuesPage'
 import { CompaniesPage } from './pages/apendices/CompaniesPage'
 import { InternshipsPage } from './pages/apendices/InternshipsPage'
 import { ProfilePage } from './pages/alumno/ProfilePage'
+import { FormActivityPage } from './pages/alumno/FormActivityPage'
 import { DemographicsActivityPage } from './pages/alumno/DemographicsActivityPage'
 import { StudentActivitiesPage } from './pages/alumno/StudentActivitiesPage'
 import { StudentGradesPage } from './pages/alumno/StudentGradesPage'
@@ -85,6 +86,8 @@ export default function App() {
               <Route path="actividades">
                 <Route index element={<StudentActivitiesPage />} />
                 <Route path="datos-demograficos" element={<DemographicsActivityPage />} />
+                {/* 1.1–1.5 (0054): una sola pantalla, las preguntas salen de portalForms.ts. */}
+                <Route path=":slug" element={<FormActivityPage />} />
                 <Route
                   path="reporte-de-busqueda"
                   element={<WeeklyLogPage form={weeklyFormByCode('form_busqueda')} />}

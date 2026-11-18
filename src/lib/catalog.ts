@@ -7,6 +7,8 @@
  * estructura fija de la aplicación.
  */
 
+import { pick, portalFormByCode } from './portalForms'
+
 export type ModuleCode = '1' | '2' | 'A' | 'B' | 'W'
 
 export type FormCode =
@@ -487,7 +489,17 @@ export type ActivityFormCode = FormCode | WeeklyFormCode
  * Las demás se siguen contestando en Google Forms: en Actividades solo llevan
  * fecha de entrega, y el portal no las muestra.
  */
-export const PANEL_ACTIVITY_FORMS: ActivityFormCode[] = ['form1_0', 'form_busqueda', 'form_practicas']
+export const PANEL_ACTIVITY_FORMS: ActivityFormCode[] = [
+  'form1_0',
+  // El Módulo 1 completo (0054).
+  'form1_1',
+  'form1_2',
+  'form1_3',
+  'form1_4',
+  'form1_5',
+  'form_busqueda',
+  'form_practicas',
+]
 
 export const isPanelActivity = (code: ActivityFormCode): boolean =>
   PANEL_ACTIVITY_FORMS.includes(code)
@@ -514,7 +526,10 @@ export const ACTIVITIES: ActivityMeta[] = [
     label: form.label,
     name: form.name,
     subtitle: form.subtitle,
-    defaultInstructions: form.code === 'form1_0' ? DEMOGRAPHICS_FORM.instructions : [],
+    defaultInstructions:
+      form.code === 'form1_0'
+        ? DEMOGRAPHICS_FORM.instructions
+        : (portalFormByCode(form.code)?.instructions.es ?? []),
   })),
   ...WEEKLY_FORMS.map((form) => ({
     code: form.code,
@@ -533,7 +548,13 @@ export const activityByCode = (code: string): ActivityMeta | undefined =>
 export function activityTitle(code: string, lang: 'es' | 'en' = 'es'): string {
   const meta = activityByCode(code)
   if (!meta) return code
-  const name = lang === 'en' && code === 'form1_0' ? DEMOGRAPHICS_FORM.en.name : meta.name
+  const portal = portalFormByCode(code)
+  const name =
+    lang === 'en' && code === 'form1_0'
+      ? DEMOGRAPHICS_FORM.en.name
+      : portal
+        ? pick(portal.name, lang)
+        : meta.name
   return meta.label ? `${meta.label} ${name}` : name
 }
 

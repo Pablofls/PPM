@@ -5,7 +5,7 @@ import { usePermissions } from '../../auth/PermissionsProvider'
 import { Badge } from '../../components/Badge'
 import { useRepositoryQuery, useWeeklyLogRows } from '../../data/hooks'
 import { repository } from '../../data/repository'
-import type { Activity, DemographicsEntry } from '../../data/types'
+import type { Activity, DemographicsEntry, PortalEntry } from '../../data/types'
 import { activityState, isLateSubmission } from '../../lib/activities'
 import {
   DEMOGRAPHICS_FORM,
@@ -14,15 +14,16 @@ import {
   type WeeklyFormMeta,
 } from '../../lib/catalog'
 import { useLang, useT } from '../../lib/i18n'
+import { pick, PORTAL_FORMS, portalFormPath, type PortalFormMeta } from '../../lib/portalForms'
 import { formatDateTime, formatRelativeTime, formatWeekRange } from '../../lib/format'
 import { useMyActivities } from './useMyActivities'
 
 /**
  * Actividades del alumno: la lista de tareas de un curso, como en Canvas.
  *
- * Hoy son el 1.0 Datos Demográficos (`0052`) y las dos bitácoras semanales,
- * los únicos formularios que el alumno contesta aquí; los otros doce se siguen
- * contestando en Google Forms.
+ * Hoy son el Módulo 1 completo (1.0 en `0052`, 1.1–1.5 en `0054`) y las dos
+ * bitácoras semanales; los demás formularios se siguen contestando en Google
+ * Forms.
  * Solo aparecen las que el profesor publicó y ya están disponibles (`0051`);
  * una que ya pasó «Disponible hasta» se ve Cerrada.
  * Cada tarjeta lleva a su reporte, que vive debajo de esta ruta para que el
@@ -40,6 +41,11 @@ export function StudentActivitiesPage() {
     return can(form.code) && activity ? [{ form: localizeWeeklyForm(form, lang), activity }] : []
   })
   const demographics = can('form1_0') ? byCode('form1_0') : undefined
+  const portalForms = PORTAL_FORMS.flatMap((form) => {
+    const activity = can(form.code) ? byCode(form.code) : undefined
+    return activity ? [{ form, activity }] : []
+  })
+  const hasOthers = Boolean(demographics) || portalForms.length > 0
 
   // Una sola página, dividida por título: primero los reportes semanales y
   // abajo las demás actividades. Una tarjeta por fila en las dos.
@@ -63,7 +69,7 @@ export function StudentActivitiesPage() {
         </ActivitySection>
       )}
 
-      {demographics && (
+      {hasOthers && (
         <ActivitySection
           title={t('Actividades', 'Assignments')}
           description={t(
@@ -71,13 +77,20 @@ export function StudentActivitiesPage() {
             'Open each one to submit it and see what you have already submitted.',
           )}
         >
-          <li>
-            <DemographicsCard activity={demographics} />
-          </li>
+          {demographics && (
+            <li>
+              <DemographicsCard activity={demographics} />
+            </li>
+          )}
+          {portalForms.map(({ form, activity }) => (
+            <li key={form.code}>
+              <PortalFormCard form={form} activity={activity} />
+            </li>
+          ))}
         </ActivitySection>
       )}
 
-      {weeklyReports.length === 0 && !demographics && !loading && (
+      {weeklyReports.length === 0 && !hasOthers && !loading && (
         <>
           <h2 className="text-2xl font-semibold tracking-tight text-ink-950">
             {t('Actividades', 'Assignments')}
@@ -145,6 +158,72 @@ function DemographicsCard({ activity }: { activity: Activity }) {
           <Badge tone="red">{t('Cerrada', 'Closed')}</Badge>
         ) : (
           <Badge tone="violet">1.0</Badge>
+        )}
+      </div>
+
+      {(activity.dueAt || activity.availableUntil) && (
+        <p className="mt-2 text-xs text-ink-500">
+          {activity.dueAt
+            ? t(
+                `Vence el ${formatDateTime(activity.dueAt, lang)}`,
+                `Due ${formatDateTime(activity.dueAt, lang)}`,
+              )
+            : closed
+              ? t(
+                  `Cerró el ${formatDateTime(activity.availableUntil, lang)}`,
+                  `Closed on ${formatDateTime(activity.availableUntil, lang)}`,
+                )
+              : t(
+                  `Disponible hasta el ${formatDateTime(activity.availableUntil, lang)}`,
+                  `Available until ${formatDateTime(activity.availableUntil, lang)}`,
+                )}
+        </p>
+      )}
+
+      <p className="mt-3 flex items-center gap-2 border-t border-ink-100 pt-3 text-xs text-ink-500">
+        {loading
+          ? t('Cargando tu entrega…', 'Loading your submission…')
+          : last
+            ? t(
+                `Entregado ${formatRelativeTime(last.submittedAt, lang)}`,
+                `Submitted ${formatRelativeTime(last.submittedAt, lang)}`,
+              )
+            : t('Sin entregar', 'Not submitted')}
+        {late && <Badge tone="amber">{t('Tardía', 'Late')}</Badge>}
+      </p>
+    </Link>
+  )
+}
+
+/** La tarjeta de un formulario 1.1–1.5 (0054): vence, si ya se entregó y si fue tardía. */
+function PortalFormCard({ form, activity }: { form: PortalFormMeta; activity: Activity }) {
+  const { portalStudentId: studentId } = useAuth()
+  const t = useT()
+  const lang = useLang()
+  const closed = activityState(activity) === 'cerrada'
+  const { data: entries, loading } = useRepositoryQuery(
+    () =>
+      studentId ? repository.getMyFormEntries(studentId, form.code) : Promise.resolve([] as PortalEntry[]),
+    [] as PortalEntry[],
+    [studentId, form.code],
+  )
+  const last = entries[0]
+  const late = last ? isLateSubmission(activity.dueAt, last.submittedAt) : false
+
+  return (
+    <Link
+      to={portalFormPath(form)}
+      className="block rounded-xl border border-ink-200 bg-white px-5 py-4 shadow-sm transition-colors hover:border-ink-300 hover:bg-ink-50/50"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-ink-900">{pick(form.name, lang)}</p>
+          <p className="mt-0.5 text-xs leading-relaxed text-ink-500">{pick(form.subtitle, lang)}</p>
+        </div>
+        {closed ? (
+          <Badge tone="red">{t('Cerrada', 'Closed')}</Badge>
+        ) : (
+          <Badge tone="violet">{form.label}</Badge>
         )}
       </div>
 

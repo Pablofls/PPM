@@ -53,6 +53,7 @@ import type {
   AppNotification,
   GradeEntry,
   ActivityGradeEntry,
+  PortalEntry,
   NoticeInput,
   SentNotice,
   WeeklyReport,
@@ -772,6 +773,120 @@ export const supabaseRepository: PanelRepository = {
       p_semester: input.semester,
     })
 
+    if (error) throw new Error(submissionError(error.message))
+  },
+
+  async getMyFormEntries(studentId: string, formCode: string): Promise<PortalEntry[]> {
+    const table = PORTAL_TABLES[formCode]
+    if (!table) return []
+    const { data, error } = await supabase
+      .from('submissions')
+      .select(`id, student_id, submitted_at, source_row_key, ${table.select}`)
+      .eq('student_id', studentId)
+      .eq('form_code', formCode)
+      .order('submitted_at', { ascending: false })
+
+    if (error) throw new Error(`No se pudieron cargar tus entregas: ${error.message}`)
+    return ((data ?? []) as unknown as PanelRecord[]).map((record) => toPortalEntry(record, table.name))
+  },
+
+  async getLatestFormEntries(formCode: string, studentIds: string[]): Promise<PortalEntry[]> {
+    const table = PORTAL_TABLES[formCode]
+    if (!table || studentIds.length === 0) return []
+    const { data, error } = await supabase
+      .from('submissions')
+      .select(`id, student_id, submitted_at, source_row_key, ${table.select}`)
+      .eq('form_code', formCode)
+      .in('student_id', studentIds)
+      .order('submitted_at', { ascending: false })
+
+    if (error) throw new Error(`No se pudieron cargar las respuestas: ${error.message}`)
+    // Ya vienen de la más reciente a la más antigua: la primera de cada alumno.
+    const latest = new Map<string, PortalEntry>()
+    for (const record of (data ?? []) as unknown as PanelRecord[]) {
+      const entry = toPortalEntry(record, table.name)
+      if (!latest.has(entry.studentId)) latest.set(entry.studentId, entry)
+    }
+    return [...latest.values()]
+  },
+
+  async submitForm(formCode: string, values: Record<string, string | string[]>): Promise<void> {
+    const text = (key: string) => {
+      const value = values[key]
+      return typeof value === 'string' ? value.trim() : ''
+    }
+    const int = (key: string) => Number(text(key))
+    let rpc: { fn: string; args: Record<string, unknown> }
+    switch (formCode) {
+      case 'form1_1':
+        rpc = {
+          fn: 'submit_holland',
+          args: {
+            p_first_type: text('first_type'),
+            p_second_type: text('second_type'),
+            p_third_type: text('third_type'),
+            p_holland_code: text('holland_code').toUpperCase(),
+            p_first_score: int('first_score'),
+            p_second_score: int('second_score'),
+            p_third_score: int('third_score'),
+          },
+        }
+        break
+      case 'form1_2':
+        rpc = {
+          fn: 'submit_mbti',
+          args: {
+            p_report_url: text('report_url'),
+            p_mbti_type: text('mbti_type'),
+            p_identity: text('identity'),
+            p_energy: text('energy'),
+            p_mind: text('mind'),
+            p_nature: text('nature'),
+            p_tactics: text('tactics'),
+            p_energy_pct: int('energy_pct'),
+            p_mind_pct: int('mind_pct'),
+            p_nature_pct: int('nature_pct'),
+            p_tactics_pct: int('tactics_pct'),
+            p_identity_pct: int('identity_pct'),
+          },
+        }
+        break
+      case 'form1_3':
+        rpc = {
+          fn: 'submit_disc',
+          args: {
+            p_disc_style: text('disc_style'),
+            p_disc_category: text('disc_category'),
+            p_explanation: text('explanation'),
+          },
+        }
+        break
+      case 'form1_4': {
+        const levels: Record<string, string> = {}
+        for (const [key, value] of Object.entries(values)) {
+          if (key !== 'is_pefista_graduating' && typeof value === 'string') levels[key] = value
+        }
+        rpc = {
+          fn: 'submit_skills',
+          args: { p_levels: levels, p_pefista: text('is_pefista_graduating') === 'si' },
+        }
+        break
+      }
+      case 'form1_5':
+        rpc = {
+          fn: 'submit_values',
+          args: {
+            p_report_url: text('report_url'),
+            p_value_codes: Array.isArray(values.top_values) ? values.top_values : [],
+            p_score: int('score'),
+          },
+        }
+        break
+      default:
+        throw new Error('Ese formulario no se contesta en el portal.')
+    }
+
+    const { error } = await supabase.rpc(rpc.fn, rpc.args)
     if (error) throw new Error(submissionError(error.message))
   },
 
@@ -1529,6 +1644,42 @@ async function fetchLogs(view: string, studentId: string): Promise<PanelRecord[]
  * 168»): esos se muestran tal cual. Lo que no hay que enseñarle es el error de
  * una política de RLS o de un constraint, que habla de nombres de tablas.
  */
+/** Dónde viven las respuestas de cada formulario 1.1–1.5 y cómo pedirlas anidadas. */
+const PORTAL_TABLES: Record<string, { name: string; select: string }> = {
+  form1_1: { name: 'holland_results', select: 'holland_results(*)' },
+  form1_2: { name: 'mbti_results', select: 'mbti_results(*)' },
+  form1_3: { name: 'disc_results', select: 'disc_results(*)' },
+  form1_4: { name: 'skills_assessment', select: 'skills_assessment(*)' },
+  form1_5: { name: 'values_results', select: 'values_results(*, values_top(value_code))' },
+}
+
+/** Una fila de `submissions` con su respuesta anidada → respuestas por columna. */
+function toPortalEntry(record: PanelRecord, table: string): PortalEntry {
+  // La respuesta cuelga 1:1 de submissions; PostgREST la puede dar como objeto o lista.
+  const raw = record[table] as PanelRecord | PanelRecord[] | null
+  const answer = (Array.isArray(raw) ? raw[0] : raw) ?? {}
+  const values: Record<string, string | string[]> = {}
+  for (const [key, value] of Object.entries(answer)) {
+    if (key === 'submission_id' || key === 'needs_review') continue
+    if (key === 'values_top') {
+      values.top_values = Array.isArray(value)
+        ? (value as PanelRecord[]).map((item) => String(item.value_code))
+        : []
+    } else if (typeof value === 'boolean') {
+      values[key] = value ? 'si' : 'no'
+    } else if (value !== null && value !== undefined) {
+      values[key] = String(value)
+    }
+  }
+  return {
+    studentId: str(record.student_id) ?? '',
+    submissionId: str(record.id) ?? '',
+    submittedAt: str(record.submitted_at) ?? '',
+    fromPortal: record.source_row_key == null,
+    values,
+  }
+}
+
 function submissionError(message: string): string {
   // La actividad cerró (o se despublicó) mientras el alumno tenía el formulario abierto (0051).
   if (/activity_open/.test(message)) {

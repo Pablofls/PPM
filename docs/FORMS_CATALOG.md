@@ -31,9 +31,10 @@ Google Sheets de origen. El `code` es el mismo que la hoja y el que se guarda en
 > expediente del alumno, como en la plataforma anterior. Sus nombres son los que
 > usaba esa plataforma en la tarjeta *ADN Profesional*.
 
-> Son también los **dos únicos formularios que el alumno contesta dentro del
-> panel**, en su portal (`/alumno`). Los otros trece se siguen contestando en
-> Google Forms y entran por la sincronización horaria. Las dos vías escriben en
+> El alumno las contesta en su portal (`/alumno`), igual que el **Módulo 1
+> completo** (1.0 desde `0052`, 1.1–1.5 desde `0054`). Los otros siete se siguen
+> contestando en Google Forms y entran por la sincronización horaria; los
+> Google Forms del Módulo 1 también siguen sincronizándose. Las dos vías escriben en
 > las mismas tablas; ver [UI_SCREENS.md](UI_SCREENS.md#portal-del-alumno) y
 > [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#el-alumno-entrega-desde-el-panel).
 
@@ -94,6 +95,8 @@ agregados; ningún dato de alumno se versiona en este repositorio.
 > El **1.0** también se contesta en el portal del alumno desde `0052`, sin
 > periodo, frecuencia ni idioma (los da el grupo); el Google Form sigue
 > sincronizándose. Ver [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#el-10-se-contesta-en-el-portal).
+> Desde `0054` también 1.1–1.5, sin la pregunta de idioma (lo da el grupo). Ver
+> [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#el-módulo-1-se-contesta-en-el-portal).
 
 > **Implementado en `0017_form_deadlines.sql`.** Ver
 > [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#fechas-de-entrega-y-estado-de-las-entregas).

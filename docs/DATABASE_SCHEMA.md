@@ -15,6 +15,8 @@
   `0051_activities.sql` (2026-11-11).
   `0052_demographics_in_panel.sql` (2026-11-11).
   `0053_activity_points_and_grades.sql` (2026-11-17).
+  `0054_module1_in_panel.sql` está escrita y documentada aquí pero
+  **todavía no se pega en Supabase**.
   `0019_student_dossier_read.sql` está escrita y documentada aquí pero
   **todavía no se pega en Supabase**.
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
@@ -393,9 +395,20 @@ erDiagram
     }
     VALUES_RESULTS {
         uuid submission_id PK
-        text_array top_values
         smallint score
         text report_url
+    }
+    VALUES_RESULTS ||--o{ VALUES_TOP : "valores fuertes (0054)"
+    HUMAN_VALUES ||--o{ VALUES_TOP : "es"
+    VALUES_TOP {
+        uuid submission_id PK "FK values_results"
+        text value_code PK "FK human_values"
+    }
+    HUMAN_VALUES {
+        text code PK "benevolencia … conformidad"
+        text name_es
+        text name_en
+        smallint display_order
     }
     REFLECTIONS {
         uuid submission_id PK
@@ -866,9 +879,80 @@ Las 16 columnas en español de la hoja se colapsan en `mbti_type` + `identity`.
 
 ### `values_results` — 1.5 (`form1_5`)
 
-`report_url` (`text`), `top_values` (`text[]`), `score` (`smallint`).
+`report_url` (`text`), `score` (`smallint`).
+
+Hasta `0053` los valores fuertes eran la columna `top_values text[]`. Desde
+`0054` viven en `values_top` (abajo); las vistas `v_panel_values` y
+`v_student_dossier` siguen dando `top_values text[]` (nombres en español, en el
+orden del catálogo) con `values_top_names(submission_id)`, así que el panel no
+cambió.
+
+### `human_values` y `values_top` — valores fuertes del 1.5
+
+> `0054`. `human_values (code PK → name_es, name_en, display_order)`: los diez
+> valores de Schwartz (Benevolencia/Benevolence … Conformidad/Conformity).
+> `values_top (submission_id FK values_results CASCADE, value_code FK
+> human_values)`, todo-llave, índice `(value_code)`.
+
+Un arreglo en una columna no está ni en 1FN y no se puede referir a un
+catálogo: los valores fuertes son un hecho multivaluado de la entrega y van en
+su tabla. La migración copia los arreglos que ya existían (sin acentos ni
+mayúsculas, acepta también el nombre en inglés con `human_value_code()`) y
+**se detiene sin cambiar nada** si alguno no se reconoce. La sincronización del
+Sheets escribe aquí; un valor desconocido que llegue después se omite (sigue en
+el Sheets) en vez de detener la sincronización.
 
 ---
+
+## El Módulo 1 se contesta en el portal
+
+> Migración `0054_module1_in_panel.sql` — ⏳ **todavía no se ejecuta en Supabase**.
+
+1.1 Intereses, 1.2 Personalidad, 1.3 Estilos de Comportamiento, 1.4
+Habilidades y 1.5 Valores se contestan en el portal, como el 1.0 (`0052`),
+**pensando en los grupos siguientes**: los grupos de hoy ya los contestaron en
+Google Forms y no los vuelven a llenar. El idioma ya no se pregunta: el portal
+los muestra en el del grupo. Los Google Forms siguen sincronizándose y conviven.
+
+- `forms.answered_in_panel = true` para los cinco: se califican (`0053`).
+- Sus actividades quedan **en borrador** en todos los grupos (y nacen en
+  borrador en los nuevos: `default_activity_published()` ahora lee `forms`).
+  Efecto: en los grupos actuales Estado de Entregas deja de usar su fecha de
+  entrega (un borrador no vence) hasta que se publiquen.
+- Permisos como el 1.0: `app_screens` `form1_1`–`form1_5` → `edicion`/`ambos`, y el
+  rol alumno con `edicion`.
+- **Lectura del alumno**: `*_select_own` en `holland_results`, `mbti_results`,
+  `disc_results`, `skills_assessment` y `values_results` (se recrean con `drop
+  policy if exists`: las de `0019` pueden no existir), y `values_top_select_own`.
+- **Escritura del alumno**: `submissions_insert_own` suma los cinco; `*_insert_own`
+  en las cinco tablas y en `values_top`, solo en una entrega suya del formulario
+  correcto. Sin `UPDATE` ni `DELETE`: corregir es volver a entregar.
+- `v_panel_holland`, `v_panel_mbti`, `v_panel_disc`, `v_panel_skills` y
+  `v_panel_values` toman el idioma del grupo (`coalesce(dir.language,
+  ls.language)`, como `v_panel_demographics` en `0052`): lo entregado en el
+  portal no lleva idioma y el filtro Idioma no lo encontraría.
+- `values_top` tiene además las políticas de cualquier tabla de respuestas
+  (`_select_admin`, `_select_scope`, restrictiva `_screen_read`);
+  `human_values` la leen el staff y los alumnos activos.
+
+**Funciones de entrega** (`SECURITY INVOKER`; el alumno sale de
+`current_student_id()`, exigen `activity_is_open()`, todo obligatorio, sin
+idioma):
+
+| Función | Escribe |
+|---|---|
+| `open_portal_submission(form)` | la fila de `submissions` (la usan las cinco) |
+| `submit_holland(tipo×3, código, puntaje×3)` | `holland_results`; código `^[RIASEC]{3}$` |
+| `submit_mbti(link, tipo, identidad, energía, mente, naturaleza, tácticas, 5 porcentajes)` | `mbti_results`; porcentajes 0–100 |
+| `submit_disc(estilo, categoría, explicación)` | `disc_results`; estilo `^[DISC]{1,4}$` |
+| `submit_skills(p_levels jsonb, p_pefista)` | `skills_assessment`; exige las 33 habilidades |
+| `submit_values(link, value_codes[], puntuación)` | `values_results` + `values_top`; puntuación 1–10 |
+
+**Excepción a la 4FN, decidida por el profesor.** `holland_results.holland_code`
+(las tres áreas) y `mbti_results.energy`/`mind`/`nature`/`tactics` (las letras
+del tipo) son derivables, pero el formulario los sigue preguntando como en
+Google Forms y se guardan tal cual. `skills_assessment` sigue ancha (regla
+«Habilidades: columnas anchas»).
 
 ## Módulo 2 — Actúa
 
@@ -2414,6 +2498,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0049_student_grades.sql` | pantalla `alumno_calificaciones`; el alumno lee sus `grades` y los `grade_activities` de su grupo (políticas «lo mío» y restrictivas ampliadas) | ✅ 2026-11-04 |
 | `0050_notices.sql` | `notices`, `notice_recipients`, `notice_groups`, `grade_reads`; `send_notice()`, `mark_*_read()`, `notification_sender_name()`; vistas `v_my_notifications`, `v_sent_notices`; `v_grade_center.seen_at`; pantalla `avisos` | ✅ 2026-11-04 |
 | `0052_demographics_in_panel.sql` | el alumno entrega el 1.0 en su portal: `submit_demographics()`, `submissions_insert_own` con `form1_0`, `demographics_insert_own`, permiso `form1_0` = `edicion`/`ambos` con el alumno en «Puede editar»; `v_panel_demographics` toma periodo, frecuencia, idioma y matrícula del grupo y del registro | ✅ 2026-11-11 |
+| `0054_module1_in_panel.sql` | 1.1–1.5 en el portal: `answered_in_panel`, actividades en borrador, `default_activity_published()` lee `forms`; `human_values`, `values_top` (sale `values_results.top_values`), `human_value_code()`, `values_top_names()`; `v_panel_holland/mbti/disc/skills/values` (idioma del grupo), `v_student_dossier` e `import_sheet_rows()` rehechas; políticas de lectura y escritura del alumno; `open_portal_submission()` y `submit_holland/mbti/disc/skills/values()` | ⏳ pendiente |
 | `0053_activity_points_and_grades.sql` | `forms.answered_in_panel`; `activities.points_possible` (nulo en bitácoras); `save_activity(…, points)` escribe los puntos (en bitácoras, `grade_activities`); `activity_grades`, `activity_grade_reads`, `set_activity_grade()`, `mark_activity_grade_read()`; vista `v_activity_grade_center`; `v_my_notifications.form_code`; se elimina `set_grade_activity_points()` | ✅ 2026-11-17 |
 | `0051_activities.sql` | `activities` (publicar, disponible desde / fecha de entrega / disponible hasta) por grupo × formulario, sembradas con trigger; `save_activity()`, `set_activity_published()`, `activity_is_open()` y restrictivas de entrega del alumno; `group_form_deadline()` y `v_submission_status` (con el 1.0) leen `activities`; pantalla `actividades` en lugar de `fechas_entrega`; se eliminan `group_deadlines` y sus funciones | ✅ 2026-11-11 |
 
