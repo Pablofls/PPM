@@ -329,9 +329,9 @@ distingue por `submissions.form_code`.
 | Columna Sheets | Columna Postgres | Transformación |
 |---|---|---|
 | `3puestos` | `positions` | texto multilínea, tal cual. Son 3 puestos con sueldo, separados por saltos de línea |
-| `link1`, `link2`, `link3` | `position_url_1/2/3` | directo |
+| `link1`, `link2`, `link3` | `indeed_positions.url` con `rank` 1–3 (desde `0055`; antes `position_url_1/2/3`) | directo; una fila por liga que venga |
 | `3companias` | `companies` | texto multilínea, tal cual |
-| `comp1`, `comp2`, `comp3` | `company_url_1/2/3` | directo. Son URLs de Indeed muy largas, con parámetros codificados en base64 |
+| `comp1`, `comp2`, `comp3` | `indeed_companies.url` con `rank` 1–3 (desde `0055`; antes `company_url_1/2/3`) | directo. Son URLs de Indeed muy largas, con parámetros codificados en base64 |
 
 > No se parsea el texto multilínea a filas separadas: el formato lo escribe el
 > alumno a mano y no es confiable. La pantalla lo muestra como texto con saltos de

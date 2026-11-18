@@ -10,7 +10,8 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
 
 - Supabase configurado (ref `sovinakodrmgxytgapry`) y Vercel desplegado.
 - Las migraciones `0001`–`0054` **ya se ejecutaron** (salvo `0019`, ver
-  `docs/DATABASE_SCHEMA.md`). Un archivo ejecutado no se vuelve a editar: el siguiente cambio es `0055_…`.
+  `docs/DATABASE_SCHEMA.md`); `0055` está escrita y **todavía no se ejecuta**.
+  Un archivo ejecutado no se vuelve a editar: el siguiente cambio es `0056_…`.
 - Alcance del esquema: **autenticación + los 11 formularios de Módulo 1 y 2 +
   los dos apéndices + las dos bitácoras semanales**. Las hojas `alumnos` y
   `fechas_entrega` quedan para después.
@@ -140,8 +141,9 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   Demográficos (`0052`) y 1.1–1.5 (`0054`, ejecutada el 2026-11-17; una sola
   pantalla, `FormActivityPage`, con las preguntas en `src/lib/portalForms.ts`,
   en el idioma del grupo). Son para los grupos siguientes: los actuales ya los
-  contestaron en Google Forms, que sigue sincronizándose. Los otros siete
-  siguen en Google Forms.
+  contestaron en Google Forms, que sigue sincronizándose. También el
+  **Módulo 2** (2.1, 2.2, 2.4, 2.5 y 2.7, `0055`, **pendiente de ejecutar**), en
+  la misma pantalla. Solo los Apéndices A.1 y B.1 siguen en Google Forms.
 - Las **bitácoras semanales** (`form_busqueda`, `form_practicas`) no son una
   pantalla del rail: se leen dentro del **expediente del alumno**, que reemplaza
   al panel lateral por formulario. Es como funcionaba la tarjeta *ADN
@@ -264,8 +266,8 @@ La vista del alumno sigue la misma regla desde el otro lado: su guardia es
 `StudentRoute` y su condición de lectura **y de escritura** es siempre
 `student_id = public.current_student_id()`. Nunca `authenticated`.
 
-El alumno solo escribe sus dos bitácoras y el Módulo 1 (1.0 en `0052`, 1.1–1.5
-en `0054`), y la política lo
+El alumno solo escribe sus dos bitácoras, el Módulo 1 (1.0 en `0052`, 1.1–1.5
+en `0054`) y el Módulo 2 (`0055`), y la política lo
 acota por código de formulario (`0016`) y por la ventana de la actividad
 (`activity_is_open()`, `0051`). Además marca como leídas **sus** notificaciones, solo con
 las funciones `mark_*_read()` de `0050` (no hay política de `UPDATE`). Abrirle un formulario más es una decisión que se pide, no

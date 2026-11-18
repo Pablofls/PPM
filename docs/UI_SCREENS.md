@@ -885,7 +885,7 @@ sección). Las bitácoras cuelgan de esta ruta, así que el rail sigue marcando
 
 Es una sola página dividida por títulos del mismo tamaño: arriba
 **Reportes semanales** (*Weekly Reports*) con las bitácoras, y abajo
-**Actividades** (*Assignments*) con lo demás (el Módulo 1: 1.0–1.5, cada uno
+**Actividades** (*Assignments*) con lo demás (Módulo 1 y Módulo 2, cada uno
 cuando el profesor lo publica). Una tarjeta por
 fila en los dos bloques; un bloque sin tarjetas no se muestra.
 
@@ -953,7 +953,7 @@ Corregir es **volver a entregar**: no se edita una entrega. Con la actividad
 cerrada se ven las entregas sin formulario. Los campos usan `Field`/`INPUT` de
 `src/components/ActivityField.tsx`, compartidos con las bitácoras.
 
-### 1.1–1.5 · `/alumno/actividades/<intereses|personalidad|estilos-de-comportamiento|habilidades|valores>`
+### 1.1–1.5 y Módulo 2 · `/alumno/actividades/<intereses|personalidad|estilos-de-comportamiento|habilidades|valores|habilidades-profesionales|cv|cover-letter|elevator-pitch|indeed>`
 
 `src/pages/alumno/FormActivityPage.tsx` (`0054`): una sola pantalla para los
 cinco, con el esqueleto del 1.0 (encabezado con *Vence* y *Disponible hasta*,
@@ -970,6 +970,8 @@ el correo. Todas son obligatorias; el botón dice cuántas faltan.
 | 1.3 Estilos de Comportamiento | estilo DISC (con mayúsculas y minúsculas), categoría y si se identifica, con justificación |
 | 1.4 Habilidades | 33 habilidades en cinco bloques, cada una con Novato…Experto (un botón por nivel), y si es PEFista que se gradúa |
 | 1.5 Valores | link del assessment, valores más fuertes (casillas, de `human_values`) y la puntuación 1–10 |
+| 2.1, 2.2, 2.4, 2.5 (`0055`) | «¿Fue de utilidad…?» Sí/No (la pregunta de cada uno) y «¿Por qué?» |
+| 2.7 Indeed (`0055`) | Puesto 1–3 (nombre, sueldo mensual en pesos y link de Indeed) y Compañía 1–3 en orden de preferencia (nombre y link) |
 
 El PDF (`src/lib/formPdf.ts`) es el del 1.0: título, nombre, matrícula, fecha y
 hora de descarga y la tabla Pregunta / Respuesta, con los bloques como

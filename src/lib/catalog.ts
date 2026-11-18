@@ -497,6 +497,12 @@ export const PANEL_ACTIVITY_FORMS: ActivityFormCode[] = [
   'form1_3',
   'form1_4',
   'form1_5',
+  // El Módulo 2 (0055).
+  'form2_1',
+  'form2_2',
+  'form2_4',
+  'form2_5',
+  'form2_7',
   'form_busqueda',
   'form_practicas',
 ]

@@ -393,17 +393,10 @@ export const supabaseRepository: PanelRepository = {
     return rows.map<IndeedRow>((record) => ({
       ...baseRow(record),
       positions: str(record.positions),
-      positionUrls: [
-        str(record.position_url_1),
-        str(record.position_url_2),
-        str(record.position_url_3),
-      ],
+      // Desde 0055 las ligas vienen por lugar (1–3) de indeed_positions/companies.
+      positionUrls: urlTriple(record.position_urls),
       companies: str(record.companies),
-      companyUrls: [
-        str(record.company_url_1),
-        str(record.company_url_2),
-        str(record.company_url_3),
-      ],
+      companyUrls: urlTriple(record.company_urls),
     }))
   },
 
@@ -879,6 +872,35 @@ export const supabaseRepository: PanelRepository = {
             p_report_url: text('report_url'),
             p_value_codes: Array.isArray(values.top_values) ? values.top_values : [],
             p_score: int('score'),
+          },
+        }
+        break
+      case 'form2_1':
+      case 'form2_2':
+      case 'form2_4':
+      case 'form2_5':
+        rpc = {
+          fn: 'submit_reflection',
+          args: {
+            p_form_code: formCode,
+            p_was_useful: text('was_useful') === 'si',
+            p_reason: text('reason'),
+          },
+        }
+        break
+      case 'form2_7':
+        rpc = {
+          fn: 'submit_indeed',
+          args: {
+            p_positions: [1, 2, 3].map((n) => ({
+              title: text(`position_${n}_title`),
+              salary: int(`position_${n}_salary`),
+              url: text(`position_${n}_url`),
+            })),
+            p_companies: [1, 2, 3].map((n) => ({
+              name: text(`company_${n}_name`),
+              url: text(`company_${n}_url`),
+            })),
           },
         }
         break
@@ -1651,6 +1673,20 @@ const PORTAL_TABLES: Record<string, { name: string; select: string }> = {
   form1_3: { name: 'disc_results', select: 'disc_results(*)' },
   form1_4: { name: 'skills_assessment', select: 'skills_assessment(*)' },
   form1_5: { name: 'values_results', select: 'values_results(*, values_top(value_code))' },
+  form2_1: { name: 'reflections', select: 'reflections(*)' },
+  form2_2: { name: 'reflections', select: 'reflections(*)' },
+  form2_4: { name: 'reflections', select: 'reflections(*)' },
+  form2_5: { name: 'reflections', select: 'reflections(*)' },
+  form2_7: {
+    name: 'indeed_research',
+    select: 'indeed_research(*, indeed_positions(*), indeed_companies(*))',
+  },
+}
+
+/** Tres ligas por lugar; lo que falte, `null`. */
+function urlTriple(value: unknown): (string | null)[] {
+  const list = Array.isArray(value) ? value : []
+  return [0, 1, 2].map((index) => str(list[index]))
 }
 
 /** Una fila de `submissions` con su respuesta anidada → respuestas por columna. */
@@ -1661,7 +1697,19 @@ function toPortalEntry(record: PanelRecord, table: string): PortalEntry {
   const values: Record<string, string | string[]> = {}
   for (const [key, value] of Object.entries(answer)) {
     if (key === 'submission_id' || key === 'needs_review') continue
-    if (key === 'values_top') {
+    if (key === 'indeed_positions' || key === 'indeed_companies') {
+      // 2.7: cada fila a llaves planas (position_1_title, company_2_url…).
+      const prefix = key === 'indeed_positions' ? 'position' : 'company'
+      const rename: Record<string, string> = { monthly_salary: 'salary' }
+      for (const row of Array.isArray(value) ? (value as PanelRecord[]) : []) {
+        for (const [column, cell] of Object.entries(row)) {
+          if (column === 'submission_id' || column === 'rank' || cell === null) continue
+          values[`${prefix}_${row.rank}_${rename[column] ?? column}`] = String(
+            column === 'monthly_salary' ? Number(cell) : cell,
+          )
+        }
+      }
+    } else if (key === 'values_top') {
       values.top_values = Array.isArray(value)
         ? (value as PanelRecord[]).map((item) => String(item.value_code))
         : []

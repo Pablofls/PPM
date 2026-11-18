@@ -1,19 +1,31 @@
 import type { Lang } from './i18n'
 
 /**
- * Los formularios del Módulo 1 que el alumno contesta en su portal (`0054`):
- * 1.1–1.5. Antes eran Google Forms con una rama en español y otra en inglés;
+ * Los formularios que el alumno contesta en su portal: Módulo 1 (1.1–1.5,
+ * `0054`) y Módulo 2 (2.1, 2.2, 2.4, 2.5 y 2.7, `0055`). Antes eran Google Forms con una rama en español y otra en inglés;
  * aquí cada pregunta trae los dos textos y el portal muestra el del idioma
  * del grupo (`useLang`). Ya no se pregunta el idioma ni el correo.
  *
  * La `key` de cada campo es la columna de su tabla (`holland_results`,
  * `mbti_results`…), así el repositorio arma la entrega y lee las anteriores
  * sin una segunda lista. En el 1.5 `top_values` son códigos de `human_values`.
+ * En el 2.7 las llaves son planas (`position_1_title`, `company_2_url`…) y el
+ * repositorio las arma en filas de `indeed_positions` / `indeed_companies`.
  *
  * El 1.0 Datos Demográficos tiene su propia página (`DemographicsActivityPage`).
  */
 
-export type PortalFormCode = 'form1_1' | 'form1_2' | 'form1_3' | 'form1_4' | 'form1_5'
+export type PortalFormCode =
+  | 'form1_1'
+  | 'form1_2'
+  | 'form1_3'
+  | 'form1_4'
+  | 'form1_5'
+  | 'form2_1'
+  | 'form2_2'
+  | 'form2_4'
+  | 'form2_5'
+  | 'form2_7'
 
 export interface Text {
   es: string
@@ -526,6 +538,139 @@ export const PORTAL_FORMS: PortalFormMeta[] = [
     ],
   },
 ]
+
+
+// ---------------------------------------------------------------------------
+// Módulo 2 (0055)
+// ---------------------------------------------------------------------------
+
+const SAME_AGAIN = {
+  es: 'Si te equivocas, vuelve a entregarlo: tu profesor ve siempre la entrega más reciente.',
+  en: 'If you make a mistake, submit it again: your professor always sees your latest submission.',
+}
+
+/** 2.1, 2.2, 2.4 y 2.5: ¿fue de utilidad? (sí/no) y por qué. Tabla `reflections`. */
+function reflectionForm(
+  code: PortalFormCode,
+  label: string,
+  slug: string,
+  name: Text,
+  subtitle: Text,
+  question: Text,
+): PortalFormMeta {
+  return {
+    code,
+    label,
+    slug,
+    name,
+    subtitle,
+    instructions: {
+      es: ['Cuéntanos qué tan útil fue esta actividad para ti.', SAME_AGAIN.es],
+      en: ['Tell us how useful this activity was for you.', SAME_AGAIN.en],
+    },
+    sections: [
+      {
+        fields: [
+          { key: 'was_useful', type: 'sino', options: YES_NO, wide: true, label: question },
+          { key: 'reason', type: 'parrafo', wide: true, label: t('¿Por qué?', 'Explain why') },
+        ],
+      },
+    ],
+  }
+}
+
+const position = (n: number): PortalSection => ({
+  title: t(`Puesto ${n}`, `Position ${n}`),
+  fields: [
+    { key: `position_${n}_title`, type: 'texto', label: t('Nombre del puesto', 'Position name') },
+    {
+      key: `position_${n}_salary`,
+      type: 'numero',
+      min: 0,
+      max: 9_999_999,
+      label: t('Sueldo mensual (pesos)', 'Monthly salary (pesos)'),
+    },
+    { key: `position_${n}_url`, type: 'liga', wide: true, label: t('Link de Indeed', 'Indeed link') },
+  ],
+})
+
+const company = (n: number): PortalSection => ({
+  title: t(`Compañía ${n}`, `Company ${n}`),
+  fields: [
+    { key: `company_${n}_name`, type: 'texto', label: t('Nombre de la compañía', 'Company name') },
+    { key: `company_${n}_url`, type: 'liga', label: t('Link de Indeed', 'Indeed link') },
+  ],
+})
+
+PORTAL_FORMS.push(
+  reflectionForm(
+    'form2_1',
+    '2.1',
+    'habilidades-profesionales',
+    t('Habilidades Profesionales y de Carrera', 'Professional and Career Skills'),
+    t('Tu reflexión sobre la actividad', 'Your reflection on the activity'),
+    t(
+      '¿La realización de esta actividad fue de utilidad para entender cómo empezar a tomar responsabilidad de tu desarrollo profesional y de carrera?',
+      'Was completing this activity helpful in understanding how to start taking responsibility for your professional and career development?',
+    ),
+  ),
+  reflectionForm(
+    'form2_2',
+    '2.2',
+    'cv',
+    t('CV', 'Resume'),
+    t('Tu reflexión sobre la elaboración de tu CV', 'Your reflection on writing your resume'),
+    t(
+      '¿Los videos de esta actividad fueron de utilidad para hacer o mejorar tu CV?',
+      'Were the videos in this activity helpful in creating or improving your resume?',
+    ),
+  ),
+  reflectionForm(
+    'form2_4',
+    '2.4',
+    'cover-letter',
+    t('Carta de presentación', 'Cover Letter'),
+    t('Tu reflexión sobre tu carta de presentación', 'Your reflection on your cover letter'),
+    t(
+      '¿Fueron útiles los recursos (videos y enlaces) para escribir tu carta de presentación?',
+      'Were the resources (videos and links) helpful in writing your cover letter?',
+    ),
+  ),
+  reflectionForm(
+    'form2_5',
+    '2.5',
+    'elevator-pitch',
+    t('Elevator Pitch', 'Elevator Pitch'),
+    t('Tu reflexión sobre tu elevator pitch', 'Your reflection on your elevator pitch'),
+    t(
+      '¿Los recursos (videos y links) de esta actividad fueron de utilidad para redactar tu Elevator Pitch?',
+      'Were the resources (videos and links) in this activity helpful in writing your Elevator Pitch?',
+    ),
+  ),
+  {
+    code: 'form2_7',
+    label: '2.7',
+    slug: 'indeed',
+    name: t('Indeed', 'Indeed'),
+    subtitle: t(
+      'Los puestos y compañías que te gustaría al graduarte',
+      'The positions and companies you would like after graduation',
+    ),
+    instructions: {
+      es: [
+        'Busca en Indeed los 3 puestos que te gustaría tener al graduarte, con su sueldo mensual y el link de cada vacante. Ejemplo: Coordinador de Mercadotecnia Digital, 35,000 pesos.',
+        'Luego, las 3 compañías en las que te gustaría trabajar, en orden de preferencia, con el link de cada una en Indeed. Ejemplo: 1. Google, 2. Cemex, 3. Vitro.',
+        SAME_AGAIN.es,
+      ],
+      en: [
+        'Search Indeed for the 3 positions you would like to have after graduating, with their monthly salary and the link to each job posting. Example: Digital Marketing Coordinator, 35,000 pesos.',
+        'Then, the 3 companies you would like to work for, in order of preference, with the Indeed link for each one. Example: 1. Google, 2. Cemex, 3. Vitro.',
+        SAME_AGAIN.en,
+      ],
+    },
+    sections: [position(1), position(2), position(3), company(1), company(2), company(3)],
+  },
+)
 
 export const PORTAL_FORM_CODES = PORTAL_FORMS.map((form) => form.code)
 

@@ -32,9 +32,9 @@ Google Sheets de origen. El `code` es el mismo que la hoja y el que se guarda en
 > usaba esa plataforma en la tarjeta *ADN Profesional*.
 
 > El alumno las contesta en su portal (`/alumno`), igual que el **Módulo 1
-> completo** (1.0 desde `0052`, 1.1–1.5 desde `0054`). Los otros siete se siguen
-> contestando en Google Forms y entran por la sincronización horaria; los
-> Google Forms del Módulo 1 también siguen sincronizándose. Las dos vías escriben en
+> completo** (1.0 desde `0052`, 1.1–1.5 desde `0054`) y el **Módulo 2**
+> (2.1, 2.2, 2.4, 2.5 y 2.7 desde `0055`). Los Apéndices A.1 y B.1 se siguen
+> contestando en Google Forms; todos los Google Forms siguen sincronizándose. Las dos vías escriben en
 > las mismas tablas; ver [UI_SCREENS.md](UI_SCREENS.md#portal-del-alumno) y
 > [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#el-alumno-entrega-desde-el-panel).
 

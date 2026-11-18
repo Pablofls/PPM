@@ -16,6 +16,8 @@
   `0052_demographics_in_panel.sql` (2026-11-11).
   `0053_activity_points_and_grades.sql` (2026-11-17).
   `0054_module1_in_panel.sql` (2026-11-17).
+  `0055_module2_in_panel.sql` está escrita y documentada aquí pero
+  **todavía no se pega en Supabase**.
   `0019_student_dossier_read.sql` está escrita y documentada aquí pero
   **todavía no se pega en Supabase**.
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
@@ -416,8 +418,23 @@ erDiagram
     }
     INDEED_RESEARCH {
         uuid submission_id PK
-        text positions
-        text companies
+        text positions "texto de Google Forms"
+        text companies "texto de Google Forms"
+    }
+    INDEED_RESEARCH ||--o{ INDEED_POSITIONS : "puestos (0055)"
+    INDEED_RESEARCH ||--o{ INDEED_COMPANIES : "compañías (0055)"
+    INDEED_POSITIONS {
+        uuid submission_id PK "FK indeed_research"
+        smallint rank PK "1-3"
+        text title
+        numeric monthly_salary
+        text url
+    }
+    INDEED_COMPANIES {
+        uuid submission_id PK "FK indeed_research"
+        smallint rank PK "1-3"
+        text name
+        text url
     }
     INTERNSHIP_APPLICATIONS {
         uuid submission_id PK
@@ -967,12 +984,54 @@ se sabe por `submissions.form_code`.
 
 ### `indeed_research` — 2.7 (`form2_7`)
 
-`positions`, `position_url_1/2/3`, `companies`, `company_url_1/2/3` — todos `text`.
+`positions`, `companies` — `text`: el texto multilínea tal como lo escribió el
+alumno en Google Forms (no es fiable parsearlo). Nulos en lo entregado en el portal.
 
-`positions` y `companies` se guardan como texto multilínea tal cual: el formato lo
-escribe el alumno a mano y no es fiable parsearlo.
+Desde `0055` cada puesto y cada compañía es una fila (antes eran las columnas
+repetidas `position_url_1/2/3` y `company_url_1/2/3`, eliminadas):
+
+| Tabla | Columnas | Notas |
+|---|---|---|
+| `indeed_positions` | PK (`submission_id` FK `indeed_research` CASCADE, `rank` 1–3), `title`, `monthly_salary numeric(12,2)` ≥ 0, `url` | En las entregas de Google Forms solo trae `url` (nombre y sueldo están en `positions`) |
+| `indeed_companies` | PK (`submission_id`, `rank` 1–3), `name`, `url` | Ídem con `companies` |
+
+Puestos y compañías son dos hechos multivaluados **independientes** de la
+entrega: en una sola tabla habría que combinar cada puesto con cada compañía
+(la dependencia multivaluada que prohíbe la 4FN). `v_panel_indeed` da
+`positions`/`companies` (el texto de Google Forms o, si no hay, las filas como
+«1. Puesto — $35,000», con `indeed_positions_text()`/`indeed_companies_text()`)
+y `position_urls`/`company_urls text[]` por lugar (`indeed_position_urls()`,
+`indeed_company_urls()`).
 
 ---
+
+## El Módulo 2 se contesta en el portal
+
+> Migración `0055_module2_in_panel.sql` — ⏳ **todavía no se ejecuta en Supabase**.
+
+Igual que el Módulo 1 (`0054`), pensando en los grupos siguientes: 2.1, 2.2, 2.4,
+2.5 y 2.7 se contestan en el portal, en el idioma del grupo, sin pregunta de
+idioma ni correo. Los Google Forms siguen sincronizándose.
+
+- `answered_in_panel = true` (se califican); actividades **en borrador** en todos
+  los grupos; `app_screens` → `edicion`/`ambos` y rol alumno `edicion`;
+  `submissions_insert_own` suma los cinco.
+- `v_panel_reflections` y `v_panel_indeed` toman el idioma del grupo.
+- 2.7: `indeed_positions` e `indeed_companies` (arriba). La migración copia cada
+  liga a su fila, cuenta que no falte ninguna (si falta, se detiene sin cambiar
+  nada) y elimina las seis columnas `*_url_n`. `import_sheet_rows()` escribe las
+  ligas del Sheets en las tablas nuevas.
+- RLS: `*_select_own` en `reflections`, `indeed_research` y las dos tablas nuevas
+  (`drop if exists` + `create`); `*_insert_own` en las cuatro (entrega suya del
+  formulario correcto). Las tablas nuevas tienen además `_select_admin`,
+  `_select_scope` y la restrictiva `_screen_read`. Sin `UPDATE` ni `DELETE`.
+
+| Función (`SECURITY INVOKER`) | Escribe |
+|---|---|
+| `submit_reflection(form, was_useful, reason)` | `reflections`, solo 2.1/2.2/2.4/2.5 |
+| `submit_indeed(p_positions jsonb, p_companies jsonb)` | `indeed_research` + 3 `indeed_positions` (título, sueldo ≥ 0, liga) + 3 `indeed_companies` (nombre, liga), en orden |
+
+`reflections (submission_id → was_useful, reason)` ya estaba en 4FN y no cambia.
 
 ## Apéndices
 
@@ -2497,6 +2556,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0049_student_grades.sql` | pantalla `alumno_calificaciones`; el alumno lee sus `grades` y los `grade_activities` de su grupo (políticas «lo mío» y restrictivas ampliadas) | ✅ 2026-11-04 |
 | `0050_notices.sql` | `notices`, `notice_recipients`, `notice_groups`, `grade_reads`; `send_notice()`, `mark_*_read()`, `notification_sender_name()`; vistas `v_my_notifications`, `v_sent_notices`; `v_grade_center.seen_at`; pantalla `avisos` | ✅ 2026-11-04 |
 | `0052_demographics_in_panel.sql` | el alumno entrega el 1.0 en su portal: `submit_demographics()`, `submissions_insert_own` con `form1_0`, `demographics_insert_own`, permiso `form1_0` = `edicion`/`ambos` con el alumno en «Puede editar»; `v_panel_demographics` toma periodo, frecuencia, idioma y matrícula del grupo y del registro | ✅ 2026-11-11 |
+| `0055_module2_in_panel.sql` | 2.1–2.7 en el portal: `answered_in_panel`, actividades en borrador, permisos; `indeed_positions`, `indeed_companies` (salen `indeed_research.*_url_n`), funciones `indeed_*_text/urls()`; `v_panel_indeed` (drop + create) y `v_panel_reflections` con idioma del grupo; `import_sheet_rows()` rehecha; políticas del alumno; `submit_reflection()`, `submit_indeed()` | ⏳ pendiente |
 | `0054_module1_in_panel.sql` | 1.1–1.5 en el portal: `answered_in_panel`, actividades en borrador, `default_activity_published()` lee `forms`; `human_values`, `values_top` (sale `values_results.top_values`), `human_value_code()`, `values_top_names()`; `v_panel_holland/mbti/disc/skills/values` (idioma del grupo), `v_student_dossier` e `import_sheet_rows()` rehechas; políticas de lectura y escritura del alumno; `open_portal_submission()` y `submit_holland/mbti/disc/skills/values()` | ✅ 2026-11-17 |
 | `0053_activity_points_and_grades.sql` | `forms.answered_in_panel`; `activities.points_possible` (nulo en bitácoras); `save_activity(…, points)` escribe los puntos (en bitácoras, `grade_activities`); `activity_grades`, `activity_grade_reads`, `set_activity_grade()`, `mark_activity_grade_read()`; vista `v_activity_grade_center`; `v_my_notifications.form_code`; se elimina `set_grade_activity_points()` | ✅ 2026-11-17 |
 | `0051_activities.sql` | `activities` (publicar, disponible desde / fecha de entrega / disponible hasta) por grupo × formulario, sembradas con trigger; `save_activity()`, `set_activity_published()`, `activity_is_open()` y restrictivas de entrega del alumno; `group_form_deadline()` y `v_submission_status` (con el 1.0) leen `activities`; pantalla `actividades` en lugar de `fechas_entrega`; se eliminan `group_deadlines` y sus funciones | ✅ 2026-11-11 |
