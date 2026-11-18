@@ -503,6 +503,9 @@ export const PANEL_ACTIVITY_FORMS: ActivityFormCode[] = [
   'form2_4',
   'form2_5',
   'form2_7',
+  // Los Apéndices (0056).
+  'formA_1',
+  'formB_1',
   'form_busqueda',
   'form_practicas',
 ]

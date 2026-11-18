@@ -546,7 +546,8 @@ los datos de contacto del jefe.
 ### B.1 Formulario de Inicio · `formB_1`
 
 Nombre · Idioma · Empresa · Página Web · Giro · Misión · Visión · Valores ·
-Dirección · Horario · Departamento · Contrato · Sueldo · Contactos LinkedIn.
+Dirección · **Inicio de prácticas** (`0056`; «—» en lo que vino de Google
+Forms) · Horario · Departamento · Contrato · Sueldo · Contactos LinkedIn.
 
 El sueldo se formatea como moneda. El horario es texto descriptivo, no un número
 de horas: así viene del formulario.
@@ -885,8 +886,8 @@ sección). Las bitácoras cuelgan de esta ruta, así que el rail sigue marcando
 
 Es una sola página dividida por títulos del mismo tamaño: arriba
 **Reportes semanales** (*Weekly Reports*) con las bitácoras, y abajo
-**Actividades** (*Assignments*) con lo demás (Módulo 1 y Módulo 2, cada uno
-cuando el profesor lo publica). Una tarjeta por
+**Actividades** (*Assignments*) con lo demás (Módulos 1 y 2 y Apéndices, cada
+uno cuando el profesor lo publica). Una tarjeta por
 fila en los dos bloques; un bloque sin tarjetas no se muestra.
 
 El resumen de cada tarjeta es lo que hace útil la lista. Sin él, el alumno
@@ -953,7 +954,7 @@ Corregir es **volver a entregar**: no se edita una entrega. Con la actividad
 cerrada se ven las entregas sin formulario. Los campos usan `Field`/`INPUT` de
 `src/components/ActivityField.tsx`, compartidos con las bitácoras.
 
-### 1.1–1.5 y Módulo 2 · `/alumno/actividades/<intereses|personalidad|estilos-de-comportamiento|habilidades|valores|habilidades-profesionales|cv|cover-letter|elevator-pitch|indeed>`
+### 1.1–1.5 y Módulo 2 · `/alumno/actividades/<intereses|personalidad|estilos-de-comportamiento|habilidades|valores|habilidades-profesionales|cv|cover-letter|elevator-pitch|indeed|autorizacion-de-practicas|inicio-de-practicas>`
 
 `src/pages/alumno/FormActivityPage.tsx` (`0054`): una sola pantalla para los
 cinco, con el esqueleto del 1.0 (encabezado con *Vence* y *Disponible hasta*,
@@ -972,6 +973,8 @@ el correo. Todas son obligatorias; el botón dice cuántas faltan.
 | 1.5 Valores | link del assessment, valores más fuertes (casillas, de `human_values`) y la puntuación 1–10 |
 | 2.1, 2.2, 2.4, 2.5 (`0055`) | «¿Fue de utilidad…?» Sí/No (la pregunta de cada uno) y «¿Por qué?» |
 | 2.7 Indeed (`0055`) | Puesto 1–3 (nombre, sueldo mensual en pesos y link de Indeed) y Compañía 1–3 en orden de preferencia (nombre y link) |
+| A.1 Autorización de Prácticas (`0056`) | Requisitos (horas mínimas, dónde se pueden hacer, cuál NO es restricción), la empresa (nombre, página, RFC, año de inicio, departamento), el jefe directo (nombre, puesto, correo, teléfono) y las prácticas (horario semanal, remuneración, actividades, relación con la carrera y las metas, si es empresa familiar o personal) |
+| B.1 Inicio de Prácticas (`0056`) | La organización (empresa, página, giro, misión, visión, valores), las prácticas (**fecha de inicio**, dirección, horario, departamento, actividades), el jefe directo en **nombre, título y cargo** más correo y teléfono, compensación (contrato Escuela Empresa, sueldo opcional) y LinkedIn (contactos y URL **solo si tiene perfil**) |
 
 El PDF (`src/lib/formPdf.ts`) es el del 1.0: título, nombre, matrícula, fecha y
 hora de descarga y la tabla Pregunta / Respuesta, con los bloques como

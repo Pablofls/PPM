@@ -157,6 +157,8 @@ export interface CompanyRow extends BaseRow {
   hasLinkedinProfile: boolean | null
   linkedinConnections: number | null
   linkedinUrl: string | null
+  /** Fecha de inicio de las prácticas (`0056`); nula en lo que vino de Google Forms. */
+  internshipStartDate: string | null
 }
 
 /**
@@ -197,6 +199,8 @@ export interface StudentDossier extends StudentColumns {
   groupId: string | null
 
   /** B.1: los datos de la práctica en curso */
+  /** Fecha de inicio de las prácticas (`0056`). */
+  internshipStartDate: string | null
   companyName: string | null
   industry: string | null
   address: string | null

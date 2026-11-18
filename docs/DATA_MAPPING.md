@@ -348,6 +348,12 @@ generales. Las columnas están listadas en
 **`telefonoJefe`, `rfcEmpresa`, `sueldo`** son datos sensibles de terceros. Van a
 `text`/`numeric` en la BD pero no se exportan ni se muestran fuera del panel.
 
+**B.1 desde `0056`:** el Google Form sigue llenando `supervisor_info` con
+`datosJefe` (nombre y puesto en un solo texto). Lo entregado en el portal llena
+en su lugar `supervisor_name`, `supervisor_title` y `supervisor_role`, y además
+`internship_start_date` (fecha de inicio de las prácticas), que el Google Form no
+pregunta.
+
 ---
 
 ## Bitácoras semanales

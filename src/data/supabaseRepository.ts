@@ -447,6 +447,7 @@ export const supabaseRepository: PanelRepository = {
       hasLinkedinProfile: bool(record.has_linkedin_profile),
       linkedinConnections: num(record.linkedin_connections),
       linkedinUrl: str(record.linkedin_url),
+      internshipStartDate: str(record.internship_start_date),
     }))
   },
 
@@ -540,6 +541,7 @@ export const supabaseRepository: PanelRepository = {
       valuesScore: num(record.values_score),
       valuesReportUrl: str(record.values_report_url),
 
+      internshipStartDate: str(record.internship_start_date),
       companyName: str(record.company_name),
       industry: str(record.industry),
       address: str(record.address),
@@ -904,6 +906,19 @@ export const supabaseRepository: PanelRepository = {
           },
         }
         break
+      case 'formA_1':
+      case 'formB_1': {
+        // Las respuestas tal cual (texto); la base valida y convierte.
+        const answers: Record<string, string> = {}
+        for (const [key, value] of Object.entries(values)) {
+          if (typeof value === 'string') answers[key] = value.trim()
+        }
+        rpc = {
+          fn: formCode === 'formA_1' ? 'submit_internship_application' : 'submit_company_profile',
+          args: { p: answers },
+        }
+        break
+      }
       default:
         throw new Error('Ese formulario no se contesta en el portal.')
     }
@@ -1677,6 +1692,8 @@ const PORTAL_TABLES: Record<string, { name: string; select: string }> = {
   form2_2: { name: 'reflections', select: 'reflections(*)' },
   form2_4: { name: 'reflections', select: 'reflections(*)' },
   form2_5: { name: 'reflections', select: 'reflections(*)' },
+  formA_1: { name: 'internship_applications', select: 'internship_applications(*)' },
+  formB_1: { name: 'company_profiles', select: 'company_profiles(*)' },
   form2_7: {
     name: 'indeed_research',
     select: 'indeed_research(*, indeed_positions(*), indeed_companies(*))',

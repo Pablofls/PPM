@@ -20,7 +20,8 @@ import { translateServerText, useLang, useT } from '../../lib/i18n'
 import {
   allFields,
   displayAnswer,
-  isAnswered,
+  isMissing,
+  isVisible,
   pick,
   portalFormBySlug,
   type PortalField,
@@ -209,7 +210,7 @@ function PortalFormEditor({
   const [saving, setSaving] = useState(false)
 
   const fields = allFields(form)
-  const missing = fields.filter((field) => !isAnswered(field, values[field.key])).length
+  const missing = fields.filter((field) => isMissing(field, values)).length
   const canSubmit = !readOnly && !disabled && !saving && missing === 0
   const set = (key: string, value: string | string[]) =>
     setValues((current) => ({ ...current, [key]: value }))
@@ -308,7 +309,7 @@ function SectionBlock({
         <LevelGrid fields={section.fields} values={values} locked={locked} onChange={onChange} />
       ) : (
         <div className="mt-4 grid gap-5 sm:grid-cols-2">
-          {section.fields.map((field) => (
+          {section.fields.filter((field) => isVisible(field, values)).map((field) => (
             <div key={field.key} className={field.wide ? 'sm:col-span-2' : ''}>
               <FieldInput field={field} value={values[field.key]} locked={locked} onChange={onChange} />
             </div>
@@ -393,7 +394,7 @@ function FieldInput({
   }
 
   return (
-    <Field label={label} help={help} required>
+    <Field label={label} help={help} required={!field.optional}>
       {field.type === 'opcion' ? (
         <select
           id={id}
@@ -424,14 +425,26 @@ function FieldInput({
       ) : (
         <input
           id={id}
-          type={field.type === 'numero' ? 'number' : field.type === 'liga' ? 'url' : 'text'}
+          type={
+            field.type === 'numero'
+              ? 'number'
+              : field.type === 'liga'
+                ? 'url'
+                : field.type === 'correo'
+                  ? 'email'
+                  : field.type === 'fecha'
+                    ? 'date'
+                    : field.type === 'telefono'
+                      ? 'tel'
+                      : 'text'
+          }
           inputMode={field.type === 'numero' ? 'numeric' : undefined}
           min={field.min}
           max={field.max}
           step={field.type === 'numero' ? 1 : undefined}
           value={text}
           disabled={locked}
-          required
+          required={!field.optional}
           placeholder={field.type === 'liga' ? 'https://' : undefined}
           onChange={(event) => onChange(field.key, event.target.value)}
           className={INPUT}
@@ -537,7 +550,7 @@ function PreviousEntries({
               {!entry.fromPortal && <Badge>Google Forms</Badge>}
             </div>
             <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
-              {fields.map((field) => (
+              {fields.filter((field) => isVisible(field, entry.values)).map((field) => (
                 <div key={field.key} className={field.wide ? 'sm:col-span-2' : ''}>
                   <dt className="text-xs text-ink-500">{pick(field.label, lang)}</dt>
                   <dd className="break-words whitespace-pre-line text-ink-900">

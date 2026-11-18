@@ -540,6 +540,7 @@ function Internship({ dossier }: { dossier: Dossier | null }) {
 
   const campos: [string, string | null][] = [
     [t('Empresa', 'Company'), dossier.companyName],
+    [t('Inicio de prácticas', 'Internship start'), formatDate(dossier.internshipStartDate, lang) || null],
     [t('Giro', 'Industry'), dossier.industry],
     [t('Dirección', 'Address'), dossier.address],
     [t('Departamento', 'Department'), dossier.department],

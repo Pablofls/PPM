@@ -10,7 +10,7 @@ import {
   PDF_LINE_STYLES,
   translator,
 } from './pdf'
-import { allFields, displayAnswer, pick, type PortalFormMeta, type PortalValues } from './portalForms'
+import { allFields, displayAnswer, isVisible, pick, type PortalFormMeta, type PortalValues } from './portalForms'
 
 /** Una fila de la tabla: pregunta y respuesta, o el título de un bloque. */
 export type QaRow = { label: string; value: string } | { heading: string }
@@ -97,6 +97,7 @@ export function portalFormRows(form: PortalFormMeta, values: PortalValues, lang:
   for (const section of form.sections) {
     if (section.title) rows.push({ heading: pick(section.title, lang) })
     for (const field of section.fields) {
+      if (!isVisible(field, values)) continue
       rows.push({ label: pick(field.label, lang), value: displayAnswer(field, values[field.key], lang) })
     }
   }
@@ -125,7 +126,7 @@ export async function downloadPortalFormPdf({
 
 /** Para Calificar: las respuestas sin títulos de bloque. */
 export function portalAnswerLines(form: PortalFormMeta, values: PortalValues, lang: Lang = 'es') {
-  return allFields(form).map((field) => ({
+  return allFields(form).filter((field) => isVisible(field, values)).map((field) => ({
     label: pick(field.label, lang),
     value: displayAnswer(field, values[field.key], lang),
   }))

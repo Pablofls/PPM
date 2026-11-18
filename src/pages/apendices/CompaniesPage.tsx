@@ -5,7 +5,7 @@ import { useRepositoryQuery } from '../../data/hooks'
 import { repository } from '../../data/repository'
 import type { CompanyRow, PanelFilters } from '../../data/types'
 import { formByCode } from '../../lib/catalog'
-import { toHref } from '../../lib/format'
+import { formatDate, toHref } from '../../lib/format'
 import { Campo } from './InternshipsPage'
 
 const form = formByCode('formB_1')
@@ -93,6 +93,17 @@ const columns: Column<CompanyRow>[] = [
     header: 'Dirección',
     width: 'min-w-48',
     render: (row) => <Larga valor={row.address} ancho="max-w-48" />,
+  },
+  {
+    // 0056: lo entregado en el portal la trae; lo de Google Forms, no.
+    key: 'internshipStartDate',
+    header: 'Inicio de prácticas',
+    render: (row) =>
+      row.internshipStartDate ? (
+        <span className="tnum whitespace-nowrap">{formatDate(row.internshipStartDate)}</span>
+      ) : (
+        '—'
+      ),
   },
   {
     // 'horarioLaboral' es texto descriptivo, no un número de horas.

@@ -17,6 +17,8 @@
   `0053_activity_points_and_grades.sql` (2026-11-17).
   `0054_module1_in_panel.sql` (2026-11-17).
   `0055_module2_in_panel.sql` (2026-11-17).
+  `0056_appendices_in_panel.sql` está escrita y documentada aquí pero
+  **todavía no se pega en Supabase**.
   `0019_student_dossier_read.sql` está escrita y documentada aquí pero
   **todavía no se pega en Supabase**.
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
@@ -463,6 +465,10 @@ erDiagram
         boolean has_contract
         numeric salary
         int linkedin_connections
+        date internship_start_date "0056"
+        text supervisor_name "0056"
+        text supervisor_title "0056"
+        text supervisor_role "0056"
     }
     FORM_DEADLINES {
         uuid id PK
@@ -1032,13 +1038,50 @@ idioma ni correo. Los Google Forms siguen sincronizándose.
 
 `reflections (submission_id → was_useful, reason)` ya estaba en 4FN y no cambia.
 
+## Los Apéndices se contestan en el portal
+
+> Migración `0056_appendices_in_panel.sql` — ⏳ **todavía no se ejecuta en Supabase**.
+
+A.1 Formulario de Autorización de Prácticas y B.1 Reporte de Inicio de Prácticas
+se contestan en el portal como los Módulos 1 y 2 (`0054`, `0055`), pensando en los
+grupos siguientes; los Google Forms siguen sincronizándose. **Ya ningún
+formulario se contesta solo en Google Forms.**
+
+- `answered_in_panel = true` (se califican); actividades **en borrador** en todos
+  los grupos; `app_screens` → `edicion`/`ambos` y rol alumno `edicion`;
+  `submissions_insert_own` suma los dos; `*_select_own` y `*_insert_own` en
+  `internship_applications` y `company_profiles`.
+- **A.1** (`internship_applications`) ya estaba en 4FN y no cambia. Sus preguntas
+  cerradas guardan el texto en español de la opción, como las del Google Form.
+- **B.1** (`company_profiles`) suma `internship_start_date` (fecha de inicio de
+  las prácticas, pedida por el profesor) y separa «Datos del jefe directo» (un
+  texto con nombre, título y cargo: no atómico) en `supervisor_name`,
+  `supervisor_title` y `supervisor_role`. Todo depende solo de la entrega (4FN).
+  `supervisor_info` queda para lo que vino de Google Forms.
+- **LinkedIn:** sin perfil, no se piden ni se guardan contactos ni URL. Se valida
+  en `submit_company_profile()` y no con un CHECK: una fila vieja del Sheets (que
+  pedía los tres siempre) lo violaría y detendría la sincronización.
+- Vistas: `v_panel_internships` y `v_panel_companies` con el idioma del grupo.
+  `v_panel_companies` ya no usa `cp.*`: columnas explícitas y, al final,
+  `supervisor_name`, `supervisor_title`, `supervisor_role`, `internship_start_date`.
+  En ella y en `v_student_dossier`, `supervisor_info` es el texto de Google Forms
+  o, si no hay, «Lic. Ana López, Gerente de RH» (`company_supervisor_text()`);
+  el expediente agrega `internship_start_date` al final.
+
+| Función (`SECURITY INVOKER`) | Escribe |
+|---|---|
+| `submit_internship_application(p jsonb)` | `internship_applications`; todo obligatorio, horas 0–2000, año 1800–actual, correo válido |
+| `submit_company_profile(p jsonb)` | `company_profiles`; todo obligatorio salvo el sueldo, fecha de inicio válida, correo válido, contactos y URL solo con perfil de LinkedIn |
+| `portal_text(p, key)` | auxiliar: el texto recortado de una llave del jsonb, nulo si viene vacío |
+
 ## Apéndices
 
 Definidos en `0009_appendices.sql`; sus vistas de panel en `0010_views_appendices.sql`.
 
 > Estas dos tablas contienen datos sensibles de **terceros** —teléfonos y correos
 > de jefes, RFC de empresas y sueldos—, no solo de alumnos. No se exportan ni se
-> muestran fuera del panel del profesor.
+> muestran fuera del panel del profesor, salvo al propio alumno lo que él
+> entregó (desde `0056`, en su portal).
 
 ### `internship_applications` — A.1 Carta Formal de Aceptación (`formA_1`)
 
@@ -1070,7 +1113,9 @@ Definidos en `0009_appendices.sql`; sus vistas de panel en `0010_views_appendice
 | `address` | `text` | `direccionEmpresa` |
 | `work_schedule` | `text` | `horarioLaboral`. **Texto descriptivo, no un número de horas**: `"Lunes a Viernes (9am a 4pm)"` |
 | `department` | `text` | |
-| `supervisor_info` | `text` | `datosJefe`: nombre y puesto en un solo campo |
+| `supervisor_info` | `text` | `datosJefe`: nombre y puesto en un solo campo. Desde `0056` solo lo de Google Forms; lo del portal lo deja nulo |
+| `supervisor_name`, `supervisor_title`, `supervisor_role` | `text` | `0056`: el jefe directo en campos atómicos (nombre, título y cargo). Solo lo entregado en el portal |
+| `internship_start_date` | `date` | `0056`: fecha de inicio de las prácticas. Solo lo entregado en el portal |
 | `supervisor_email` | `citext` | |
 | `supervisor_phone` | `text` | |
 | `activities` | `text` | |
@@ -2555,6 +2600,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0049_student_grades.sql` | pantalla `alumno_calificaciones`; el alumno lee sus `grades` y los `grade_activities` de su grupo (políticas «lo mío» y restrictivas ampliadas) | ✅ 2026-11-04 |
 | `0050_notices.sql` | `notices`, `notice_recipients`, `notice_groups`, `grade_reads`; `send_notice()`, `mark_*_read()`, `notification_sender_name()`; vistas `v_my_notifications`, `v_sent_notices`; `v_grade_center.seen_at`; pantalla `avisos` | ✅ 2026-11-04 |
 | `0052_demographics_in_panel.sql` | el alumno entrega el 1.0 en su portal: `submit_demographics()`, `submissions_insert_own` con `form1_0`, `demographics_insert_own`, permiso `form1_0` = `edicion`/`ambos` con el alumno en «Puede editar»; `v_panel_demographics` toma periodo, frecuencia, idioma y matrícula del grupo y del registro | ✅ 2026-11-11 |
+| `0056_appendices_in_panel.sql` | A.1 y B.1 en el portal: `answered_in_panel`, actividades en borrador, permisos; `company_profiles.internship_start_date` y `supervisor_name/title/role`; `company_supervisor_text()`; `v_panel_internships`, `v_panel_companies` (columnas explícitas) y `v_student_dossier` rehechas; políticas del alumno; `submit_internship_application()`, `submit_company_profile()`, `portal_text()` | ⏳ pendiente |
 | `0055_module2_in_panel.sql` | 2.1–2.7 en el portal: `answered_in_panel`, actividades en borrador, permisos; `indeed_positions`, `indeed_companies` (salen `indeed_research.*_url_n`), funciones `indeed_*_text/urls()`; `v_panel_indeed` (drop + create) y `v_panel_reflections` con idioma del grupo; `import_sheet_rows()` rehecha; políticas del alumno; `submit_reflection()`, `submit_indeed()` | ✅ 2026-11-17 |
 | `0054_module1_in_panel.sql` | 1.1–1.5 en el portal: `answered_in_panel`, actividades en borrador, `default_activity_published()` lee `forms`; `human_values`, `values_top` (sale `values_results.top_values`), `human_value_code()`, `values_top_names()`; `v_panel_holland/mbti/disc/skills/values` (idioma del grupo), `v_student_dossier` e `import_sheet_rows()` rehechas; políticas de lectura y escritura del alumno; `open_portal_submission()` y `submit_holland/mbti/disc/skills/values()` | ✅ 2026-11-17 |
 | `0053_activity_points_and_grades.sql` | `forms.answered_in_panel`; `activities.points_possible` (nulo en bitácoras); `save_activity(…, points)` escribe los puntos (en bitácoras, `grade_activities`); `activity_grades`, `activity_grade_reads`, `set_activity_grade()`, `mark_activity_grade_read()`; vista `v_activity_grade_center`; `v_my_notifications.form_code`; se elimina `set_grade_activity_points()` | ✅ 2026-11-17 |

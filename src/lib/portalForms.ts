@@ -1,3 +1,4 @@
+import { formatDate } from './format'
 import type { Lang } from './i18n'
 
 /**
@@ -26,6 +27,8 @@ export type PortalFormCode =
   | 'form2_4'
   | 'form2_5'
   | 'form2_7'
+  | 'formA_1'
+  | 'formB_1'
 
 export interface Text {
   es: string
@@ -54,6 +57,9 @@ export type PortalFieldType =
   /** Nivel de dominio de una habilidad (1.4). */
   | 'nivel'
   | 'sino'
+  | 'correo'
+  | 'fecha'
+  | 'telefono'
 
 export interface PortalField {
   key: string
@@ -65,6 +71,10 @@ export interface PortalField {
   max?: number
   /** Ocupa las dos columnas del formulario. */
   wide?: boolean
+  /** No es obligatoria (todas lo son, salvo estas). */
+  optional?: boolean
+  /** Solo se pregunta si otra respuesta tiene ese valor (p. ej. LinkedIn = «sí»). */
+  showIf?: { key: string; value: string }
 }
 
 /** Un bloque de preguntas con su título (en el 1.4, cada grupo de habilidades). */
@@ -672,6 +682,277 @@ PORTAL_FORMS.push(
   },
 )
 
+// ---------------------------------------------------------------------------
+// Apéndices (0056)
+// ---------------------------------------------------------------------------
+// Las preguntas cerradas del A.1 guardan el texto en español de la opción
+// (`value`), como las respuestas en español del Google Form.
+
+const text = (key: string, es: string, en: string, extra: Partial<PortalField> = {}): PortalField => ({
+  key,
+  type: 'texto',
+  label: t(es, en),
+  ...extra,
+})
+
+const long = (key: string, es: string, en: string, extra: Partial<PortalField> = {}): PortalField => ({
+  key,
+  type: 'parrafo',
+  wide: true,
+  label: t(es, en),
+  ...extra,
+})
+
+const TWO_YEARS = t(
+  'La UDEM requiere que la empresa tenga más de 2 años de operación formal.',
+  'UDEM requires that the company has more than 2 years of formal operation.',
+)
+
+PORTAL_FORMS.push(
+  {
+    code: 'formA_1',
+    label: 'A.1',
+    slug: 'autorizacion-de-practicas',
+    name: t('Autorización de Prácticas Profesionales', 'Internship Authorization'),
+    subtitle: t(
+      'Para que tu profesor evalúe si tus prácticas cumplen con los requisitos de la UDEM',
+      'So your professor can check whether your internship meets UDEM requirements',
+    ),
+    instructions: {
+      es: [
+        'Completa y entrega este formulario para que tu profesor evalúe si tus prácticas profesionales cumplen con los requisitos de la UDEM. No se autorizan prácticas sin el formulario debidamente llenado.',
+        'Después, escríbele a tu profesor para que te responda si tus prácticas están autorizadas, si necesita más información o si hay que agendar una sesión para revisarla. Puedes descargar tu entrega en PDF.',
+      ],
+      en: [
+        'Complete and submit this form so your professor can check whether your internship meets UDEM requirements. Internships are not authorized without this form properly completed.',
+        'Then email your professor to find out whether your internship is authorized, whether more information is needed, or whether a review session must be scheduled. You can download your submission as a PDF.',
+      ],
+    },
+    sections: [
+      {
+        title: t('Requisitos', 'Requirements'),
+        fields: [
+          {
+            key: 'required_hours',
+            type: 'numero',
+            min: 0,
+            max: 2000,
+            label: t(
+              '¿Cuál es el mínimo de horas que debo hacer en mis prácticas profesionales?',
+              'What is the minimum number of hours I must complete in my professional internship?',
+            ),
+          },
+          {
+            key: 'internship_option',
+            type: 'opcion',
+            wide: true,
+            label: t('Las prácticas profesionales pueden hacerse en:', 'Professional internships can be done in:'),
+            options: [
+              option('Lo que yo quiera', 'Lo que yo quiera', 'Wherever I want'),
+              option(
+                'Alineadas al programa académico de mi carrera',
+                'Alineadas al programa académico de mi carrera',
+                'Aligned with the academic program of my degree',
+              ),
+            ],
+          },
+          {
+            key: 'restrictions',
+            type: 'opcion',
+            wide: true,
+            label: t(
+              '¿Cuál de las siguientes NO es una restricción para hacer prácticas profesionales en la UDEM?',
+              'Which of the following is NOT a restriction for doing professional internships at UDEM?',
+            ),
+            options: [
+              option('Negocios Familiares', 'Negocios familiares', 'Family businesses'),
+              option('Negocios Personales', 'Negocios personales', 'Personal businesses'),
+              option('Emprendimientos Personales', 'Emprendimientos personales', 'Personal entrepreneurship'),
+              option(
+                'Todas las anteriores son restricciones para realizar prácticas en la UDEM',
+                'Todas las anteriores son restricciones para realizar prácticas en la UDEM',
+                'All of the above are restrictions for completing internships at UDEM',
+              ),
+            ],
+          },
+        ],
+      },
+      {
+        title: t('La empresa', 'The company'),
+        fields: [
+          text('company_name', 'Nombre de la empresa que quiero para hacer mis prácticas', 'Name of the company I propose for my internship', { wide: true }),
+          { key: 'company_website', type: 'liga', label: t('Página de internet de la empresa', 'Company website'), help: TWO_YEARS },
+          text('company_tax_id', 'RFC de la empresa', 'Company RFC'),
+          {
+            key: 'company_founded_year',
+            type: 'numero',
+            min: 1800,
+            max: new Date().getFullYear(),
+            label: t('¿En qué año comenzó operaciones la empresa?', 'In what year did the company begin operations?'),
+            help: TWO_YEARS,
+          },
+          text('department', 'Departamento en el que trabajaría', 'Department where I would work'),
+        ],
+      },
+      {
+        title: t('Jefe directo o supervisor', 'Direct supervisor'),
+        fields: [
+          text('supervisor_name', 'Nombre de quien sería mi jefe directo o supervisor', 'Name of my direct supervisor'),
+          text('supervisor_role', 'Puesto de mi jefe directo o supervisor', 'Position of my direct supervisor'),
+          { key: 'supervisor_email', type: 'correo', label: t('Correo electrónico de mi jefe directo', 'Email of my direct supervisor') },
+          { key: 'supervisor_phone', type: 'telefono', label: t('Teléfono de contacto de mi jefe directo', 'Phone number of my direct supervisor') },
+        ],
+      },
+      {
+        title: t('Las prácticas', 'The internship'),
+        fields: [
+          long('schedule', 'Horario de trabajo semanal', 'Weekly work schedule', {
+            help: t(
+              'Detalla el horario por día. Ejemplo: Lunes 4 horas (de 2pm a 6pm), Martes 8 horas (de 8am a 5pm con 1 hora de comida). Total semanal = 20 horas.',
+              'Detail the schedule for each day. Example: Monday 4 hours (2 pm to 6 pm), Tuesday 8 hours (8 am to 5 pm with a 1-hour lunch break). Weekly total = 20 hours.',
+            ),
+          }),
+          {
+            key: 'is_paid',
+            type: 'sino',
+            options: YES_NO,
+            wide: true,
+            label: t('¿Mis prácticas cuentan con alguna remuneración económica?', 'Does my internship include any financial compensation?'),
+          },
+          long('description', 'Describe las actividades que te asignarían: tu descripción de puesto y responsabilidades', 'Describe the activities you would be assigned: your job description and responsibilities'),
+          long('career_relation', '¿Cómo se alinean esas responsabilidades a tu plan de carrera (LMEC/LMI)?', 'How do those responsibilities align with your career plan (LMEC/LMI)?'),
+          long('professional_relation', '¿Cómo se alinean esas responsabilidades con tus metas profesionales y personales?', 'How do those responsibilities align with your professional and personal goals?'),
+          {
+            key: 'company_validation',
+            type: 'opcion',
+            wide: true,
+            label: t(
+              '¿La empresa que propongo es una empresa familiar, una empresa personal o una empresa a la que doy o daré servicios a través de mi empresa?',
+              'Is the company I propose a family business, a personal business, or a company I provide or will provide services to through my own company?',
+            ),
+            options: [
+              option(
+                'SÍ, la empresa es una empresa familiar y/o SÍ, la empresa es una empresa personal y/o SÍ, la empresa es una empresa a la que doy o daré servicios a través de mi empresa',
+                'Sí: es familiar, personal o le doy servicios a través de mi empresa',
+                'Yes: it is a family or personal business, or I provide services to it through my company',
+              ),
+              option(
+                'La empresa NO es una empresa familiar; NO es una empresa personal, NO es una empresa a la que doy o daré servicios a través de mi empresa.',
+                'No: no es familiar, ni personal, ni le doy servicios a través de mi empresa',
+                'No: it is not a family or personal business, and I do not provide services to it through my company',
+              ),
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    code: 'formB_1',
+    label: 'B.1',
+    slug: 'inicio-de-practicas',
+    name: t('Reporte de Inicio de Prácticas', 'Internship Start Report'),
+    subtitle: t('Los datos de la empresa y de tus prácticas', 'Information about the company and your internship'),
+    instructions: {
+      es: [
+        'Contesta con los datos de la organización donde harás tus prácticas y de tus prácticas.',
+        SAME_AGAIN.es,
+      ],
+      en: [
+        'Answer with information about the organization where you will do your internship and about the internship itself.',
+        SAME_AGAIN.en,
+      ],
+    },
+    sections: [
+      {
+        title: t('Datos generales de la organización', 'General information about the organization'),
+        fields: [
+          text('company_name', 'Empresa', 'Company'),
+          { key: 'company_website', type: 'liga', label: t('Página de internet', 'Website') },
+          text('industry', 'Giro', 'Industry'),
+          long('mission', 'Misión', 'Mission'),
+          long('vision', 'Visión', 'Vision'),
+          long('company_values', 'Valores', 'Values'),
+        ],
+      },
+      {
+        title: t('Datos específicos de las prácticas', 'Internship details'),
+        fields: [
+          {
+            key: 'internship_start_date',
+            type: 'fecha',
+            label: t('Fecha de inicio de las prácticas', 'Internship start date'),
+          },
+          text('address', 'Dirección de la empresa (ubicación física)', 'Company address (physical location)', { wide: true }),
+          text('work_schedule', 'Horario laboral del practicante', "Intern's working hours", {
+            help: t('Ejemplo: Lunes a viernes de 9am a 4pm.', 'Example: Monday to Friday, 9 am to 4 pm.'),
+          }),
+          text('department', 'Departamento donde se llevarán a cabo las prácticas', 'Department where the internship will take place'),
+          long('activities', 'Actividades que realizará el practicante', 'Activities the intern will perform'),
+        ],
+      },
+      {
+        title: t('Jefe directo del practicante', "Intern's direct supervisor"),
+        fields: [
+          text('supervisor_name', 'Nombre', 'Name'),
+          text('supervisor_title', 'Título', 'Title', {
+            help: t('Ejemplo: Lic., Ing., Mtra.', 'Example: Mr., Ms., Dr.'),
+          }),
+          text('supervisor_role', 'Cargo', 'Position'),
+          { key: 'supervisor_email', type: 'correo', label: t('Correo electrónico', 'Email') },
+          { key: 'supervisor_phone', type: 'telefono', label: t('Teléfono', 'Phone number') },
+        ],
+      },
+      {
+        title: t('Datos de compensación', 'Compensation'),
+        fields: [
+          {
+            key: 'has_contract',
+            type: 'sino',
+            options: YES_NO,
+            label: t('Contrato Programa Escuela Empresa', 'School-Business Program contract'),
+          },
+          {
+            key: 'salary',
+            type: 'numero',
+            min: 0,
+            max: 9_999_999,
+            optional: true,
+            label: t('Sueldo mensual (pesos)', 'Monthly salary (pesos)'),
+            help: t('Si no tienes sueldo, déjalo vacío.', 'Leave it empty if you have no salary.'),
+          },
+        ],
+      },
+      {
+        title: t('LinkedIn', 'LinkedIn'),
+        fields: [
+          {
+            key: 'has_linkedin_profile',
+            type: 'sino',
+            options: YES_NO,
+            wide: true,
+            label: t('Tengo perfil de LinkedIn', 'I have a LinkedIn profile'),
+          },
+          {
+            key: 'linkedin_connections',
+            type: 'numero',
+            min: 0,
+            max: 9_999_999,
+            showIf: { key: 'has_linkedin_profile', value: 'si' },
+            label: t('Total de contactos en LinkedIn al día de hoy', 'Total LinkedIn connections as of today'),
+          },
+          {
+            key: 'linkedin_url',
+            type: 'liga',
+            showIf: { key: 'has_linkedin_profile', value: 'si' },
+            label: t('URL de tu perfil de LinkedIn', 'LinkedIn profile URL'),
+          },
+        ],
+      },
+    ],
+  },
+)
+
 export const PORTAL_FORM_CODES = PORTAL_FORMS.map((form) => form.code)
 
 export const portalFormByCode = (code: string): PortalFormMeta | undefined =>
@@ -685,7 +966,21 @@ export const portalFormPath = (form: PortalFormMeta) => `/alumno/actividades/${f
 export const allFields = (form: PortalFormMeta): PortalField[] =>
   form.sections.flatMap((section) => section.fields)
 
-/** ¿Está contestado este campo? Todas las preguntas son obligatorias. */
+/** ¿Se pregunta este campo con lo que va contestado? */
+export function isVisible(field: PortalField, values: PortalValues): boolean {
+  return !field.showIf || values[field.showIf.key] === field.showIf.value
+}
+
+/** ¿Falta este campo? Los ocultos y los opcionales vacíos no faltan. */
+export function isMissing(field: PortalField, values: PortalValues): boolean {
+  if (!isVisible(field, values)) return false
+  const value = values[field.key]
+  const empty = value === undefined || (typeof value === 'string' ? value.trim() === '' : value.length === 0)
+  if (field.optional && empty) return false
+  return !isAnswered(field, value)
+}
+
+/** ¿Está contestado este campo (con un valor válido)? */
 export function isAnswered(field: PortalField, value: string | string[] | undefined): boolean {
   if (field.type === 'varias') return Array.isArray(value) && value.length > 0
   if (typeof value !== 'string' || value.trim() === '') return false
@@ -705,5 +1000,6 @@ export function displayAnswer(field: PortalField, value: string | string[] | und
   }
   if (Array.isArray(value)) return value.map(labelOf).join(', ')
   if (field.options) return labelOf(value)
+  if (field.type === 'fecha') return formatDate(value, lang)
   return value
 }
