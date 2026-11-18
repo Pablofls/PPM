@@ -10,6 +10,7 @@ import { useGroups } from '../../layouts/GroupProvider'
 import { activityOrDefault, toMonterreyInput } from '../../lib/activities'
 import { activityByCode, isPanelActivity, isWeeklyActivity } from '../../lib/catalog'
 import { formatGroupLabel } from '../../lib/format'
+import { parseScore } from '../calificaciones/gradeUtils'
 import {
   ActivityStateBadge,
   ChooseGroup,
@@ -25,15 +26,22 @@ interface Draft {
   availableFrom: string
   dueAt: string
   availableUntil: string
+  /** Lo que escribió el profesor; se valida al guardar. */
+  points: string
 }
 
-function toDraft(activity: Activity): Draft {
+/** Sin configurar, una actividad vale 100 (como en `0041`). */
+const DEFAULT_POINTS = 100
+
+function toDraft(activity: Activity, reportPoints: number | null): Draft {
+  const points = isWeeklyActivity(activity.formCode) ? reportPoints : activity.pointsPossible
   return {
     instructions: activity.instructions ?? '',
     isPublished: activity.isPublished,
     availableFrom: toMonterreyInput(activity.availableFrom),
     dueAt: toMonterreyInput(activity.dueAt),
     availableUntil: toMonterreyInput(activity.availableUntil),
+    points: String(points ?? DEFAULT_POINTS),
   }
 }
 
@@ -42,6 +50,8 @@ function toDraft(activity: Activity): Draft {
  * publicar y el bloque «Asignar» con las tres fechas. Las fechas se escriben
  * en hora de Monterrey; la base las convierte (`save_activity`, 0051).
  *
+ * - Los puntos posibles se ponen aquí (`0053`). Búsqueda y Prácticas
+ *   comparten un solo valor: editar uno cambia los dos.
  * - Las bitácoras no tienen fecha de entrega: vencen semana por semana.
  * - Las de Google Forms solo llevan fecha de entrega (para Estado de
  *   Entregas); el alumno no las ve en su portal.
@@ -63,16 +73,24 @@ export function ActivityEditorPage() {
     [] as Activity[],
     [group?.id],
   )
+  // Los puntos del reporte semanal son uno por grupo (`grade_activities`).
+  const weeklyForm = meta ? isWeeklyActivity(meta.code) : false
+  const { data: reportPoints, loading: loadingPoints } = useRepositoryQuery(
+    () =>
+      group && weeklyForm ? repository.getGradeActivityPoints(group.id) : Promise.resolve(null),
+    null as number | null,
+    [group?.id, weeklyForm],
+  )
   // Cada grupo tiene sus quince actividades (0051): una lista vacía es que
   // todavía no llega, no que no haya.
-  const loaded = !loading && (activities.length > 0 || !isConnected)
+  const loaded = !loading && !loadingPoints && (activities.length > 0 || !isConnected)
 
   const activity = meta && group ? activityOrDefault(activities, meta.code, group.id) : null
   // Lo que el profesor ya cambió, por grupo y actividad; sin cambios, lo de la base.
   const draftKey = `${group?.id}:${formCode}`
   const [edits, setEdits] = useState<{ key: string; draft: Draft } | null>(null)
   const draft =
-    edits?.key === draftKey ? edits.draft : activity && loaded ? toDraft(activity) : null
+    edits?.key === draftKey ? edits.draft : activity && loaded ? toDraft(activity, reportPoints) : null
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
@@ -88,6 +106,11 @@ export function ActivityEditorPage() {
 
   async function save() {
     if (!group || !draft || !meta) return
+    const points = inPanel ? parseScore(draft.points) : null
+    if (inPanel && (points === null || Number.isNaN(points) || points <= 0)) {
+      setMessage('Escribe los puntos posibles: un número mayor que cero, por ejemplo 100.')
+      return
+    }
     setSaving(true)
     setMessage(null)
     try {
@@ -101,6 +124,7 @@ export function ActivityEditorPage() {
         availableFrom: inPanel ? draft.availableFrom || null : null,
         dueAt: weekly ? null : draft.dueAt || null,
         availableUntil: inPanel ? draft.availableUntil || null : null,
+        pointsPossible: points,
       })
       navigate('/actividades')
     } catch (cause) {
@@ -176,6 +200,29 @@ export function ActivityEditorPage() {
                   </span>
                 </span>
               </label>
+
+              <div className="mt-5">
+                <label htmlFor="puntos" className="text-sm font-semibold text-ink-900">
+                  Puntos posibles
+                </label>
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    id="puntos"
+                    type="text"
+                    inputMode="decimal"
+                    value={draft.points}
+                    disabled={!canEdit}
+                    onChange={(event) => update({ points: event.target.value })}
+                    className={`${FIELD_INPUT} tnum w-28 text-right`}
+                  />
+                  <span className="text-sm text-ink-500">puntos</span>
+                </div>
+                <p className="mt-1 text-xs text-ink-500">
+                  {weekly
+                    ? 'El Reporte de Búsqueda y el de Prácticas valen lo mismo: este valor es el de los dos y se repite cada semana.'
+                    : 'Lo que vale esta actividad en Calificaciones.'}
+                </p>
+              </div>
             </section>
           ) : (
             <section className="rounded-xl border border-ink-200 bg-ink-50 p-5 text-sm text-ink-600">
@@ -193,8 +240,10 @@ export function ActivityEditorPage() {
                 <p className="text-sm font-medium text-ink-900">{formatGroupLabel(group)}</p>
               </div>
 
+              {/* Izquierda: Fecha de entrega y, debajo, Disponible hasta.
+                  Derecha: Disponible desde. */}
               {weekly ? (
-                <div className="rounded-lg border border-ink-200 bg-ink-50 px-3 py-2.5 text-xs text-ink-600 sm:col-span-2">
+                <div className="self-start rounded-lg border border-ink-200 bg-ink-50 px-3 py-2.5 text-xs text-ink-600 sm:col-start-1 sm:row-start-2">
                   Cada semana vence el domingo a las 23:59; lo que llegue después es entrega tardía.
                   Las semanas se configuran en{' '}
                   <Link
@@ -208,6 +257,7 @@ export function ActivityEditorPage() {
               ) : (
                 <DateTimeField
                   id="fecha-entrega"
+                  className="sm:col-start-1 sm:row-start-2"
                   label="Fecha de entrega"
                   hint="Lo que llegue después es entrega tardía."
                   value={draft.dueAt}
@@ -221,6 +271,7 @@ export function ActivityEditorPage() {
                 <>
                   <DateTimeField
                     id="disponible-desde"
+                    className="sm:col-start-2 sm:row-start-2"
                     label="Disponible desde"
                     hint="Antes de esta hora el alumno no la ve. Vacío: desde que se publica."
                     value={draft.availableFrom}
@@ -230,6 +281,7 @@ export function ActivityEditorPage() {
                   />
                   <DateTimeField
                     id="disponible-hasta"
+                    className="sm:col-start-1 sm:row-start-3"
                     label="Disponible hasta"
                     hint="Después ya no puede entregar; la ve cerrada. Vacío: nunca cierra."
                     value={draft.availableUntil}
@@ -268,6 +320,7 @@ export function ActivityEditorPage() {
  */
 function DateTimeField({
   id,
+  className = '',
   label,
   hint,
   value,
@@ -276,6 +329,8 @@ function DateTimeField({
   onChange,
 }: {
   id: string
+  /** Su lugar en la cuadrícula de «Asignar». */
+  className?: string
   label: string
   hint: string
   value: string
@@ -286,7 +341,7 @@ function DateTimeField({
   const [date, time] = value ? value.split('T') : ['', '']
 
   return (
-    <div>
+    <div className={className}>
       <label htmlFor={id} className="mb-1 block text-xs font-medium text-ink-500">
         {label}
       </label>

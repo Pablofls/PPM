@@ -18,6 +18,7 @@ import {
 } from '../../lib/catalog'
 import { activityOrDefault } from '../../lib/activities'
 import { formatDateTime, formatGroupLabel } from '../../lib/format'
+import { formatPoints } from '../../lib/grades'
 import { ActivityStateBadge, ChooseGroup } from './shared'
 
 const SECTIONS: ModuleCode[] = ['1', '2', 'A', 'B', 'W']
@@ -45,6 +46,12 @@ export function ActivitiesPage() {
   } = useRepositoryQuery(
     () => (group ? repository.getActivities(group.id) : Promise.resolve([] as Activity[])),
     [] as Activity[],
+    [group?.id, refreshKey],
+  )
+  // Búsqueda y Prácticas comparten sus puntos (`grade_activities`, 0053).
+  const { data: reportPoints } = useRepositoryQuery(
+    () => (group ? repository.getGradeActivityPoints(group.id) : Promise.resolve(null)),
+    null as number | null,
     [group?.id, refreshKey],
   )
 
@@ -109,6 +116,7 @@ export function ActivitiesPage() {
                       activity={activityOrDefault(activities, meta.code, group.id)}
                       canEdit={canEdit}
                       busy={busy === meta.code}
+                      reportPoints={reportPoints}
                       onTogglePublished={togglePublished}
                     />
                   ))}
@@ -129,15 +137,18 @@ function ActivityRow({
   activity,
   canEdit,
   busy,
+  reportPoints,
   onTogglePublished,
 }: {
   meta: ActivityMeta
   activity: Activity
   canEdit: boolean
   busy: boolean
+  reportPoints: number | null
   onTogglePublished: (activity: Activity) => void
 }) {
   const inPanel = isPanelActivity(meta.code)
+  const points = isWeeklyActivity(meta.code) ? (reportPoints ?? 100) : activity.pointsPossible
 
   return (
     <li className="flex items-center gap-4 px-5 py-3.5 hover:bg-ink-50/60">
@@ -160,6 +171,9 @@ function ActivityRow({
         <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-500">
           {inPanel ? <ActivityStateBadge activity={activity} /> : <Badge>Google Forms</Badge>}
           <ActivityDates activity={activity} inPanel={inPanel} />
+          {inPanel && points !== null && (
+            <span className="tnum">{formatPoints(points)} pts</span>
+          )}
         </p>
       </Link>
 

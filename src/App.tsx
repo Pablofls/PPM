@@ -37,7 +37,6 @@ import { UsersPage } from './pages/admin/UsersPage'
 import { RegisteredStudentsPage } from './pages/admin/RegisteredStudentsPage'
 import { GradeActivitiesPage } from './pages/calificaciones/GradeActivitiesPage'
 import { GradeCenterPage } from './pages/calificaciones/GradeCenterPage'
-import { GradeSettingsPage } from './pages/calificaciones/GradeSettingsPage'
 import { ActivitiesPage } from './pages/actividades/ActivitiesPage'
 import { ActivityEditorPage } from './pages/actividades/ActivityEditorPage'
 import { SemesterWeeksPage } from './pages/actividades/SemesterWeeksPage'
@@ -222,7 +221,8 @@ export default function App() {
                   <Route index element={<Navigate to="calificar" replace />} />
                   <Route path="calificar" element={<GradeActivitiesPage />} />
                   <Route path="centro" element={<GradeCenterPage />} />
-                  <Route path="actividades" element={<GradeSettingsPage />} />
+                  {/* Configurar actividades pasó a cada actividad (0053). */}
+                  <Route path="actividades" element={<Navigate to="/actividades" replace />} />
                 </Route>
 
                 <Route path="avisos" element={<NoticesPage />} />

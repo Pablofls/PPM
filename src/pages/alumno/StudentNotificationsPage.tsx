@@ -2,7 +2,11 @@ import { useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
 import { usePermissions } from '../../auth/PermissionsProvider'
-import { NotificationSummary, useNotifications } from '../../components/NotificationBell'
+import {
+  NotificationSummary,
+  notificationPath,
+  useNotifications,
+} from '../../components/NotificationBell'
 import { formatDateTime } from '../../lib/format'
 import { translateServerText, useLang, useT } from '../../lib/i18n'
 
@@ -77,7 +81,7 @@ export function StudentNotificationsPage() {
                 <span className="flex items-center gap-3">
                   {item.kind === 'calificacion' && can('alumno_calificaciones') && (
                     <Link
-                      to={`/alumno/calificaciones?semana=${item.weekNumber}`}
+                      to={notificationPath(item)}
                       onClick={() => void markRead(item)}
                       className="font-medium text-accent-700 hover:underline"
                     >

@@ -67,6 +67,7 @@ export function activityOrDefault(
       dueAt: null,
       availableUntil: null,
       updatedAt: '',
+      pointsPossible: null,
     }
   )
 }

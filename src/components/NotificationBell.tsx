@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { useRepositoryQuery } from '../data/hooks'
 import { repository } from '../data/repository'
 import type { AppNotification } from '../data/types'
+import { activityTitle } from '../lib/catalog'
 import { formatRelativeTime } from '../lib/format'
 import { formatPoints } from '../lib/grades'
 import { translateServerText, useLang, useT } from '../lib/i18n'
@@ -39,7 +40,9 @@ export function useNotifications() {
       )
       try {
         if (item.kind === 'aviso' && item.noticeId) await repository.markNoticeRead(item.noticeId)
-        if (item.kind === 'calificacion' && item.groupId && item.weekNumber !== null) {
+        if (item.kind === 'calificacion' && item.groupId && item.formCode) {
+          await repository.markActivityGradeRead(item.groupId, item.formCode)
+        } else if (item.kind === 'calificacion' && item.groupId && item.weekNumber !== null) {
           await repository.markGradeRead(item.groupId, item.weekNumber)
         }
       } catch {
@@ -74,9 +77,10 @@ export function useNotifications() {
 
 /** A dónde lleva una notificación al abrirla. */
 export function notificationPath(item: AppNotification): string {
-  return item.kind === 'calificacion'
-    ? `/alumno/calificaciones?semana=${item.weekNumber}`
-    : `/alumno/notificaciones?aviso=${item.noticeId}`
+  if (item.kind !== 'calificacion') return `/alumno/notificaciones?aviso=${item.noticeId}`
+  return item.formCode
+    ? `/alumno/calificaciones?actividad=${item.formCode}`
+    : `/alumno/calificaciones?semana=${item.weekNumber}`
 }
 
 /**
@@ -230,7 +234,11 @@ export function NotificationSummary({ item, compact = false }: { item: AppNotifi
           {!item.readAt && <span className="sr-only">{t('Sin leer', 'Unread')}</span>}
         </span>
         <span className="mt-0.5 block text-sm font-semibold text-ink-900">
-          {isGrade ? translateServerText(item.title, lang) : item.title}
+          {isGrade
+            ? item.formCode
+              ? activityTitle(item.formCode, lang)
+              : translateServerText(item.title, lang)
+            : item.title}
         </span>
         {isGrade && item.score !== null && (
           <span className="tnum mt-0.5 block text-sm text-ink-700">

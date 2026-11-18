@@ -8,7 +8,6 @@ import type {
   InternshipLogRow,
   JobSearchLogRow,
   SemesterWeek,
-  StudentDossier,
   WeeklyLogStatusCell,
 } from '../../data/types'
 import {
@@ -19,6 +18,7 @@ import {
 } from '../../lib/catalog'
 import { translateServerText, useLang, useT } from '../../lib/i18n'
 import { downloadWeeklyLogPdf } from '../../lib/weeklyLogPdf'
+import { DownloadPdfButton } from '../../components/DownloadPdfButton'
 import { formatDate, formatDateTime, formatWeekRange } from '../../lib/format'
 import { celebrationKind, type CelebrationKind } from '../../lib/celebration'
 import { targetWeek } from '../../lib/weeks'
@@ -181,10 +181,21 @@ export function WeeklyLogPage({ form: baseForm }: { form: WeeklyFormMeta }) {
       )}
 
       <div className="mt-8 flex justify-end">
+        {/* La bitácora completa, con la forma del documento que se llenaba antes. */}
         <DownloadPdfButton
-          form={form}
-          rows={rows}
-          dossier={dossier}
+          onDownload={() =>
+            downloadWeeklyLogPdf({
+              form,
+              rows,
+              lang,
+              student: {
+                fullName: dossier?.fullName ?? null,
+                studentNumber: dossier?.studentNumber ?? null,
+                companyName: dossier?.companyName ?? null,
+                department: dossier?.department ?? null,
+              },
+            })
+          }
           disabled={loading || rows.length === 0}
           onError={setToast}
         />
@@ -555,61 +566,6 @@ function PreviousEntries({
         </ol>
       )}
     </section>
-  )
-}
-
-/**
- * Descarga la bitácora completa en PDF, con la forma del documento que los
- * alumnos llenaban antes (ver `src/lib/weeklyLogPdf.ts`). No escribe nada, así
- * que también funciona en «Ver como Alumno».
- */
-function DownloadPdfButton({
-  form,
-  rows,
-  dossier,
-  disabled,
-  onError,
-}: {
-  form: WeeklyFormMeta
-  rows: (JobSearchLogRow | InternshipLogRow)[]
-  dossier: StudentDossier | null
-  disabled: boolean
-  onError: (message: string) => void
-}) {
-  const [generating, setGenerating] = useState(false)
-  const lang = useLang()
-  const t = useT()
-
-  async function download() {
-    setGenerating(true)
-    try {
-      await downloadWeeklyLogPdf({
-        form,
-        rows,
-        lang,
-        student: {
-          fullName: dossier?.fullName ?? null,
-          studentNumber: dossier?.studentNumber ?? null,
-          companyName: dossier?.companyName ?? null,
-          department: dossier?.department ?? null,
-        },
-      })
-    } catch {
-      onError(t('No se pudo generar el PDF. Intenta de nuevo.', 'The PDF could not be created. Try again.'))
-    } finally {
-      setGenerating(false)
-    }
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={download}
-      disabled={disabled || generating}
-      className="rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-sm font-medium text-ink-700 shadow-sm hover:bg-ink-100 disabled:cursor-not-allowed disabled:opacity-50"
-    >
-      {generating ? t('Generando…', 'Generating…') : t('Descargar PDF', 'Download PDF')}
-    </button>
   )
 }
 

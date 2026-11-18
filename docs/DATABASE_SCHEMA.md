@@ -14,6 +14,8 @@
   `0046_group_deadlines.sql` (2026-10-14).
   `0051_activities.sql` (2026-11-11).
   `0052_demographics_in_panel.sql` (2026-11-11).
+  `0053_activity_points_and_grades.sql` está escrita y documentada aquí pero
+  **todavía no se pega en Supabase**.
   `0019_student_dossier_read.sql` está escrita y documentada aquí pero
   **todavía no se pega en Supabase**.
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
@@ -37,6 +39,7 @@
     - [Semanas del semestre](#semanas-del-semestre)
     - [Calificaciones](#calificaciones)
     - [Calificaciones del alumno](#calificaciones-del-alumno)
+    - [Calificar las actividades](#calificar-las-actividades)
     - [Avisos y notificaciones](#avisos-y-notificaciones)
 13. [Fechas de entrega y estado de las entregas](#fechas-de-entrega-y-estado-de-las-entregas)
 14. [Sincronización con el Sheets](#sincronización-con-el-sheets)
@@ -205,6 +208,7 @@ erDiagram
         timestamptz due_at "nulo = sin fecha"
         timestamptz available_until "nulo = nunca cierra"
         timestamptz updated_at
+        numeric points_possible "0053; nulo en las bitácoras"
     }
 
     GROUPS ||--o{ GRADE_ACTIVITIES : "puntos de"
@@ -231,6 +235,10 @@ erDiagram
     NOTICES ||--o{ NOTICE_GROUPS : "dirigido a"
     GROUPS ||--o{ NOTICE_GROUPS : "recibe"
     GRADES ||--o| GRADE_READS : "visto"
+    STUDENT_ENROLLMENTS ||--o{ ACTIVITY_GRADES : "calificado en"
+    ACTIVITIES ||--o{ ACTIVITY_GRADES : "se califica"
+    PROFILES ||--o{ ACTIVITY_GRADES : "califica"
+    ACTIVITY_GRADES ||--o| ACTIVITY_GRADE_READS : "visto"
 
     NOTICES {
         uuid id PK
@@ -252,6 +260,21 @@ erDiagram
         uuid student_id PK "FK grades"
         uuid group_id PK "FK grades"
         smallint week_number PK "FK grades"
+        timestamptz read_at
+    }
+    ACTIVITY_GRADES {
+        uuid student_id PK "FK student_enrollments"
+        uuid group_id PK "FK student_enrollments, activities"
+        text form_code PK "FK activities"
+        numeric score
+        text comment
+        uuid graded_by "FK profiles"
+        timestamptz graded_at
+    }
+    ACTIVITY_GRADE_READS {
+        uuid student_id PK "FK activity_grades"
+        uuid group_id PK "FK activity_grades"
+        text form_code PK "FK activity_grades"
         timestamptz read_at
     }
 
@@ -293,6 +316,7 @@ erDiagram
         text name_en
         numeric display_order
         text response_table
+        boolean answered_in_panel "0053"
     }
     SUBMISSIONS {
         uuid id PK
@@ -726,6 +750,7 @@ Catálogo de los 11 formularios. Ver [FORMS_CATALOG.md](FORMS_CATALOG.md).
 | `name_es` / `name_en` | `text` NOT NULL | |
 | `display_order` | `numeric(4,1)` NOT NULL | `1.0`, `2.7` — ordena el sidebar |
 | `response_table` | `text` | dónde viven las respuestas |
+| `answered_in_panel` | `boolean` NOT NULL default `false` | `0053`. Se contesta en el portal: `form1_0`, `form_busqueda`, `form_practicas`. Lo que no es bitácora y tiene `true` se califica en `activity_grades`. Pasar un formulario a la plataforma = ponerlo en `true` |
 
 ### `submissions`
 
@@ -1262,6 +1287,7 @@ formularios nuevos: las actividades son los quince de `forms`.
 | `due_at` | `timestamptz` | «Fecha de entrega». Después, la entrega es tardía. Nulo = sin fecha; las bitácoras siempre nulo (vencen por semana, `group_weeks`) |
 | `available_until` | `timestamptz` | «Disponible hasta». Después ya no se entrega; el alumno la ve Cerrada. Nulo = nunca cierra |
 | `updated_at` | `timestamptz` | |
+| `points_possible` | `numeric(6,2)` | `0053`. Puntos posibles de la actividad (100 al sembrar). **Nulo en las dos bitácoras** (CHECK): su valor, compartido, vive en `grade_activities` |
 
 CHECK: `available_from ≤ due_at ≤ available_until` y `available_from < available_until`
 (cada uno solo si los dos existen).
@@ -1294,7 +1320,7 @@ de pantalla, como `group_weeks`. **No hay escritura directa.**
 
 | Función | Qué hace |
 |---|---|
-| `save_activity(group, form, instructions, is_published, available_from, due_at, available_until)` | Upsert. Las tres fechas llegan como `timestamp` en hora de Monterrey y se convierten con `at time zone 'America/Monterrey'`. En una bitácora ignora `due_at`. Valida el orden con mensajes en español |
+| `save_activity(group, form, instructions, is_published, available_from, due_at, available_until, points)` | Upsert (desde `0053` con `points`: nulo = 100; en una bitácora se escribe en `grade_activities`, el valor de las dos). Las tres fechas llegan como `timestamp` en hora de Monterrey y se convierten con `at time zone 'America/Monterrey'`. En una bitácora ignora `due_at`. Valida el orden con mensajes en español |
 | `set_activity_published(group, form, published)` | El interruptor de la lista |
 | `activity_is_open(form)` | Para el alumno de la sesión: su actividad está publicada, ya empezó y no ha cerrado. `false` sin grupo o sin fila |
 | `default_activity_published(form)` | `true` salvo `form1_0`; la usan la carga inicial y el trigger |
@@ -1472,7 +1498,7 @@ tenga datos personales: es la misma condición «lo mío» de siempre (regla
 | Función | Qué hace |
 |---|---|
 | `set_grade(student, group, week, score, comment)` | Califica; `score` nulo quita la calificación. Admin, o «Puede editar» en `calificaciones` con sus grupos y alumnos (`visible_*_ids()`) |
-| `set_grade_activity_points(group, points)` | Puntos posibles del reporte de un grupo; nulo vuelve al 100 predeterminado. Mismo permiso |
+| ~~`set_grade_activity_points(group, points)`~~ | Eliminada en `0053`: los puntos se ponen en cada actividad (`save_activity`) |
 | `guard_grade_week()` | Trigger de `grades`: la semana existe en el periodo del grupo |
 
 Nadie escribe directo en las tablas: no hay `INSERT`/`UPDATE`/`DELETE` para
@@ -1596,7 +1622,8 @@ grupo desde la pantalla Avisos.
 | `send_notice(subject, body, student_ids[], group_ids[])` | Destinatarios = alumnos ∪ inscritos en los grupos. Admin, o «Puede editar» en `avisos` y solo a `visible_student_ids()`/`visible_group_ids()`. Devuelve el id |
 | `mark_notice_read(notice_id)` | El alumno de la sesión marca un aviso suyo |
 | `mark_grade_read(group_id, week_number)` | Ídem con una calificación suya (upsert en `grade_reads`) |
-| `mark_all_notifications_read()` | Todo lo suyo. Sin `current_student_id()` (admin en «Ver como») no hace nada |
+| `mark_activity_grade_read(group_id, form_code)` | `0053`. Ídem con la calificación de una actividad (upsert en `activity_grade_reads`) |
+| `mark_all_notifications_read()` | Todo lo suyo (desde `0053` también `activity_grade_reads`). Sin `current_student_id()` (admin en «Ver como») no hace nada |
 | `notification_sender_name(profile_id)` | Solo el nombre de quien le mandó un aviso o lo calificó (el alumno no lee `profiles`); al staff, de cualquiera |
 
 #### Vistas (`security_invoker = on`)
@@ -1621,6 +1648,85 @@ grupo desde la pantalla Avisos.
   `calificaciones`. Todas con `(select …)` (ver 0047).
 - **Sin políticas de escritura**: todo pasa por las funciones. La única
   escritura nueva del alumno es marcar como leído lo suyo.
+
+## Calificar las actividades
+
+> Migración `0053_activity_points_and_grades.sql` — ⏳ **todavía no se ejecuta
+> en Supabase**.
+
+Dos cambios:
+
+1. **Los puntos posibles se configuran en cada actividad** (Actividades →
+   editar), y desaparece *Calificaciones → Configurar actividades*. El
+   Reporte de Búsqueda y el de Prácticas **valen lo mismo**: el editor de
+   cualquiera de los dos escribe el mismo valor.
+2. **Los formularios que se contestan en la plataforma se califican** como los
+   reportes, en *Calificar* y en el *Centro de calificaciones*. Hoy es el 1.0;
+   después, los que se vayan pasando (`forms.answered_in_panel = true`).
+
+### Normalización (hasta 4FN)
+
+- `forms (code) → answered_in_panel`: es un hecho del formulario.
+- Puntos del reporte semanal: siguen en `grade_activities (group_id) →
+  points_possible` (`0041`). Es **un solo hecho por grupo**; copiarlo a las
+  dos filas de `activities` guardaría el mismo dato dos veces.
+- Puntos de las demás actividades: `activities (group_id, form_code) →
+  points_possible`, que depende de la llave completa y de nada más. En las
+  bitácoras es nulo por CHECK, para que el valor no viva en dos lugares.
+- `activity_grades (student_id, group_id, form_code) → score, comment,
+  graded_by, graded_at`: una calificación por alumno y actividad. Es otra tabla
+  que `grades` (alumno × **semana**) porque lo calificado es otra cosa: en una
+  sola tabla, `week_number` o `form_code` quedaría nulo según el caso. Sin
+  hechos multivaluados.
+- `activity_grade_reads (student_id, group_id, form_code) → read_at`, FK a
+  `activity_grades` (`CASCADE`): espejo de `grade_reads`.
+- **No se guarda** lo derivable: la entrega calificada (la más reciente,
+  `latest_submissions`), `state`, si fue tardía (`submitted_at > due_at`) y el
+  total.
+
+### Tablas
+
+| Tabla | Columnas | Notas |
+|---|---|---|
+| `activity_grades` | PK (`student_id`, `group_id`, `form_code`); FK (`student_id`, `group_id`) → `student_enrollments` `CASCADE`; FK (`group_id`, `form_code`) → `activities` `CASCADE`; `score` `numeric(6,2)` 0–9999.99; `comment`; `graded_by` FK → `profiles` `SET NULL`; `graded_at` | trigger `guard_activity_grade_form()`: solo formularios `answered_in_panel` que no son bitácora. Índice `(group_id, form_code)` |
+| `activity_grade_reads` | PK y FK (`student_id`, `group_id`, `form_code`) → `activity_grades` `CASCADE`, `read_at` | |
+
+### Funciones (`SECURITY DEFINER`)
+
+| Función | Qué hace |
+|---|---|
+| `save_activity(…, points)` | Nueva firma (se elimina la de 7 parámetros). Permiso de Actividades (`can_edit_group_dates`) |
+| `set_activity_grade(student, group, form, score, comment)` | Como `set_grade`: nulo quita; admin, o «Puede editar» en `calificaciones` con sus grupos y alumnos |
+| `mark_activity_grade_read(group, form)` | El alumno marca como vista la suya |
+| `seed_group_activities()` | Reescrita: siembra 100 puntos, salvo nulo en las bitácoras |
+| `mark_all_notifications_read()`, `notification_sender_name()` | Reescritas para incluir `activity_grades` |
+
+Se elimina `set_grade_activity_points()`.
+
+### Vistas (`security_invoker = on`)
+
+- **`v_activity_grade_center`**: una fila por alumno con grupo × actividad
+  **publicada** de su grupo que se contesta en la plataforma y no es bitácora.
+  Columnas de filtro como `v_grade_center`, más `form_code`, `display_order`,
+  `due_at`, `submission_id`, `submitted_at`, `points_possible`, `score`,
+  `comment`, `graded_at`, `state` (`sin_entrega` / `por_calificar` /
+  `calificado`), `is_late` y `seen_at`.
+- **`v_my_notifications`**: tercera rama con las calificaciones de actividades
+  (título = `forms.name_es`) y columna nueva al final `form_code` (nula en
+  avisos y reportes).
+
+El **total** del alumno suma reportes y actividades: Σ `score` / Σ
+`points_possible` de lo ya calificado.
+
+### Seguridad
+
+- `activity_grades`: `*_select_admin`, `*_select_scope` (`visible_group_ids()`),
+  `*_select_own` (`current_student_id()`) y la restrictiva
+  `activity_grades_screen_read` (`calificaciones`, o lo suyo con
+  `alumno_calificaciones`). `activity_grade_reads`: admin, lo suyo y alcance con
+  `calificaciones`. **Sin escritura directa.**
+- `grade_activities_screen_read` deja leer también con la pantalla
+  `actividades`: el editor de un reporte muestra sus puntos.
 
 ## Fechas de entrega y estado de las entregas
 
@@ -2310,6 +2416,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0049_student_grades.sql` | pantalla `alumno_calificaciones`; el alumno lee sus `grades` y los `grade_activities` de su grupo (políticas «lo mío» y restrictivas ampliadas) | ✅ 2026-11-04 |
 | `0050_notices.sql` | `notices`, `notice_recipients`, `notice_groups`, `grade_reads`; `send_notice()`, `mark_*_read()`, `notification_sender_name()`; vistas `v_my_notifications`, `v_sent_notices`; `v_grade_center.seen_at`; pantalla `avisos` | ✅ 2026-11-04 |
 | `0052_demographics_in_panel.sql` | el alumno entrega el 1.0 en su portal: `submit_demographics()`, `submissions_insert_own` con `form1_0`, `demographics_insert_own`, permiso `form1_0` = `edicion`/`ambos` con el alumno en «Puede editar»; `v_panel_demographics` toma periodo, frecuencia, idioma y matrícula del grupo y del registro | ✅ 2026-11-11 |
+| `0053_activity_points_and_grades.sql` | `forms.answered_in_panel`; `activities.points_possible` (nulo en bitácoras); `save_activity(…, points)` escribe los puntos (en bitácoras, `grade_activities`); `activity_grades`, `activity_grade_reads`, `set_activity_grade()`, `mark_activity_grade_read()`; vista `v_activity_grade_center`; `v_my_notifications.form_code`; se elimina `set_grade_activity_points()` | ⏳ pendiente |
 | `0051_activities.sql` | `activities` (publicar, disponible desde / fecha de entrega / disponible hasta) por grupo × formulario, sembradas con trigger; `save_activity()`, `set_activity_published()`, `activity_is_open()` y restrictivas de entrega del alumno; `group_form_deadline()` y `v_submission_status` (con el 1.0) leen `activities`; pantalla `actividades` en lugar de `fechas_entrega`; se eliminan `group_deadlines` y sus funciones | ✅ 2026-11-11 |
 
 > **Un archivo ejecutado ya no se edita.** Cualquier cambio posterior es un

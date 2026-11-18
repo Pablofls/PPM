@@ -16,12 +16,16 @@ import {
 import { useRepositoryQuery, useWeeklyLogRows } from '../../data/hooks'
 import { repository } from '../../data/repository'
 import type {
+  ActivityGradeEntry,
+  DemographicsRow,
   GradeEntry,
   InternshipLogRow,
   JobSearchLogRow,
+  PanelFilters,
   WeeklyReport,
 } from '../../data/types'
-import { weeklyFormByCode, type WeeklyFormCode } from '../../lib/catalog'
+import { activityTitle, weeklyFormByCode, type WeeklyFormCode } from '../../lib/catalog'
+import { demographicsAnswers, type AnswerLine } from '../../lib/formAnswers'
 import { formatDate, formatDateTime, formatSemester, formatWeekRange } from '../../lib/format'
 import {
   findSimilar,
@@ -38,9 +42,12 @@ import {
   type SimilarityCandidate,
   type SimilarityMatch,
 } from './gradeUtils'
+import { useActivityGradeEntries } from './useActivityGradeEntries'
 import { useGradeEntries } from './useGradeEntries'
 
 const WEEK_PARAM = 'semana'
+/** Una actividad que no es bitácora (`0053`): `?actividad=form1_0`. */
+const ACTIVITY_PARAM = 'actividad'
 const STUDENT_PARAM = 'alumno'
 const PENDING_PARAM = 'pendientes'
 const MISSING_PARAM = 'sin-entrega'
@@ -67,7 +74,8 @@ const secondaryButton =
 /**
  * Calificar — como «Needs Grading» de Blackboard.
  *
- * Primero se elige la actividad (Reporte semana N); luego se recorre alumno
+ * Primero se elige la actividad (Reporte semana N, o un formulario que se
+ * contesta en la plataforma como el 1.0, `0053`); luego se recorre alumno
  * por alumno viendo lo que contestó y poniendo la calificación a la derecha.
  * La semana y el alumno viven en la URL, igual que el expediente: recargar o
  * compartir el enlace deja en el mismo lugar.
@@ -76,8 +84,24 @@ export function GradeActivitiesPage() {
   const [filters, setFilter, clearFilters] = useFilters()
   const [searchParams] = useSearchParams()
   const { entries, loading, error, isConnected, save } = useGradeEntries(filters)
+  const activityGrades = useActivityGradeEntries(filters)
   const canEdit = usePermissions().can('calificaciones', 'edicion')
   const { visibleColumns, picker } = useColumnPreferences('calificar', ACTIVITY_COLUMNS)
+
+  const activityCode = searchParams.get(ACTIVITY_PARAM)
+  if (activityCode) {
+    return (
+      <FormGradingView
+        formCode={activityCode}
+        entries={activityGrades.entries}
+        loading={activityGrades.loading}
+        error={activityGrades.error}
+        canEdit={canEdit}
+        save={activityGrades.save}
+        filters={filters}
+      />
+    )
+  }
 
   const week = Number(searchParams.get(WEEK_PARAM))
   if (week > 0) {
@@ -98,7 +122,7 @@ export function GradeActivitiesPage() {
       <header className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight text-ink-950">Calificar</h1>
         <p className="mt-1.5 text-sm text-ink-500">
-          Elige una actividad para revisar los reportes entregados y calificarlos uno por uno.
+          Elige una actividad para revisar lo que entregaron y calificarlo uno por uno.
         </p>
       </header>
 
@@ -112,8 +136,9 @@ export function GradeActivitiesPage() {
       <ActivityList
         columns={visibleColumns}
         entries={entries}
-        loading={loading}
-        error={error}
+        activityEntries={activityGrades.entries}
+        loading={loading || activityGrades.loading}
+        error={error ?? activityGrades.error}
         isConnected={isConnected}
       />
     </>
@@ -125,9 +150,16 @@ export function GradeActivitiesPage() {
 // ---------------------------------------------------------------------------
 
 interface ActivitySummary {
-  weekNumber: number
-  weekStart: string
-  weekEnd: string
+  /** `semana:3` o `actividad:form1_0`. */
+  key: string
+  title: string
+  /** La semana que califica, o `null` si es una actividad (`formCode`). */
+  weekNumber: number | null
+  formCode: string | null
+  /** Rango de la semana o fecha de entrega, ya escrito. */
+  dateLabel: string
+  /** Para ordenar: las actividades primero, por su número; luego las semanas. */
+  order: number
   /** `null` si los grupos a la vista le dan puntos distintos a la semana. */
   points: number | null
   students: number
@@ -137,15 +169,15 @@ interface ActivitySummary {
   late: number
 }
 
-function summarize(entries: GradeEntry[]): ActivitySummary[] {
-  const byWeek = new Map<number, ActivitySummary>()
-  for (const entry of entries) {
-    let summary = byWeek.get(entry.weekNumber)
+type SummaryEntry = Pick<GradeEntry, 'pointsPossible' | 'submissionId' | 'state' | 'isLate'>
+
+function summarize(entries: GradeEntry[], activityEntries: ActivityGradeEntry[]): ActivitySummary[] {
+  const byKey = new Map<string, ActivitySummary>()
+  const add = (entry: SummaryEntry, base: Omit<ActivitySummary, 'points' | 'students' | 'submitted' | 'graded' | 'pending' | 'late'>) => {
+    let summary = byKey.get(base.key)
     if (!summary) {
       summary = {
-        weekNumber: entry.weekNumber,
-        weekStart: entry.weekStart,
-        weekEnd: entry.weekEnd,
+        ...base,
         points: entry.pointsPossible,
         students: 0,
         submitted: 0,
@@ -153,7 +185,7 @@ function summarize(entries: GradeEntry[]): ActivitySummary[] {
         pending: 0,
         late: 0,
       }
-      byWeek.set(entry.weekNumber, summary)
+      byKey.set(base.key, summary)
     }
     if (summary.points !== entry.pointsPossible) summary.points = null
     summary.students += 1
@@ -162,7 +194,27 @@ function summarize(entries: GradeEntry[]): ActivitySummary[] {
     if (entry.state === 'por_calificar') summary.pending += 1
     if (entry.isLate) summary.late += 1
   }
-  return [...byWeek.values()].sort((a, b) => a.weekNumber - b.weekNumber)
+  for (const entry of activityEntries) {
+    add(entry, {
+      key: `actividad:${entry.formCode}`,
+      title: activityTitle(entry.formCode),
+      weekNumber: null,
+      formCode: entry.formCode,
+      dateLabel: entry.dueAt ? `Entrega ${formatDate(entry.dueAt)}` : 'Sin fecha de entrega',
+      order: entry.displayOrder,
+    })
+  }
+  for (const entry of entries) {
+    add(entry, {
+      key: `semana:${entry.weekNumber}`,
+      title: `Reporte semana ${entry.weekNumber}`,
+      weekNumber: entry.weekNumber,
+      formCode: null,
+      dateLabel: formatWeekRange(entry.weekStart, entry.weekEnd),
+      order: 1000 + entry.weekNumber,
+    })
+  }
+  return [...byKey.values()].sort((a, b) => a.order - b.order)
 }
 
 const ACTIVITY_COLUMNS: Column<ActivitySummary>[] = [
@@ -172,15 +224,13 @@ const ACTIVITY_COLUMNS: Column<ActivitySummary>[] = [
     width: 'min-w-52',
     sticky: true,
     render: (row) => (
-      <span className="font-medium text-ink-900">Reporte semana {row.weekNumber}</span>
+      <span className="font-medium text-ink-900">{row.title}</span>
     ),
   },
   {
     key: 'week',
-    header: 'Semana del',
-    render: (row) => (
-      <span className="tnum text-xs text-ink-500">{formatWeekRange(row.weekStart, row.weekEnd)}</span>
-    ),
+    header: 'Fecha',
+    render: (row) => <span className="tnum text-xs text-ink-500">{row.dateLabel}</span>,
   },
   {
     key: 'points',
@@ -219,24 +269,26 @@ const ACTIVITY_COLUMNS: Column<ActivitySummary>[] = [
 function ActivityList({
   columns,
   entries,
+  activityEntries,
   loading,
   error,
   isConnected,
 }: {
   columns: Column<ActivitySummary>[]
   entries: GradeEntry[]
+  activityEntries: ActivityGradeEntry[]
   loading: boolean
   error: string | null
   isConnected: boolean
 }) {
   const [, setSearchParams] = useSearchParams()
-  const rows = useMemo(() => summarize(entries), [entries])
+  const rows = useMemo(() => summarize(entries, activityEntries), [entries, activityEntries])
 
   return (
     <DataTable
       columns={columns}
       rows={rows}
-      rowKey={(row) => String(row.weekNumber)}
+      rowKey={(row) => row.key}
       loading={loading}
       isConnected={isConnected}
       error={error}
@@ -245,7 +297,8 @@ function ActivityList({
         setSearchParams(
           (current) => {
             const next = new URLSearchParams(current)
-            next.set(WEEK_PARAM, String(row.weekNumber))
+            if (row.formCode) next.set(ACTIVITY_PARAM, row.formCode)
+            else next.set(WEEK_PARAM, String(row.weekNumber))
             return next
           },
           { replace: false },
@@ -274,66 +327,15 @@ function GradingView({
   canEdit: boolean
   save: (entry: GradeEntry, score: number | null, comment: string | null) => Promise<void>
 }) {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const studentParam = searchParams.get(STUDENT_PARAM)
-  const onlyPending = searchParams.get(PENDING_PARAM) === '1'
-  const includeMissing = searchParams.get(MISSING_PARAM) === '1'
+  const [searchParams] = useSearchParams()
   const showHistory = searchParams.get(HISTORY_PARAM) === '1'
 
   const weekEntries = useMemo(
     () => entries.filter((entry) => entry.weekNumber === week),
     [entries, week],
   )
-
-  // A quién se puede navegar. El alumno que se está calificando se queda en la
-  // lista aunque deje de cumplir el filtro (ya lo calificó): si no, al guardar
-  // se perdería el lugar.
-  const list = useMemo(
-    () =>
-      weekEntries.filter((entry) => {
-        if (entry.studentId === studentParam) return true
-        if (entry.state === 'sin_entrega') return includeMissing && !onlyPending
-        return !onlyPending || entry.state === 'por_calificar'
-      }),
-    [weekEntries, studentParam, onlyPending, includeMissing],
-  )
-
-  const foundIndex = list.findIndex((entry) => entry.studentId === studentParam)
-  const index = foundIndex >= 0 ? foundIndex : 0
-  const current = list[index] ?? null
-  const missingCount = weekEntries.filter((entry) => entry.state === 'sin_entrega').length
-
-  function update(change: (params: URLSearchParams) => void, replace = true) {
-    setSearchParams(
-      (currentParams) => {
-        const next = new URLSearchParams(currentParams)
-        change(next)
-        return next
-      },
-      { replace },
-    )
-  }
-
-  const goTo = (entry: GradeEntry) => update((params) => params.set(STUDENT_PARAM, entry.studentId))
-  const onPrev = index > 0 ? () => goTo(list[index - 1]) : undefined
-  const onNext = index < list.length - 1 ? () => goTo(list[index + 1]) : undefined
-  const onClose = () =>
-    update((params) => {
-      params.delete(WEEK_PARAM)
-      params.delete(STUDENT_PARAM)
-    }, false)
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null
-      if (target?.closest('input, textarea, select, [contenteditable]')) return
-      if (event.key === 'Escape') onClose()
-      else if (event.key === 'ArrowLeft') onPrev?.()
-      else if (event.key === 'ArrowRight') onNext?.()
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  })
+  const nav = useGradingNavigation(weekEntries, WEEK_PARAM)
+  const { current, goTo, update } = nav
 
   const submittedIds = useMemo(
     () => weekEntries.filter((entry) => entry.submissionId).map((entry) => entry.studentId),
@@ -442,25 +444,186 @@ function GradingView({
       else params.set(HISTORY_PARAM, '1')
     })
 
+  return (
+    <div>
+      <GradingHeader nav={nav} title={`Reporte semana ${week}`} />
+
+      {flaggedEntries.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <span className="font-medium">
+            {flaggedEntries.length} alumnos entregaron reportes muy parecidos entre sí (
+            {SIMILARITY_HIGH} % o más):
+          </span>
+          {flaggedEntries.map((entry) => (
+            <button
+              key={entry.studentId}
+              type="button"
+              onClick={() => goTo(entry)}
+              className={`rounded-md px-1.5 py-0.5 underline-offset-2 hover:underline ${
+                entry.studentId === current?.studentId ? 'bg-red-100 font-semibold' : ''
+              }`}
+            >
+              {studentLabel(entry)}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {error ? (
+        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {error}
+        </p>
+      ) : !current ? (
+        <div className="rounded-xl border border-ink-200 bg-white px-4 py-20 text-center text-sm text-ink-500 shadow-sm">
+          {loading
+            ? 'Cargando…'
+            : nav.onlyPending
+              ? 'No hay reportes por calificar en esta actividad.'
+              : 'Nadie ha entregado el reporte de esta semana.'}
+        </div>
+      ) : (
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_21rem]">
+          <ReportCard
+            entry={current}
+            report={report}
+            loading={loadingReports}
+            similarity={similarityOf}
+            onOpenStudent={(studentId) => {
+              const target = weekEntries.find((entry) => entry.studentId === studentId)
+              if (target) goTo(target)
+            }}
+            historyCount={historyRows.length}
+            showHistory={showHistory}
+            onToggleHistory={toggleHistory}
+          />
+          <GradePanel
+            key={`${current.studentId}|${current.weekNumber}`}
+            entry={current}
+            canEdit={canEdit}
+            onSave={async (score, comment, advance) => {
+              await save(current, score, comment)
+              if (advance && nav.onNext) nav.onNext()
+            }}
+            hasNext={Boolean(nav.onNext)}
+          />
+          {showHistory && report && (
+            <ReportHistory
+              formCode={formCode}
+              rows={historyRows}
+              loading={loadingHistory}
+              highlight={{ currentKey: report.submissionId, noteFor }}
+              matches={[...historyMatches.values()]}
+            />
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Lo mínimo que la navegación necesita de una calificación. */
+type NavEntry = Pick<GradeEntry, 'studentId' | 'state' | 'fullName' | 'institutionalEmail'>
+
+/**
+ * Recorrer alumno por alumno una actividad: el alumno vive en la URL, con
+ * los filtros «Solo por calificar» e «Incluir a quienes no entregaron»,
+ * flechas del teclado y Escape para volver a la lista.
+ */
+function useGradingNavigation<T extends NavEntry>(entries: T[], activityParam: string) {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const studentParam = searchParams.get(STUDENT_PARAM)
+  const onlyPending = searchParams.get(PENDING_PARAM) === '1'
+  const includeMissing = searchParams.get(MISSING_PARAM) === '1'
+
+  // A quién se puede navegar. El alumno que se está calificando se queda en la
+  // lista aunque deje de cumplir el filtro (ya lo calificó): si no, al guardar
+  // se perdería el lugar.
+  const list = useMemo(
+    () =>
+      entries.filter((entry) => {
+        if (entry.studentId === studentParam) return true
+        if (entry.state === 'sin_entrega') return includeMissing && !onlyPending
+        return !onlyPending || entry.state === 'por_calificar'
+      }),
+    [entries, studentParam, onlyPending, includeMissing],
+  )
+
+  const foundIndex = list.findIndex((entry) => entry.studentId === studentParam)
+  const index = foundIndex >= 0 ? foundIndex : 0
+  const current: T | null = list[index] ?? null
+  const missingCount = entries.filter((entry) => entry.state === 'sin_entrega').length
+
+  function update(change: (params: URLSearchParams) => void, replace = true) {
+    setSearchParams(
+      (currentParams) => {
+        const next = new URLSearchParams(currentParams)
+        change(next)
+        return next
+      },
+      { replace },
+    )
+  }
+
+  const goTo = (entry: NavEntry) => update((params) => params.set(STUDENT_PARAM, entry.studentId))
+  const onPrev = index > 0 ? () => goTo(list[index - 1]) : undefined
+  const onNext = index < list.length - 1 ? () => goTo(list[index + 1]) : undefined
+  const onClose = () =>
+    update((params) => {
+      params.delete(activityParam)
+      params.delete(STUDENT_PARAM)
+    }, false)
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null
+      if (target?.closest('input, textarea, select, [contenteditable]')) return
+      if (event.key === 'Escape') onClose()
+      else if (event.key === 'ArrowLeft') onPrev?.()
+      else if (event.key === 'ArrowRight') onNext?.()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  })
+
   // Al pasar a otro alumno se empieza desde arriba.
   useEffect(() => {
     window.scrollTo({ top: 0 })
   }, [current?.studentId])
 
+  return {
+    list,
+    index,
+    current,
+    missingCount,
+    onlyPending,
+    includeMissing,
+    update,
+    goTo,
+    onPrev,
+    onNext,
+    onClose,
+  }
+}
+
+type GradingNavigation = ReturnType<typeof useGradingNavigation<NavEntry>>
+
+/** La ruta (Calificar › actividad › alumno), las flechas y los filtros. */
+function GradingHeader({ nav, title }: { nav: GradingNavigation; title: string }) {
+  const { list, index, current, missingCount, onlyPending, includeMissing, update } = nav
   return (
-    <div>
+    <>
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <nav aria-label="Ruta" className="flex min-w-0 items-center gap-1.5 text-sm text-ink-500">
-          <button type="button" onClick={onClose} className="hover:text-ink-900 hover:underline">
+          <button type="button" onClick={nav.onClose} className="hover:text-ink-900 hover:underline">
             Calificar
           </button>
           <span aria-hidden="true">›</span>
           <button
             type="button"
-            onClick={onClose}
+            onClick={nav.onClose}
             className="font-medium text-accent-700 hover:underline"
           >
-            Reporte semana {week}
+            {title}
           </button>
           {current && (
             <>
@@ -474,13 +637,13 @@ function GradingView({
 
         {list.length > 0 && (
           <div className="flex items-center gap-1.5">
-            <DossierNavButton onClick={onPrev} label="Alumno anterior">
+            <DossierNavButton onClick={nav.onPrev} label="Alumno anterior">
               ‹
             </DossierNavButton>
             <span className="tnum px-1 text-sm text-ink-600">
               {index + 1} / {list.length}
             </span>
-            <DossierNavButton onClick={onNext} label="Alumno siguiente">
+            <DossierNavButton onClick={nav.onNext} label="Alumno siguiente">
               ›
             </DossierNavButton>
           </div>
@@ -518,27 +681,82 @@ function GradingView({
           </label>
         )}
       </div>
+    </>
+  )
+}
 
-      {flaggedEntries.length > 0 && (
-        <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          <span className="font-medium">
-            {flaggedEntries.length} alumnos entregaron reportes muy parecidos entre sí (
-            {SIMILARITY_HIGH} % o más):
-          </span>
-          {flaggedEntries.map((entry) => (
-            <button
-              key={entry.studentId}
-              type="button"
-              onClick={() => goTo(entry)}
-              className={`rounded-md px-1.5 py-0.5 underline-offset-2 hover:underline ${
-                entry.studentId === current?.studentId ? 'bg-red-100 font-semibold' : ''
-              }`}
-            >
-              {studentLabel(entry)}
-            </button>
-          ))}
-        </div>
-      )}
+// ---------------------------------------------------------------------------
+// Calificar una actividad que no es bitácora (`0053`)
+// ---------------------------------------------------------------------------
+
+/**
+ * Cómo se leen las respuestas de cada formulario que se contesta en la
+ * plataforma. Al pasar un formulario nuevo al portal se agrega aquí su vista;
+ * mientras no la tenga, Calificar lo deja calificar y avisa que sus
+ * respuestas se ven en su pantalla.
+ */
+const FORM_ANSWER_LOADERS: Record<
+  string,
+  (filters: PanelFilters) => Promise<Map<string, AnswerLine[]>>
+> = {
+  form1_0: async (filters) => {
+    const rows: DemographicsRow[] = await repository.getDemographics(filters)
+    return new Map(
+      rows.map((row) => [
+        row.studentId,
+        [
+          { label: 'Matrícula', value: row.studentNumber ?? '' },
+          ...demographicsAnswers({
+            fullName: row.fullName ?? undefined,
+            personalEmail: row.personalEmail ?? undefined,
+            birthDate: row.birthDate ?? undefined,
+            birthCountry: row.birthCountry ?? undefined,
+            gender: row.gender ?? undefined,
+            degreeCode: row.degreeCode ?? undefined,
+            semester: row.semester ?? undefined,
+          }),
+        ],
+      ]),
+    )
+  },
+}
+
+function FormGradingView({
+  formCode,
+  entries,
+  loading,
+  error,
+  canEdit,
+  save,
+  filters,
+}: {
+  formCode: string
+  entries: ActivityGradeEntry[]
+  loading: boolean
+  error: string | null
+  canEdit: boolean
+  save: (entry: ActivityGradeEntry, score: number | null, comment: string | null) => Promise<void>
+  filters: PanelFilters
+}) {
+  const formEntries = useMemo(
+    () => entries.filter((entry) => entry.formCode === formCode),
+    [entries, formCode],
+  )
+  const nav = useGradingNavigation(formEntries, ACTIVITY_PARAM)
+  const { current } = nav
+  const title = activityTitle(formCode)
+
+  const loader = FORM_ANSWER_LOADERS[formCode]
+  const { data: answers, loading: loadingAnswers } = useRepositoryQuery(
+    () => (loader ? loader(filters) : Promise.resolve(new Map<string, AnswerLine[]>())),
+    new Map<string, AnswerLine[]>(),
+    [formCode, filters],
+  )
+  const lines = current ? answers.get(current.studentId) : undefined
+
+  return (
+    <div>
+      <GradingHeader nav={nav} title={title} />
 
       {error ? (
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
@@ -548,44 +766,81 @@ function GradingView({
         <div className="rounded-xl border border-ink-200 bg-white px-4 py-20 text-center text-sm text-ink-500 shadow-sm">
           {loading
             ? 'Cargando…'
-            : onlyPending
-              ? 'No hay reportes por calificar en esta actividad.'
-              : 'Nadie ha entregado el reporte de esta semana.'}
+            : nav.onlyPending
+              ? 'No hay entregas por calificar en esta actividad.'
+              : 'Nadie ha entregado esta actividad.'}
         </div>
       ) : (
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_21rem]">
-          <ReportCard
-            entry={current}
-            report={report}
-            loading={loadingReports}
-            similarity={similarityOf}
-            onOpenStudent={(studentId) => {
-              const target = weekEntries.find((entry) => entry.studentId === studentId)
-              if (target) goTo(target)
-            }}
-            historyCount={historyRows.length}
-            showHistory={showHistory}
-            onToggleHistory={toggleHistory}
-          />
+          <article className="rounded-xl border border-ink-200 bg-white shadow-sm">
+            <div className="border-b border-ink-100 px-6 py-5">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-lg font-semibold tracking-tight text-ink-950">
+                  {studentLabel(current)}
+                </h2>
+                <Badge tone="blue">{title}</Badge>
+              </div>
+              <p className="mt-1 text-sm text-ink-500">
+                {[
+                  current.fullName ? current.institutionalEmail : null,
+                  current.degreeCode,
+                  formatSemester(current.semester),
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+              <p className="tnum mt-1 text-xs text-ink-500">
+                {current.dueAt ? <>Fecha de entrega: {formatDateTime(current.dueAt)}</> : 'Sin fecha de entrega'}
+                {current.submittedAt && <> · Entregado el {formatDateTime(current.submittedAt)}</>}
+              </p>
+              {current.isLate && (
+                <p
+                  role="alert"
+                  className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-800"
+                >
+                  Entrega tardía: se entregó después de la fecha de entrega.
+                </p>
+              )}
+            </div>
+
+            {!current.submissionId ? (
+              <p className="px-6 py-12 text-center text-sm text-ink-500">
+                Este alumno no ha entregado esta actividad.
+              </p>
+            ) : !loader ? (
+              <p className="px-6 py-12 text-center text-sm text-ink-500">
+                Las respuestas de esta actividad se ven en su pantalla del panel.
+              </p>
+            ) : !lines ? (
+              <p className="px-6 py-12 text-center text-sm text-ink-500">
+                {loadingAnswers ? 'Cargando las respuestas…' : 'No se pudieron cargar las respuestas.'}
+              </p>
+            ) : (
+              <dl className="divide-y divide-ink-100">
+                {lines.map((line) => (
+                  <div key={line.label} className="px-6 py-4">
+                    <dt className="text-[11px] font-semibold tracking-wider text-ink-500 uppercase">
+                      {line.label}
+                    </dt>
+                    <dd className="mt-1.5 text-sm leading-relaxed whitespace-pre-line text-ink-800">
+                      {line.value === '' ? <Dash /> : line.value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+          </article>
+
           <GradePanel
-            key={`${current.studentId}|${current.weekNumber}`}
+            key={`${current.studentId}|${current.formCode}`}
             entry={current}
             canEdit={canEdit}
             onSave={async (score, comment, advance) => {
               await save(current, score, comment)
-              if (advance && onNext) onNext()
+              if (advance && nav.onNext) nav.onNext()
             }}
-            hasNext={Boolean(onNext)}
+            hasNext={Boolean(nav.onNext)}
           />
-          {showHistory && report && (
-            <ReportHistory
-              formCode={formCode}
-              rows={historyRows}
-              loading={loadingHistory}
-              highlight={{ currentKey: report.submissionId, noteFor }}
-              matches={[...historyMatches.values()]}
-            />
-          )}
         </div>
       )}
     </div>
@@ -828,13 +1083,16 @@ function SimilarityChip({
 }
 
 /** El panel de la derecha: puntaje, comentario y guardar. */
+/** Lo que el panel de calificar necesita, sea una semana o una actividad. */
+type PanelEntry = Pick<GradeEntry, 'score' | 'comment' | 'pointsPossible' | 'state' | 'seenAt'>
+
 function GradePanel({
   entry,
   canEdit,
   hasNext,
   onSave,
 }: {
-  entry: GradeEntry
+  entry: PanelEntry
   canEdit: boolean
   hasNext: boolean
   onSave: (score: number | null, comment: string | null, advance: boolean) => Promise<void>
@@ -999,7 +1257,7 @@ function GradePanel({
 }
 
 /** Si el alumno ya vio la calificación vigente en sus notificaciones (`0050`). */
-function SeenStatus({ entry }: { entry: GradeEntry }) {
+function SeenStatus({ entry }: { entry: Pick<GradeEntry, 'seenAt'> }) {
   return entry.seenAt ? (
     <p className="text-xs text-emerald-700">Visto por el alumno el {formatDateTime(entry.seenAt)}.</p>
   ) : (

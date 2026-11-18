@@ -10,9 +10,10 @@ export function formatPoints(value: number | null, lang: Lang = 'es'): string {
 /**
  * El total del alumno, como el Total de Blackboard: solo cuentan las
  * actividades ya calificadas, así que lo que aún no se califica no baja el
- * porcentaje. `null` mientras no tenga ninguna calificada.
+ * porcentaje. `null` mientras no tenga ninguna calificada. Suma reportes
+ * semanales y actividades (`0053`) por igual: cada una vale sus puntos.
  */
-export function computeTotal(entries: GradeEntry[]): {
+export function computeTotal(entries: Pick<GradeEntry, 'score' | 'pointsPossible'>[]): {
   earned: number
   possible: number
   percentage: number

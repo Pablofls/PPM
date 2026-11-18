@@ -370,6 +370,11 @@ export interface Activity {
   dueAt: string | null
   availableUntil: string | null
   updatedAt: string
+  /**
+   * Puntos posibles (`0053`). `null` en las dos bitácoras: su valor es uno solo
+   * por grupo y vive en `grade_activities` (`getGradeActivityPoints`).
+   */
+  pointsPossible: number | null
 }
 
 /**
@@ -405,6 +410,8 @@ export interface ActivityInput {
   availableFrom: string | null
   dueAt: string | null
   availableUntil: string | null
+  /** En las bitácoras es el valor compartido de Búsqueda y Prácticas. `null` = 100. */
+  pointsPossible: number | null
 }
 
 /** Una celda de la matriz de "Estado de Entregas": un alumno, un formulario. */
@@ -633,6 +640,34 @@ export interface GradeEntry {
   seenAt: string | null
 }
 
+/**
+ * Calificación de una actividad que no es bitácora (`v_activity_grade_center`,
+ * `0053`): un alumno y un formulario que se contesta en la plataforma, con su
+ * entrega más reciente.
+ */
+export interface ActivityGradeEntry {
+  studentId: string
+  institutionalEmail: string
+  fullName: string | null
+  degreeCode: string | null
+  semester: number | null
+  groupId: string
+  formCode: ActivityFormCode
+  /** Para ordenar: 1.0, 2.7… */
+  displayOrder: number
+  dueAt: string | null
+  submissionId: string | null
+  submittedAt: string | null
+  pointsPossible: number
+  score: number | null
+  comment: string | null
+  gradedAt: string | null
+  state: GradeState
+  /** Entregó después de la fecha de entrega. */
+  isLate: boolean
+  seenAt: string | null
+}
+
 /** Lo que el alumno contestó en su reporte de una semana, para calificarlo. */
 export interface WeeklyReport {
   studentId: string
@@ -666,6 +701,8 @@ export interface AppNotification {
   senderName: string | null
   /** El aviso se mandó a todo un grupo. */
   toGroup: boolean
+  /** La actividad calificada si no es un reporte semanal (`0053`). */
+  formCode: ActivityFormCode | null
 }
 
 /** Un aviso enviado, para el profesor (`v_sent_notices`, `0050`). */

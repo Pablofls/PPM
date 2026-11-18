@@ -10,8 +10,8 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
 
 - Supabase configurado (ref `sovinakodrmgxytgapry`) y Vercel desplegado.
 - Las migraciones `0001`–`0052` **ya se ejecutaron** (salvo `0019`, ver
-  `docs/DATABASE_SCHEMA.md`). Un archivo
-  ejecutado no se vuelve a editar: el siguiente cambio es `0053_…`.
+  `docs/DATABASE_SCHEMA.md`); `0053` está escrita y **todavía no se ejecuta**.
+  Un archivo ejecutado no se vuelve a editar: el siguiente cambio es `0054_…`.
 - Alcance del esquema: **autenticación + los 11 formularios de Módulo 1 y 2 +
   los dos apéndices + las dos bitácoras semanales**. Las hojas `alumnos` y
   `fechas_entrega` quedan para después.
@@ -70,8 +70,8 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   rail antes de Entregas, estilo Blackboard. *Calificar* (una actividad =
   Reporte semana N; navegación alumno por alumno con las respuestas y la
   calificación a la derecha), *Centro de calificaciones* (alumno × semana,
-  total y %) y *Configurar actividades* (lo que vale el reporte semanal, una
-  cifra por grupo, 100 por defecto; `0041`, ejecutada el 2026-10-14). Primera fase: solo los reportes semanales; el
+  total y %). Lo que vale el reporte semanal (`0041`) se configuraba en
+  *Configurar actividades*; desde `0053`, en Actividades. Primera fase: solo los reportes semanales; el
   alumno todavía no ve sus calificaciones. Ver
   [docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md#calificaciones).
 - **Entrega secuencial** (`0043`, ejecutada el 2026-10-14): las bitácoras se
@@ -113,6 +113,14 @@ El profesor autorizó el proyecto el 10 de septiembre de 2026.
   están en **Actividades**, ya no en Inicio) y el alumno lee sus
   calificaciones, comentarios y total. Calificar mide la **similitud en %**
   de cada respuesta contra sus otras semanas y contra sus compañeros.
+- **Puntos en cada actividad y calificar formularios** (`0053`, **pendiente
+  de ejecutar**): los puntos posibles se ponen en Actividades → editar (Búsqueda
+  y Prácticas comparten un solo valor) y desaparece *Configurar actividades*.
+  Los formularios que se contestan en la plataforma (`forms.answered_in_panel`;
+  hoy el 1.0) se califican en Calificar y el Centro (`activity_grades`) y el
+  alumno los ve en sus Calificaciones y su campanita. Los PDF que descarga el
+  alumno (bitácoras y 1.0) llevan fecha y hora de descarga. Ver
+  [docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md#calificar-las-actividades).
 - **Avisos y notificaciones** (`0050`, ejecutada el 2026-11-04): campanita
   en el portal del alumno con sus calificaciones (puntaje y comentario, al
   guardar en Calificar) y los avisos del profesor, que se mandan desde el ADN

@@ -529,6 +529,14 @@ export const ACTIVITIES: ActivityMeta[] = [
 export const activityByCode = (code: string): ActivityMeta | undefined =>
   ACTIVITIES.find((activity) => activity.code === code)
 
+/** «1.0 Datos Demográficos»: como se nombra una actividad en Calificaciones. */
+export function activityTitle(code: string, lang: 'es' | 'en' = 'es'): string {
+  const meta = activityByCode(code)
+  if (!meta) return code
+  const name = lang === 'en' && code === 'form1_0' ? DEMOGRAPHICS_FORM.en.name : meta.name
+  return meta.label ? `${meta.label} ${name}` : name
+}
+
 /** Secciones del proyecto que todavía no tienen pantalla. Ver regla «Alcance de las pantallas» de CLAUDE.md. */
 export const UPCOMING_SECTIONS: string[] = [
   // Las bitácoras semanales salieron de esta lista: ya existen, pero dentro del

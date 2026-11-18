@@ -37,8 +37,7 @@ PPM
 │   └── Semanas del semestre
 ├── CALIFICACIONES
 │   ├── Calificar
-│   ├── Centro de calificaciones
-│   └── Configurar actividades
+│   └── Centro de calificaciones
 ├── COMUNICACIÓN
 │   └── Avisos
 └── ENTREGAS
@@ -623,21 +622,31 @@ El expediente del alumno muestra su grupo junto a la matrícula.
 > [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md#calificaciones). Permiso:
 > pantalla `calificaciones` (maestro edita, coordinador lee). Modeladas en el
 > Grade Center de Blackboard. Rutas: `/calificaciones/calificar`,
-> `/calificaciones/centro`, `/calificaciones/actividades`. Va en el rail
-> **antes de Entregas**.
+> `/calificaciones/centro` (`/calificaciones/actividades` redirige a
+> Actividades desde `0053`). Va en el rail **antes de Entregas**.
 
 Cada semana del periodo es una actividad: **Reporte semana N**. El reporte que
 se califica es el que el alumno haya entregado esa semana, de Búsqueda o de
-Prácticas (nunca llena los dos). Todo se filtra por el grupo elegido.
+Prácticas (nunca llena los dos). Desde `0053` también se califican los
+**formularios que se contestan en la plataforma** (hoy el 1.0 Datos
+Demográficos), una vez publicados. Todo se filtra por el grupo elegido.
 
 ### Calificar
 
-Como «Needs Grading». Lista de actividades con semana, puntos, entregados,
-calificados y por calificar; clic en una abre la **vista de calificación** a
-pantalla completa, con la misma navegación que el ADN Profesional:
+Como «Needs Grading». Lista de actividades con fecha (semana o fecha de
+entrega), puntos, entregados, calificados y por calificar; primero las
+actividades de la plataforma (p. ej. «1.0 Datos Demográficos») y luego cada
+Reporte semana N. Clic en una abre la **vista de calificación** a pantalla
+completa, con la misma navegación que el ADN Profesional:
 
 - Breadcrumb `Calificar › Reporte semana N › Alumno`, botones `‹ n / total ›`
-  y atajos ← → y Esc. La semana y el alumno van en la URL (`?semana=&alumno=`).
+  y atajos ← → y Esc. La semana y el alumno van en la URL (`?semana=&alumno=`;
+  una actividad, `?actividad=form1_0&alumno=`).
+- **Actividad de la plataforma** (`0053`): a la izquierda, su entrega más
+  reciente pregunta por pregunta (el 1.0 con matrícula; cada formulario nuevo
+  agrega su vista en `FORM_ANSWER_LOADERS` de `GradeActivitiesPage.tsx`), con
+  aviso de entrega tardía si llegó después de la fecha de entrega. Sin
+  similitud ni historial: son datos, no texto libre.
 - **Izquierda:** el formulario ya llenado, con las etiquetas del formulario.
 - **Derecha:** puntos «\_\_ / puntos posibles», comentario, **Guardar y
   siguiente** (Enter), Guardar y Quitar calificación.
@@ -667,21 +676,20 @@ pantalla completa, con la misma navegación que el ADN Profesional:
 ### Centro de calificaciones
 
 Como el Full Grade Center: una fila por estudiante, una columna por
-actividad (`Semana N · pts`), **Total** (puntos obtenidos / posibles) y **%**.
+actividad (`Semana N · pts` y, después, `1.0 Datos Demográficos · pts`),
+**Total** (puntos obtenidos / posibles, reportes y actividades) y **%**.
 La celda se edita ahí mismo (Enter guarda, Tab pasa a la siguiente); «–» es
 sin calificar. El color de la celda dice cómo entregó el alumno: **rojo** no
-entregó (solo cuando la semana ya cerró; una semana en curso sin entrega se ve
-en blanco), **amarillo** entregó tarde y **verde** entregó a tiempo. Lo que
+entregó (solo cuando la semana ya cerró o pasó la fecha de entrega; antes, sin
+entrega, se ve en blanco), **amarillo** entregó tarde y **verde** entregó a tiempo. Lo que
 falta calificar no tiene marca propia: es la celda con «–».
 El total solo cuenta las actividades ya calificadas.
 
-### Configurar actividades
+### Puntos posibles
 
-Lo que vale el reporte en el **grupo elegido** (cada maestro pone el de sus
-grupos). El reporte de Búsqueda y el de Prácticas son **una sola actividad**
-que vale lo mismo y se repite cada semana, así que es una sola cifra, no una
-por semana. Sin configurar vale 100. Pide elegir un grupo si está en «Todos mis
-grupos».
+Ya no hay pantalla *Configurar actividades* (`0053`): los puntos se ponen en
+cada actividad, en **Actividades → editar** (ver abajo). Sin configurar, todo
+vale 100.
 
 ## Avisos · `/avisos`
 
@@ -725,6 +733,7 @@ Módulo 2, Apéndice A, Apéndice B y Bitácoras semanales); cada fila lleva:
 - **Fechas**: «No disponible hasta …», «Disponible hasta …» / «Cerró …» y
   «Fecha de entrega …» (o «Vence cada semana» en las bitácoras, «Sin fecha de
   entrega» si no hay).
+- **Puntos** («100 pts»), solo en las del panel.
 - **Publicar / Publicada**, el interruptor de Canvas, solo en las del panel.
 
 ### Editar una actividad · `/actividades/:formCode`
@@ -734,12 +743,16 @@ Módulo 2, Apéndice A, Apéndice B y Bitácoras semanales); cada fila lleva:
 - **Instrucciones** (solo las del panel): lo que el alumno lee antes de
   contestar; vacío, ve las del catálogo (se muestran de sugerencia).
 - **Publicada** (solo las del panel).
-- **Asignar**: *Para* (el grupo, solo lectura), *Fecha de entrega*, *Disponible
-  desde* y *Disponible hasta*. Fecha y hora por separado; al elegir el día la
+- **Puntos posibles** (solo las del panel, `0053`): lo que vale en
+  Calificaciones. En el Reporte de Búsqueda y el de Prácticas es **el mismo
+  campo** —valen lo mismo y se repite cada semana— y el editor lo dice.
+- **Asignar**: *Para* (el grupo, solo lectura) y, en dos columnas: a la
+  izquierda *Fecha de entrega* y debajo *Disponible hasta*; a la derecha
+  *Disponible desde*. Fecha y hora por separado; al elegir el día la
   hora se llena sola (23:59, o 00:00 en «Disponible desde»). Las horas son de
   Monterrey: la base las convierte (`save_activity`).
-  - Bitácoras: sin fecha de entrega; un aviso dice que cada semana vence el
-    domingo y lleva a *Semanas del semestre*.
+  - Bitácoras: sin fecha de entrega; en su lugar (izquierda) un aviso dice que
+    cada semana vence el domingo y lleva a *Semanas del semestre*.
   - Google Forms: solo *Fecha de entrega* (para Estado de Entregas); el alumno
     no las ve en su portal.
 - Con «Solo lectura», todo deshabilitado.
@@ -919,7 +932,16 @@ esqueleto que una bitácora:
 | Instrucciones | Las del profesor (Actividades) o las del catálogo (`DEMOGRAPHICS_FORM`) |
 | Esto ya lo tenemos | Correo institucional, matrícula, periodo, frecuencia e idioma, de su expediente y su grupo; si algo está mal, que avise al profesor |
 | Tu entrega | Nombre completo, correo personal, fecha de nacimiento, país de nacimiento, sexo (con «Prefiero no decir» = `no_especificado`), carrera y semestre (1–12). Nace prellenado con su entrega más reciente (también la del Google Form). Después de la fecha de entrega se llama «Entrega tardía» con aviso amarillo, y la celebración es el sello |
+| Descargar PDF | Botón arriba de «Tus entregas»; deshabilitado sin entregas |
 | Tus entregas | Todas, la más reciente marcada «Vigente», con «Tardía» y «Google Forms» si aplica |
+
+**Descargar PDF** (`src/lib/demographicsPdf.ts`): hoja carta vertical, título
+«1.0 Datos Demográficos», recuadro con nombre, matrícula y **fecha y hora de
+descarga** (sin empresa), y una tabla Pregunta / Respuesta con la entrega más
+reciente. Mismo pie que la bitácora y en inglés para un grupo de Inglés. Lo
+común de los PDF (cargar jsPDF, limpiar el texto, el sello de descarga y el
+pie) vive en `src/lib/pdf.ts`, y el botón en `src/components/DownloadPdfButton.tsx`:
+el siguiente formulario que se pase a la plataforma solo arma su contenido.
 
 Corregir es **volver a entregar**: no se edita una entrega. Con la actividad
 cerrada se ven las entregas sin formulario. Los campos usan `Field`/`INPUT` de
@@ -944,7 +966,8 @@ que cambia entre ellas son sus campos, y esos viven en `WEEKLY_FORMS`
 documento que los alumnos llenaban antes (`src/lib/weeklyLogPdf.ts`, con
 `jspdf` + `jspdf-autotable`, cargados solo al hacer clic): hoja carta
 horizontal, el nombre del reporte como título, un recuadro con nombre y
-matrícula —en Prácticas también empresa y puesto, del B.1— y una tabla con una
+matrícula —en Prácticas también empresa y puesto, del B.1— y la **fecha y hora
+de descarga** (también en el pie de cada página), y una tabla con una
 fila por semana, la más reciente primero, con el encabezado repetido en cada
 página. Prácticas lleva horas trabajadas y acumuladas por semana y el total al
 final. El archivo se llama `Reporte de Prácticas - <Nombre> - <Matrícula>.pdf`.

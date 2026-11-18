@@ -1,7 +1,19 @@
 import type { InternshipLogRow, JobSearchLogRow } from '../data/types'
 import type { WeeklyFormMeta } from './catalog'
-import { formatDate, formatWeekRange } from './format'
+import { formatWeekRange } from './format'
 import type { Lang } from './i18n'
+import {
+  addFooter,
+  downloadStamp,
+  lastTableY,
+  loadPdf,
+  pdfFileName,
+  pdfText,
+  PDF_HEADER_FILL,
+  PDF_LINE_STYLES,
+  translator,
+  type Translate,
+} from './pdf'
 
 /** Lo que el encabezado del PDF dice del alumno. Sale de `StudentDossier`. */
 export interface WeeklyLogPdfStudent {
@@ -11,17 +23,13 @@ export interface WeeklyLogPdfStudent {
   department: string | null
 }
 
-const BLACK: [number, number, number] = [0, 0, 0]
-const HEADER_FILL: [number, number, number] = [235, 235, 235]
-
 /**
  * Descarga una bitácora semanal completa en PDF, con la forma del documento
  * que los alumnos llenaban a mano: hoja horizontal, título, recuadro con sus
  * datos y una fila por semana, la más reciente primero (como pedían las
  * indicaciones del original: «en el PRIMER RENGLÓN siempre la semana más
- * reciente»). `rows` ya llega en ese orden desde el repositorio.
- *
- * jsPDF se carga al hacer clic: pesa lo suyo y casi nadie descarga.
+ * reciente»). `rows` ya llega en ese orden desde el repositorio. El recuadro
+ * y el pie dicen la fecha y la hora en que se descargó.
  */
 export async function downloadWeeklyLogPdf({
   form,
@@ -36,15 +44,12 @@ export async function downloadWeeklyLogPdf({
   /** El del portal: un grupo de Inglés descarga su bitácora en inglés. */
   lang?: Lang
 }): Promise<void> {
-  const t = (es: string, en: string) => (lang === 'en' ? en : es)
-  const [{ jsPDF }, { autoTable }] = await Promise.all([
-    import('jspdf'),
-    import('jspdf-autotable'),
-  ])
+  const t = translator(lang)
+  const downloadedAt = new Date()
+  const { jsPDF, autoTable } = await loadPdf()
 
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' })
   const pageWidth = doc.internal.pageSize.getWidth()
-  const pageHeight = doc.internal.pageSize.getHeight()
   const margin = 36
 
   doc.setFont('helvetica', 'bold')
@@ -52,7 +57,7 @@ export async function downloadWeeklyLogPdf({
   doc.text(pdfText(form.name.toUpperCase()), pageWidth / 2, margin + 14, { align: 'center' })
 
   const isInternship = form.code === 'form_practicas'
-  const lineStyles = { lineColor: BLACK, lineWidth: 0.6, textColor: BLACK }
+  const lineStyles = PDF_LINE_STYLES
 
   // Recuadro de datos del alumno.
   const identity: string[][] = [
@@ -65,6 +70,10 @@ export async function downloadWeeklyLogPdf({
     identity.push([`${t('Nombre de la empresa', 'Company name')}: ${pdfText(student.companyName) || '—'}`, ''])
     identity.push([`${t('Puesto', 'Position')}: ${pdfText(student.department) || '—'}`, ''])
   }
+  identity.push([
+    `${t('Fecha y hora de descarga', 'Downloaded on')}: ${downloadStamp(downloadedAt, lang)}`,
+    '',
+  ])
 
   autoTable(doc, {
     startY: margin + 30,
@@ -84,7 +93,7 @@ export async function downloadWeeklyLogPdf({
     : jobSearchTable(rows as JobSearchLogRow[], t, lang)
 
   const tableWidth = pageWidth - margin * 2
-  const previousY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY
+  const previousY = lastTableY(doc)
 
   autoTable(doc, {
     startY: previousY + 16,
@@ -106,7 +115,7 @@ export async function downloadWeeklyLogPdf({
       fontStyle: 'bold',
       halign: 'center',
       valign: 'middle',
-      fillColor: HEADER_FILL,
+      fillColor: PDF_HEADER_FILL,
       ...lineStyles,
     },
     columnStyles: Object.fromEntries(
@@ -117,7 +126,7 @@ export async function downloadWeeklyLogPdf({
   if (isInternship) {
     const total = (rows as InternshipLogRow[])[0]?.totalHours
     if (total !== null && total !== undefined) {
-      const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY
+      const finalY = lastTableY(doc)
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(10)
       doc.text(`${t('Total de horas', 'Total hours')}: ${total}`, pageWidth - margin, finalY + 16, { align: 'right' })
@@ -125,23 +134,10 @@ export async function downloadWeeklyLogPdf({
   }
 
   // Pie en todas las páginas, ya que se sabe cuántas son.
-  const downloadedOn = formatDate(new Date().toISOString(), lang)
-  const pages = doc.getNumberOfPages()
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(8)
-  doc.setTextColor(110)
-  for (let page = 1; page <= pages; page++) {
-    doc.setPage(page)
-    doc.text(`${t('Descargado el', 'Downloaded on')} ${downloadedOn}`, margin, pageHeight - margin / 2)
-    doc.text(t(`Página ${page} de ${pages}`, `Page ${page} of ${pages}`), pageWidth - margin, pageHeight - margin / 2, {
-      align: 'right',
-    })
-  }
+  addFooter(doc, downloadedAt, lang, margin)
 
-  doc.save(fileName(form.name, student))
+  doc.save(pdfFileName([form.name, student.fullName, student.studentNumber]))
 }
-
-type Translate = (es: string, en: string) => string
 
 function weekCell(row: JobSearchLogRow | InternshipLogRow, t: Translate, lang: Lang): string {
   const range = formatWeekRange(row.weekStart, row.weekEnd, lang)
@@ -195,31 +191,4 @@ function jobSearchTable(rows: JobSearchLogRow[], t: Translate, lang: Lang) {
 
 function cell(value: string | null): string {
   return pdfText(value) || '—'
-}
-
-/**
- * La Helvetica de jsPDF solo trae Latin-1: los acentos y la ñ salen bien, pero
- * comillas tipográficas, guiones largos o emojis saldrían como basura. Se
- * pasan a su equivalente simple y lo que no tiene equivalente se quita.
- */
-function pdfText(value: string | null): string {
-  if (!value) return ''
-  return value
-    .normalize('NFC')
-    .replace(/[‘’‚′]/g, "'")
-    .replace(/[“”„″]/g, '"')
-    .replace(/[–—−]/g, '-')
-    .replace(/…/g, '...')
-    .replace(/[•●▪]/g, '-')
-    .replace(/[   ]/g, ' ')
-    .replace(/\r\n?/g, '\n')
-    .replace(/[^\n -~¡-ÿ]/g, '')
-    .trim()
-}
-
-function fileName(reportName: string, student: WeeklyLogPdfStudent): string {
-  const parts = [reportName, student.fullName, student.studentNumber]
-    .map((part) => (part ?? '').replace(/[\\/:*?"<>|]/g, '').trim())
-    .filter(Boolean)
-  return `${parts.join(' - ')}.pdf`
 }

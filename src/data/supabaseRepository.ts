@@ -52,6 +52,7 @@ import type {
   SemesterWeek,
   AppNotification,
   GradeEntry,
+  ActivityGradeEntry,
   NoticeInput,
   SentNotice,
   WeeklyReport,
@@ -812,6 +813,7 @@ export const supabaseRepository: PanelRepository = {
       p_available_from: input.availableFrom,
       p_due_at: input.dueAt,
       p_available_until: input.availableUntil,
+      p_points: input.pointsPossible,
     })
 
     if (error) throw new Error(`No se pudo guardar la actividad: ${error.message}`)
@@ -1344,13 +1346,40 @@ export const supabaseRepository: PanelRepository = {
     if (error) throw new Error(`No se pudo guardar la calificación: ${error.message}`)
   },
 
-  async setGradeActivityPoints(groupId, points): Promise<void> {
-    const { error } = await supabase.rpc('set_grade_activity_points', {
+  async getActivityGradeCenter(filters: PanelFilters): Promise<ActivityGradeEntry[]> {
+    const { data, error } = await applyFilters(
+      supabase.from('v_activity_grade_center').select('*'),
+      filters,
+    )
+      .order('full_name', { ascending: true, nullsFirst: false })
+      .order('institutional_email', { ascending: true })
+      .order('display_order', { ascending: true })
+
+    if (error) throw new Error(`No se pudieron cargar las calificaciones: ${error.message}`)
+    return ((data ?? []) as PanelRecord[]).map(toActivityGradeEntry)
+  },
+
+  async getStudentActivityGrades(studentId: string): Promise<ActivityGradeEntry[]> {
+    const { data, error } = await supabase
+      .from('v_activity_grade_center')
+      .select('*')
+      .eq('student_id', studentId)
+      .order('display_order', { ascending: true })
+
+    if (error) throw new Error(`No se pudieron cargar tus calificaciones: ${error.message}`)
+    return ((data ?? []) as PanelRecord[]).map(toActivityGradeEntry)
+  },
+
+  async setActivityGrade(studentId, groupId, formCode, score, comment): Promise<void> {
+    const { error } = await supabase.rpc('set_activity_grade', {
+      p_student_id: studentId,
       p_group_id: groupId,
-      p_points: points,
+      p_form_code: formCode,
+      p_score: score,
+      p_comment: comment,
     })
 
-    if (error) throw new Error(`No se pudieron guardar los puntos: ${error.message}`)
+    if (error) throw new Error(`No se pudo guardar la calificación: ${error.message}`)
   },
 
   async getNotifications(studentId: string): Promise<AppNotification[]> {
@@ -1368,9 +1397,13 @@ export const supabaseRepository: PanelRepository = {
       const noticeId = str(record.notice_id)
       const groupId = str(record.group_id)
       const weekNumber = num(record.week_number)
+      const formCode = (str(record.form_code) as ActivityFormCode | null) ?? null
       return {
         kind,
-        key: kind === 'aviso' ? `aviso:${noticeId}` : `calificacion:${groupId}:${weekNumber}`,
+        key:
+          kind === 'aviso'
+            ? `aviso:${noticeId}`
+            : `calificacion:${groupId}:${formCode ?? weekNumber}`,
         studentId: str(record.student_id) ?? '',
         noticeId,
         groupId,
@@ -1383,6 +1416,7 @@ export const supabaseRepository: PanelRepository = {
         readAt: str(record.read_at),
         senderName: str(record.sender_name),
         toGroup: record.to_group === true,
+        formCode,
       }
     })
   },
@@ -1430,6 +1464,14 @@ export const supabaseRepository: PanelRepository = {
     const { error } = await supabase.rpc('mark_grade_read', {
       p_group_id: groupId,
       p_week_number: weekNumber,
+    })
+    if (error) throw new Error(`No se pudo marcar como leído: ${error.message}`)
+  },
+
+  async markActivityGradeRead(groupId: string, formCode: string): Promise<void> {
+    const { error } = await supabase.rpc('mark_activity_grade_read', {
+      p_group_id: groupId,
+      p_form_code: formCode,
     })
     if (error) throw new Error(`No se pudo marcar como leído: ${error.message}`)
   },
@@ -1522,6 +1564,30 @@ function toActivity(record: PanelRecord): Activity {
     dueAt: str(record.due_at),
     availableUntil: str(record.available_until),
     updatedAt: str(record.updated_at) ?? '',
+    pointsPossible: num(record.points_possible),
+  }
+}
+
+function toActivityGradeEntry(record: PanelRecord): ActivityGradeEntry {
+  return {
+    studentId: str(record.student_id) ?? '',
+    institutionalEmail: str(record.institutional_email) ?? '',
+    fullName: str(record.full_name),
+    degreeCode: str(record.degree_code),
+    semester: num(record.semester),
+    groupId: str(record.group_id) ?? '',
+    formCode: record.form_code as ActivityFormCode,
+    displayOrder: num(record.display_order) ?? 0,
+    dueAt: str(record.due_at),
+    submissionId: str(record.submission_id),
+    submittedAt: str(record.submitted_at),
+    pointsPossible: num(record.points_possible) ?? DEFAULT_POINTS_POSSIBLE,
+    score: num(record.score),
+    comment: str(record.comment),
+    gradedAt: str(record.graded_at),
+    state: (str(record.state) as GradeState) ?? 'sin_entrega',
+    isLate: record.is_late === true,
+    seenAt: str(record.seen_at),
   }
 }
 

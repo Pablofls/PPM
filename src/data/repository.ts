@@ -50,6 +50,7 @@ import type {
   SemesterWeek,
   AppNotification,
   GradeEntry,
+  ActivityGradeEntry,
   NoticeInput,
   SentNotice,
   WeeklyReport,
@@ -197,7 +198,7 @@ export interface PanelRepository {
   /** Las entregas del 1.0 de un alumno, la más reciente primero. */
   getMyDemographicsEntries(studentId: string): Promise<DemographicsEntry[]>
 
-  /** Guarda instrucciones, publicación y fechas de una actividad (`save_activity`). */
+  /** Guarda instrucciones, publicación, fechas y puntos de una actividad (`save_activity`, 0053). */
   saveActivity(input: ActivityInput): Promise<void>
 
   /** Publica o despublica una actividad (`set_activity_published`). */
@@ -354,6 +355,24 @@ export interface PanelRepository {
   /** Los puntos posibles del reporte semanal de un grupo; `null` = sin configurar (vale 100). */
   getGradeActivityPoints(groupId: string): Promise<number | null>
 
+  /**
+   * Las calificaciones de las actividades que no son bitácora (`0053`): una
+   * fila por alumno y actividad calificable publicada del grupo.
+   */
+  getActivityGradeCenter(filters: PanelFilters): Promise<ActivityGradeEntry[]>
+
+  /** Las de un alumno, para su portal. */
+  getStudentActivityGrades(studentId: string): Promise<ActivityGradeEntry[]>
+
+  /** Califica una actividad de un alumno. `score: null` quita la calificación. */
+  setActivityGrade(
+    studentId: string,
+    groupId: string,
+    formCode: string,
+    score: number | null,
+    comment: string | null,
+  ): Promise<void>
+
   /** Califica a un alumno en una semana. `score: null` quita la calificación. */
   setGrade(
     studentId: string,
@@ -362,9 +381,6 @@ export interface PanelRepository {
     score: number | null,
     comment: string | null,
   ): Promise<void>
-
-  /** Puntos posibles del reporte semanal de un grupo. `null` vuelve a los 100 predeterminados. */
-  setGradeActivityPoints(groupId: string, points: number | null): Promise<void>
 
   /**
    * La campanita de un alumno (`0050`): sus avisos y sus calificaciones, de la
@@ -381,6 +397,7 @@ export interface PanelRepository {
   /** El alumno de la sesión marca como leído un aviso, una calificación o todo. */
   markNoticeRead(noticeId: string): Promise<void>
   markGradeRead(groupId: string, weekNumber: number): Promise<void>
+  markActivityGradeRead(groupId: string, formCode: string): Promise<void>
   markAllNotificationsRead(): Promise<void>
 
   /**
@@ -589,8 +606,14 @@ export const emptyRepository: PanelRepository = {
   async setGrade() {
     throw new Error('No hay conexión con la base de datos. La calificación no se guardó.')
   },
-  async setGradeActivityPoints() {
-    throw new Error('No hay conexión con la base de datos. Los puntos no se guardaron.')
+  async getActivityGradeCenter() {
+    return []
+  },
+  async getStudentActivityGrades() {
+    return []
+  },
+  async setActivityGrade() {
+    throw new Error('No hay conexión con la base de datos. La calificación no se guardó.')
   },
   async getNotifications() {
     return []
@@ -603,6 +626,7 @@ export const emptyRepository: PanelRepository = {
   },
   async markNoticeRead() {},
   async markGradeRead() {},
+  async markActivityGradeRead() {},
   async markAllNotificationsRead() {},
   async createSemesterWeeks() {
     throw new Error('No hay conexión con la base de datos. Las semanas no se guardaron.')
@@ -625,9 +649,11 @@ const baseRepository: PanelRepository = isSupabaseConfigured
  */
 const KEEP_CACHE = new Set([
   'setGrade',
+  'setActivityGrade',
   // La campanita actualiza su lista al marcar; no hace falta recargar la pantalla.
   'markNoticeRead',
   'markGradeRead',
+  'markActivityGradeRead',
   'markAllNotificationsRead',
 ])
 

@@ -4,6 +4,7 @@ import { prefetchQuery } from '../data/hooks'
 import { repository } from '../data/repository'
 import { EMPTY_FILTERS } from '../data/types'
 import { GRADE_CENTER_KEY } from '../pages/calificaciones/useGradeEntries'
+import { ACTIVITY_GRADE_CENTER_KEY } from '../pages/calificaciones/useActivityGradeEntries'
 import { FORMS, MODULE_TITLES, UPCOMING_SECTIONS } from '../lib/catalog'
 import { formatGroupLabel } from '../lib/format'
 import { GroupCover } from '../components/GroupCover'
@@ -56,6 +57,11 @@ export function AppShell() {
       scopeLoading: false,
     }
     prefetchQuery(GRADE_CENTER_KEY, () => repository.getGradeCenter(filters), [filters])
+    prefetchQuery(
+      ACTIVITY_GRADE_CENTER_KEY,
+      () => repository.getActivityGradeCenter(filters),
+      [filters],
+    )
   }
 
   // Sin grupo elegido en esta sesión, primero «Mis grupos» (como entrar a
@@ -110,7 +116,6 @@ export function AppShell() {
                 name="Centro de calificaciones"
                 onHover={prefetchGrades}
               />
-              <NavItem to="/calificaciones/actividades" label="" name="Configurar actividades" />
             </NavGroup>
           )}
 

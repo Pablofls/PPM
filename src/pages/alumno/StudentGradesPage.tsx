@@ -6,21 +6,91 @@ import { usePermissions } from '../../auth/PermissionsProvider'
 import { Badge, Dash } from '../../components/Badge'
 import { useRepositoryQuery } from '../../data/hooks'
 import { repository } from '../../data/repository'
-import type { GradeEntry } from '../../data/types'
-import { localizeWeeklyForm, weeklyFormByCode } from '../../lib/catalog'
-import { translateServerText, useLang, useT } from '../../lib/i18n'
+import type { ActivityGradeEntry, GradeEntry } from '../../data/types'
+import {
+  activityTitle,
+  DEMOGRAPHICS_FORM,
+  localizeWeeklyForm,
+  weeklyFormByCode,
+} from '../../lib/catalog'
+import { translateServerText, useLang, useT, type Lang } from '../../lib/i18n'
 import { formatDate, formatDateTime } from '../../lib/format'
 import { computeTotal, formatPoints } from '../../lib/grades'
 
 const WEEK_PARAM = 'semana'
+const ACTIVITY_PARAM = 'actividad'
+
+/** Dónde contesta el alumno cada actividad que no es bitácora. */
+const ACTIVITY_PATHS: Record<string, string> = {
+  form1_0: DEMOGRAPHICS_FORM.path,
+}
+
+/** Una fila de la tabla: un reporte semanal o una actividad (`0053`). */
+interface GradeRow {
+  /** `semana-3`, `actividad-form1_0`: id de la fila y de su estado abierto. */
+  id: string
+  title: string
+  subtitle: string
+  path: string | null
+  /** Fecha de vencimiento (`date` o ISO). */
+  due: string | null
+  submissionId: string | null
+  submittedAt: string | null
+  isLate: boolean
+  missing: boolean
+  score: number | null
+  pointsPossible: number
+  comment: string | null
+  gradedAt: string | null
+}
+
+function weeklyRow(grade: GradeEntry, lang: Lang, today: string): GradeRow {
+  const t = (es: string, en: string) => (lang === 'en' ? en : es)
+  const form = grade.formCode ? localizeWeeklyForm(weeklyFormByCode(grade.formCode), lang) : null
+  return {
+    id: `semana-${grade.weekNumber}`,
+    title: t(`Reporte semana ${grade.weekNumber}`, `Weekly report ${grade.weekNumber}`),
+    subtitle: form ? form.name : t('Reporte semanal', 'Weekly report'),
+    path: form?.path ?? null,
+    due: grade.weekEnd,
+    submissionId: grade.submissionId,
+    submittedAt: grade.submittedAt,
+    isLate: grade.isLate,
+    missing: !grade.submissionId && grade.score === null && grade.weekEnd < today,
+    score: grade.score,
+    pointsPossible: grade.pointsPossible,
+    comment: grade.comment,
+    gradedAt: grade.gradedAt,
+  }
+}
+
+function activityRow(grade: ActivityGradeEntry, lang: Lang, now: Date): GradeRow {
+  return {
+    id: `actividad-${grade.formCode}`,
+    title: activityTitle(grade.formCode, lang),
+    subtitle: lang === 'en' ? 'Assignment' : 'Actividad',
+    path: ACTIVITY_PATHS[grade.formCode] ?? null,
+    due: grade.dueAt,
+    submissionId: grade.submissionId,
+    submittedAt: grade.submittedAt,
+    isLate: grade.isLate,
+    missing:
+      !grade.submissionId && grade.score === null && grade.dueAt !== null && new Date(grade.dueAt) < now,
+    score: grade.score,
+    pointsPossible: grade.pointsPossible,
+    comment: grade.comment,
+    gradedAt: grade.gradedAt,
+  }
+}
 
 /**
  * Calificaciones del alumno, como la página «Calificaciones» de Canvas: una
- * fila por actividad (Reporte semana N) con su fecha, cómo la entregó, la
- * puntuación y el comentario del profesor; el total a la derecha.
+ * fila por actividad (las que se contestan en el portal, como el 1.0, y cada
+ * Reporte semana N) con su fecha, cómo la entregó, la puntuación y el
+ * comentario del profesor; el total a la derecha.
  *
- * `?semana=N` abre y resalta esa fila: es a donde lleva la notificación de una
- * calificación.
+ * `?semana=N` o `?actividad=form1_0` abre y resalta esa fila: es a donde lleva
+ * la notificación de una calificación.
  */
 export function StudentGradesPage() {
   const { portalStudentId: studentId } = useAuth()
@@ -29,31 +99,43 @@ export function StudentGradesPage() {
   const { can, loading: loadingPermissions } = usePermissions()
   const [searchParams] = useSearchParams()
   const focusWeek = Number(searchParams.get(WEEK_PARAM)) || null
+  const focusActivity = searchParams.get(ACTIVITY_PARAM)
+  const focusId = focusWeek ? `semana-${focusWeek}` : focusActivity ? `actividad-${focusActivity}` : null
 
   const { data: grades, loading, error } = useRepositoryQuery(
     () => (studentId ? repository.getStudentGrades(studentId) : Promise.resolve([])),
     [] as GradeEntry[],
     [studentId],
   )
+  const { data: activityGrades, loading: loadingActivities } = useRepositoryQuery(
+    () => (studentId ? repository.getStudentActivityGrades(studentId) : Promise.resolve([])),
+    [] as ActivityGradeEntry[],
+    [studentId],
+  )
   const [showAll, setShowAll] = useState(false)
-  const [open, setOpen] = useState<Set<number>>(() => new Set(focusWeek ? [focusWeek] : []))
+  const [open, setOpen] = useState<Set<string>>(() => new Set(focusId ? [focusId] : []))
 
   // Llegar desde una notificación con la página ya abierta también abre la fila.
   useEffect(() => {
-    if (!focusWeek) return
-    setOpen((current) => new Set(current).add(focusWeek))
-    document.getElementById(`semana-${focusWeek}`)?.scrollIntoView({ block: 'center' })
-  }, [focusWeek, grades.length])
+    if (!focusId) return
+    setOpen((current) => new Set(current).add(focusId))
+    document.getElementById(focusId)?.scrollIntoView({ block: 'center' })
+  }, [focusId, grades.length, activityGrades.length])
 
   if (!loadingPermissions && !can('alumno_calificaciones')) return <Navigate to="/alumno" replace />
 
-  const total = computeTotal(grades)
   const today = localToday()
-  const toggle = (week: number) =>
+  const now = new Date()
+  const rows: GradeRow[] = [
+    ...activityGrades.map((grade) => activityRow(grade, lang, now)),
+    ...grades.map((grade) => weeklyRow(grade, lang, today)),
+  ]
+  const total = computeTotal(rows)
+  const toggle = (id: string) =>
     setOpen((current) => {
       const next = new Set(current)
-      if (next.has(week)) next.delete(week)
-      else next.add(week)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
 
@@ -65,8 +147,8 @@ export function StudentGradesPage() {
         </h1>
         <p className="mt-1.5 text-sm text-ink-500">
           {t(
-            'Tus reportes semanales, lo que obtuviste en cada uno y los comentarios de tu profesor.',
-            'Your weekly reports, what you scored on each one and your professor’s comments.',
+            'Tus actividades y reportes semanales, lo que obtuviste en cada uno y los comentarios de tu profesor.',
+            'Your assignments and weekly reports, what you scored on each one and your professor’s comments.',
           )}
         </p>
       </header>
@@ -81,9 +163,9 @@ export function StudentGradesPage() {
             <p className="px-6 py-12 text-center text-sm text-ink-500">
               {t('Elige un alumno para ver sus calificaciones.', 'Choose a student to see their grades.')}
             </p>
-          ) : grades.length === 0 ? (
+          ) : rows.length === 0 ? (
             <p className="px-6 py-12 text-center text-sm text-ink-500">
-              {loading
+              {loading || loadingActivities
                 ? t('Cargando tus calificaciones…', 'Loading your grades…')
                 : t('Todavía no hay actividades en tu grupo.', 'There are no assignments in your group yet.')}
             </p>
@@ -101,30 +183,27 @@ export function StudentGradesPage() {
                 </tr>
               </thead>
               <tbody>
-                {grades.map((grade) => {
-                  const expanded = Boolean(grade.comment) && (showAll || open.has(grade.weekNumber))
-                  const form = grade.formCode ? localizeWeeklyForm(weeklyFormByCode(grade.formCode), lang) : null
-                  const title = t(`Reporte semana ${grade.weekNumber}`, `Weekly report ${grade.weekNumber}`)
-                  const missing = !grade.submissionId && grade.score === null && grade.weekEnd < today
-                  const focused = grade.weekNumber === focusWeek
+                {rows.map((grade) => {
+                  const expanded = Boolean(grade.comment) && (showAll || open.has(grade.id))
+                  const focused = grade.id === focusId
                   return (
-                    <Fragment key={grade.weekNumber}>
+                    <Fragment key={grade.id}>
                       <tr
-                        id={`semana-${grade.weekNumber}`}
+                        id={grade.id}
                         className={`align-top ${expanded ? '' : 'border-b border-ink-100'} ${
                           focused ? 'bg-sky-50/70' : ''
                         }`}
                       >
                         <td className="px-4 py-3">
-                          {form ? (
-                            <Link to={form.path} className="font-medium text-accent-700 hover:underline">
-                              {title}
+                          {grade.path ? (
+                            <Link to={grade.path} className="font-medium text-accent-700 hover:underline">
+                              {grade.title}
                             </Link>
                           ) : (
-                            <span className="font-medium text-ink-900">{title}</span>
+                            <span className="font-medium text-ink-900">{grade.title}</span>
                           )}
                           <p className="mt-0.5 text-xs text-ink-500">
-                            {form ? form.name : t('Reporte semanal', 'Weekly report')}
+                            {grade.subtitle}
                             {grade.submittedAt && (
                               <>
                                 {' '}
@@ -133,11 +212,11 @@ export function StudentGradesPage() {
                             )}
                           </p>
                         </td>
-                        <td className="tnum px-4 py-3 whitespace-nowrap text-ink-600">{formatDate(grade.weekEnd, lang)}</td>
+                        <td className="tnum px-4 py-3 whitespace-nowrap text-ink-600">{grade.due ? formatDate(grade.due, lang) : <Dash />}</td>
                         <td className="px-4 py-3">
                           {grade.isLate ? (
                             <Badge tone="red">{t('Tardía', 'Late')}</Badge>
-                          ) : missing ? (
+                          ) : grade.missing ? (
                             <Badge tone="red">{t('Faltante', 'Missing')}</Badge>
                           ) : grade.submissionId && grade.score === null ? (
                             <Badge tone="blue">{t('Entregado', 'Submitted')}</Badge>
@@ -155,7 +234,7 @@ export function StudentGradesPage() {
                           {grade.comment && (
                             <button
                               type="button"
-                              onClick={() => toggle(grade.weekNumber)}
+                              onClick={() => toggle(grade.id)}
                               aria-expanded={expanded}
                               title={
                                 expanded
@@ -220,7 +299,7 @@ export function StudentGradesPage() {
             </p>
           </div>
 
-          {grades.some((grade) => grade.comment) && (
+          {rows.some((grade) => grade.comment) && (
             <label className="flex items-center gap-2 px-1 text-sm text-ink-600">
               <input type="checkbox" checked={showAll} onChange={(event) => setShowAll(event.target.checked)} />
               {t('Mostrar todos los comentarios', 'Show all comments')}

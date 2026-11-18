@@ -7,10 +7,12 @@ import { DataTable, type Column } from '../../components/DataTable'
 import { FilterBar, useFilters } from '../../components/FilterBar'
 import { StudentDossier, useDossierParam } from '../../components/StudentDossier'
 import { Toast } from '../../components/Toast'
-import type { GradeEntry } from '../../data/types'
+import type { ActivityGradeEntry, GradeEntry } from '../../data/types'
+import { activityTitle } from '../../lib/catalog'
 import { formatSemester } from '../../lib/format'
 import { todayMonterrey } from '../../lib/weeks'
 import { computeTotal, formatPoints, parseScore, studentLabel } from './gradeUtils'
+import { useActivityGradeEntries } from './useActivityGradeEntries'
 import { useGradeEntries } from './useGradeEntries'
 
 interface StudentRow {
@@ -20,12 +22,26 @@ interface StudentRow {
   degreeCode: string | null
   semester: number | null
   entries: Map<number, GradeEntry>
+  /** Las actividades que no son bitácora (`0053`), por código de formulario. */
+  activities: Map<string, ActivityGradeEntry>
 }
 
 interface WeekColumn {
   weekNumber: number
   pointsPossible: number
 }
+
+interface ActivityColumn {
+  formCode: string
+  displayOrder: number
+  /** «1.0 Datos Demográficos». */
+  title: string
+  /** `null` si los grupos a la vista le dan puntos distintos. */
+  pointsPossible: number | null
+}
+
+/** Lo que una celda necesita de una calificación, sea de semana o de actividad. */
+type CellEntry = Pick<GradeEntry, 'score' | 'state' | 'fullName' | 'institutionalEmail'>
 
 /** Cómo entregó el alumno esa semana: es lo que dice el color de la celda. */
 type DeliveryTone = 'missing' | 'late' | 'onTime' | 'open'
@@ -39,6 +55,12 @@ function deliveryTone(entry: GradeEntry, today: string): DeliveryTone {
   return entry.weekEnd < today ? 'missing' : 'open'
 }
 
+/** En una actividad, rojo solo cuando su fecha de entrega ya pasó. */
+function activityTone(entry: ActivityGradeEntry, now: Date): DeliveryTone {
+  if (entry.submissionId) return entry.isLate ? 'late' : 'onTime'
+  return entry.dueAt && new Date(entry.dueAt) < now ? 'missing' : 'open'
+}
+
 const TONE_CLASSES: Record<DeliveryTone, string> = {
   missing: 'border-red-200 bg-red-50',
   late: 'border-amber-200 bg-amber-50',
@@ -50,13 +72,14 @@ const TONE_TITLES: Record<DeliveryTone, string> = {
   missing: 'No entregó',
   late: 'Entrega tardía',
   onTime: 'Entregado a tiempo',
-  open: 'Semana en curso',
+  open: 'Todavía a tiempo',
 }
 
 /**
  * Centro de calificaciones — el Full Grade Center de Blackboard.
  *
- * Una fila por alumno y una columna por actividad (Reporte semana N). Cada
+ * Una fila por alumno y una columna por actividad: Reporte semana N y, después,
+ * las actividades que se contestan en la plataforma (el 1.0, `0053`). Cada
  * celda se edita ahí mismo: Enter guarda, Tab pasa a la siguiente. «–» es
  * «sin calificar»; el color dice cómo entregó: rojo no entregó, amarillo
  * tarde, verde a tiempo. El total solo cuenta lo ya calificado, como el Total de
@@ -65,14 +88,18 @@ const TONE_TITLES: Record<DeliveryTone, string> = {
 export function GradeCenterPage() {
   const [filters, setFilter, clearFilters] = useFilters()
   const { entries, loading, error, isConnected, save } = useGradeEntries(filters)
+  const activityGrades = useActivityGradeEntries(filters)
   const canEdit = usePermissions().can('calificaciones', 'edicion')
   const [saveError, setSaveError] = useState<string | null>(null)
   const today = todayMonterrey()
 
-  const { students, weeks } = useMemo(() => {
+  const now = new Date()
+
+  const { students, weeks, activities } = useMemo(() => {
     const byStudent = new Map<string, StudentRow>()
     const byWeek = new Map<number, WeekColumn>()
-    for (const entry of entries) {
+    const byActivity = new Map<string, ActivityColumn>()
+    const rowOf = (entry: GradeEntry | ActivityGradeEntry) => {
       let row = byStudent.get(entry.studentId)
       if (!row) {
         row = {
@@ -82,9 +109,28 @@ export function GradeCenterPage() {
           degreeCode: entry.degreeCode,
           semester: entry.semester,
           entries: new Map(),
+          activities: new Map(),
         }
         byStudent.set(entry.studentId, row)
       }
+      return row
+    }
+    for (const entry of activityGrades.entries) {
+      rowOf(entry).activities.set(entry.formCode, entry)
+      const column = byActivity.get(entry.formCode)
+      if (!column) {
+        byActivity.set(entry.formCode, {
+          formCode: entry.formCode,
+          displayOrder: entry.displayOrder,
+          title: activityTitle(entry.formCode),
+          pointsPossible: entry.pointsPossible,
+        })
+      } else if (column.pointsPossible !== entry.pointsPossible) {
+        column.pointsPossible = null
+      }
+    }
+    for (const entry of entries) {
+      const row = rowOf(entry)
       row.entries.set(entry.weekNumber, entry)
       if (!byWeek.has(entry.weekNumber)) {
         byWeek.set(entry.weekNumber, {
@@ -94,10 +140,16 @@ export function GradeCenterPage() {
       }
     }
     return {
-      students: [...byStudent.values()],
+      students: [...byStudent.values()].sort((a, b) =>
+        studentLabel(a).localeCompare(studentLabel(b), 'es'),
+      ),
       weeks: [...byWeek.values()].sort((a, b) => a.weekNumber - b.weekNumber),
+      activities: [...byActivity.values()].sort((a, b) => a.displayOrder - b.displayOrder),
     }
-  }, [entries])
+  }, [entries, activityGrades.entries])
+
+  const totalOf = (row: StudentRow) =>
+    computeTotal([...row.entries.values(), ...row.activities.values()])
 
   const dossier = useDossierParam(students, (row) => row.studentId, loading)
 
@@ -126,9 +178,32 @@ export function GradeCenterPage() {
         return entry ? (
           <GradeCell
             entry={entry}
+            label={`Semana ${entry.weekNumber}`}
             tone={deliveryTone(entry, today)}
             canEdit={canEdit}
             onSave={(score) => save(entry, score, entry.comment)}
+            onError={setSaveError}
+          />
+        ) : (
+          <Dash />
+        )
+      },
+    })),
+    ...activities.map<Column<StudentRow>>((activity) => ({
+      key: `activity-${activity.formCode}`,
+      header:
+        activity.pointsPossible === null
+          ? activity.title
+          : `${activity.title} · ${formatPoints(activity.pointsPossible)} pts`,
+      render: (row) => {
+        const entry = row.activities.get(activity.formCode)
+        return entry ? (
+          <GradeCell
+            entry={entry}
+            label={activity.title}
+            tone={activityTone(entry, now)}
+            canEdit={canEdit}
+            onSave={(score) => activityGrades.save(entry, score, entry.comment)}
             onError={setSaveError}
           />
         ) : (
@@ -141,7 +216,7 @@ export function GradeCenterPage() {
       header: 'Total',
       width: 'min-w-28',
       render: (row) => {
-        const total = computeTotal([...row.entries.values()])
+        const total = totalOf(row)
         return total ? (
           <span className="tnum whitespace-nowrap text-ink-900">
             {formatPoints(total.earned)} <span className="text-ink-400">/ {formatPoints(total.possible)}</span>
@@ -155,7 +230,7 @@ export function GradeCenterPage() {
       key: 'percentage',
       header: '%',
       render: (row) => {
-        const total = computeTotal([...row.entries.values()])
+        const total = totalOf(row)
         return total ? (
           <span className="tnum font-semibold text-ink-900">{formatPoints(Math.round(total.percentage * 100) / 100)} %</span>
         ) : (
@@ -211,9 +286,9 @@ export function GradeCenterPage() {
         columns={visibleColumns}
         rows={students}
         rowKey={(row) => row.studentId}
-        loading={loading}
+        loading={loading || activityGrades.loading}
         isConnected={isConnected}
-        error={error}
+        error={error ?? activityGrades.error}
         pageSize={0}
       />
 
@@ -222,15 +297,18 @@ export function GradeCenterPage() {
   )
 }
 
-/** Una celda del centro: edita la calificación de un alumno en una semana. */
+/** Una celda del centro: edita la calificación de un alumno en una semana o una actividad. */
 function GradeCell({
   entry,
+  label,
   tone,
   canEdit,
   onSave,
   onError,
 }: {
-  entry: GradeEntry
+  entry: CellEntry
+  /** «Semana 3», «1.0 Datos Demográficos»: para el lector de pantalla. */
+  label: string
   tone: DeliveryTone
   canEdit: boolean
   onSave: (score: number | null) => Promise<void>
@@ -284,7 +362,7 @@ function GradeCell({
         if (event.key === 'Enter') event.currentTarget.blur()
         if (event.key === 'Escape') setText(formatPoints(entry.score))
       }}
-      aria-label={`Semana ${entry.weekNumber} de ${studentLabel(entry)}`}
+      aria-label={`${label} de ${studentLabel(entry)}`}
       title={title}
       className={`tnum w-16 rounded-md border px-2 py-1 text-right text-sm text-ink-900 placeholder:text-ink-300 hover:border-ink-300 focus:border-ink-400 focus:ring-2 focus:ring-ink-900/5 focus:outline-none ${TONE_CLASSES[tone]}`}
     />

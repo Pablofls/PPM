@@ -5,6 +5,7 @@ import { useAuth } from '../../auth/AuthProvider'
 import { usePermissions } from '../../auth/PermissionsProvider'
 import { Field, INPUT } from '../../components/ActivityField'
 import { Badge } from '../../components/Badge'
+import { DownloadPdfButton } from '../../components/DownloadPdfButton'
 import { SubmissionCelebration } from '../../components/SubmissionCelebration'
 import { useStudentDossier } from '../../components/StudentDossier'
 import { Toast } from '../../components/Toast'
@@ -13,6 +14,7 @@ import { repository } from '../../data/repository'
 import type { DemographicsEntry, DemographicsInput, Gender } from '../../data/types'
 import { activityState, isLateSubmission } from '../../lib/activities'
 import { celebrationKind, type CelebrationKind } from '../../lib/celebration'
+import { downloadDemographicsPdf } from '../../lib/demographicsPdf'
 import { DEGREE_OPTIONS, DEMOGRAPHICS_FORM, type DemographicsField } from '../../lib/catalog'
 import {
   formatDate,
@@ -226,6 +228,24 @@ export function DemographicsActivityPage() {
           onError={(message) => setToast(translateServerText(message, lang))}
         />
       )}
+
+      {/* Su entrega más reciente, con nombre, matrícula y la hora de descarga. */}
+      <div className="mt-8 flex justify-end">
+        <DownloadPdfButton
+          onDownload={() =>
+            downloadDemographicsPdf({
+              entry: entries[0],
+              student: {
+                fullName: dossier?.fullName ?? null,
+                studentNumber: dossier?.studentNumber ?? null,
+              },
+              lang,
+            })
+          }
+          disabled={loading || entries.length === 0}
+          onError={setToast}
+        />
+      </div>
 
       <PreviousEntries
         entries={entries}
