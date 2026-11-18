@@ -16,8 +16,7 @@
   `0052_demographics_in_panel.sql` (2026-11-11).
   `0053_activity_points_and_grades.sql` (2026-11-17).
   `0054_module1_in_panel.sql` (2026-11-17).
-  `0055_module2_in_panel.sql` está escrita y documentada aquí pero
-  **todavía no se pega en Supabase**.
+  `0055_module2_in_panel.sql` (2026-11-17).
   `0019_student_dossier_read.sql` está escrita y documentada aquí pero
   **todavía no se pega en Supabase**.
 - **Datos del Sheets:** importados (46 alumnos, 580 entregas), incluidas las dos
@@ -1007,7 +1006,7 @@ y `position_urls`/`company_urls text[]` por lugar (`indeed_position_urls()`,
 
 ## El Módulo 2 se contesta en el portal
 
-> Migración `0055_module2_in_panel.sql` — ⏳ **todavía no se ejecuta en Supabase**.
+> Migración `0055_module2_in_panel.sql` — ✅ ejecutada en Supabase (2026-11-17).
 
 Igual que el Módulo 1 (`0054`), pensando en los grupos siguientes: 2.1, 2.2, 2.4,
 2.5 y 2.7 se contestan en el portal, en el idioma del grupo, sin pregunta de
@@ -2556,7 +2555,7 @@ Las migraciones se ejecutaron en un PostgreSQL local con un *shim* del esquema
 | `0049_student_grades.sql` | pantalla `alumno_calificaciones`; el alumno lee sus `grades` y los `grade_activities` de su grupo (políticas «lo mío» y restrictivas ampliadas) | ✅ 2026-11-04 |
 | `0050_notices.sql` | `notices`, `notice_recipients`, `notice_groups`, `grade_reads`; `send_notice()`, `mark_*_read()`, `notification_sender_name()`; vistas `v_my_notifications`, `v_sent_notices`; `v_grade_center.seen_at`; pantalla `avisos` | ✅ 2026-11-04 |
 | `0052_demographics_in_panel.sql` | el alumno entrega el 1.0 en su portal: `submit_demographics()`, `submissions_insert_own` con `form1_0`, `demographics_insert_own`, permiso `form1_0` = `edicion`/`ambos` con el alumno en «Puede editar»; `v_panel_demographics` toma periodo, frecuencia, idioma y matrícula del grupo y del registro | ✅ 2026-11-11 |
-| `0055_module2_in_panel.sql` | 2.1–2.7 en el portal: `answered_in_panel`, actividades en borrador, permisos; `indeed_positions`, `indeed_companies` (salen `indeed_research.*_url_n`), funciones `indeed_*_text/urls()`; `v_panel_indeed` (drop + create) y `v_panel_reflections` con idioma del grupo; `import_sheet_rows()` rehecha; políticas del alumno; `submit_reflection()`, `submit_indeed()` | ⏳ pendiente |
+| `0055_module2_in_panel.sql` | 2.1–2.7 en el portal: `answered_in_panel`, actividades en borrador, permisos; `indeed_positions`, `indeed_companies` (salen `indeed_research.*_url_n`), funciones `indeed_*_text/urls()`; `v_panel_indeed` (drop + create) y `v_panel_reflections` con idioma del grupo; `import_sheet_rows()` rehecha; políticas del alumno; `submit_reflection()`, `submit_indeed()` | ✅ 2026-11-17 |
 | `0054_module1_in_panel.sql` | 1.1–1.5 en el portal: `answered_in_panel`, actividades en borrador, `default_activity_published()` lee `forms`; `human_values`, `values_top` (sale `values_results.top_values`), `human_value_code()`, `values_top_names()`; `v_panel_holland/mbti/disc/skills/values` (idioma del grupo), `v_student_dossier` e `import_sheet_rows()` rehechas; políticas de lectura y escritura del alumno; `open_portal_submission()` y `submit_holland/mbti/disc/skills/values()` | ✅ 2026-11-17 |
 | `0053_activity_points_and_grades.sql` | `forms.answered_in_panel`; `activities.points_possible` (nulo en bitácoras); `save_activity(…, points)` escribe los puntos (en bitácoras, `grade_activities`); `activity_grades`, `activity_grade_reads`, `set_activity_grade()`, `mark_activity_grade_read()`; vista `v_activity_grade_center`; `v_my_notifications.form_code`; se elimina `set_grade_activity_points()` | ✅ 2026-11-17 |
 | `0051_activities.sql` | `activities` (publicar, disponible desde / fecha de entrega / disponible hasta) por grupo × formulario, sembradas con trigger; `save_activity()`, `set_activity_published()`, `activity_is_open()` y restrictivas de entrega del alumno; `group_form_deadline()` y `v_submission_status` (con el 1.0) leen `activities`; pantalla `actividades` en lugar de `fechas_entrega`; se eliminan `group_deadlines` y sus funciones | ✅ 2026-11-11 |
