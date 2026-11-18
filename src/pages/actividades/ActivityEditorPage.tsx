@@ -18,6 +18,7 @@ import {
   PRIMARY_BUTTON,
   SECONDARY_BUTTON,
 } from './shared'
+import { QuestionsPreview } from './QuestionsPreview'
 
 interface Draft {
   instructions: string
@@ -159,156 +160,160 @@ export function ActivityEditorPage() {
       {group && !error && !draft && <p className="text-sm text-ink-500">Cargando…</p>}
 
       {group && draft && (
-        <form
-          onSubmit={(event) => {
-            event.preventDefault()
-            void save()
-          }}
-          className="max-w-3xl space-y-6"
-        >
-          {inPanel ? (
-            <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-sm">
-              <label htmlFor="instrucciones" className="text-sm font-semibold text-ink-900">
-                Instrucciones
-              </label>
-              <p className="mt-1 text-xs text-ink-500">
-                Lo que el alumno lee antes de contestar. Vacío, ve las instrucciones de siempre.
-              </p>
-              <textarea
-                id="instrucciones"
-                rows={6}
-                maxLength={5000}
-                value={draft.instructions}
-                disabled={!canEdit}
-                placeholder={meta.defaultInstructions.join('\n')}
-                onChange={(event) => update({ instructions: event.target.value })}
-                className={`${FIELD_INPUT} mt-3 block w-full`}
-              />
-
-              <label className="mt-5 flex items-center gap-3 text-sm text-ink-800">
-                <input
-                  type="checkbox"
-                  checked={draft.isPublished}
-                  disabled={!canEdit}
-                  onChange={(event) => update({ isPublished: event.target.checked })}
-                  className="h-4 w-4 rounded border-ink-300"
-                />
-                <span>
-                  <span className="font-medium">Publicada</span>
-                  <span className="ml-2 text-ink-500">
-                    Sin publicar, el alumno no la ve aunque estén las fechas.
-                  </span>
-                </span>
-              </label>
-
-              <div className="mt-5">
-                <label htmlFor="puntos" className="text-sm font-semibold text-ink-900">
-                  Puntos posibles
+        // En pantallas anchas, las preguntas de la actividad a la derecha.
+        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,48rem)_minmax(0,1fr)]">
+          <form
+            onSubmit={(event) => {
+              event.preventDefault()
+              void save()
+            }}
+            className="min-w-0 space-y-6"
+          >
+            {inPanel ? (
+              <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-sm">
+                <label htmlFor="instrucciones" className="text-sm font-semibold text-ink-900">
+                  Instrucciones
                 </label>
-                <div className="mt-2 flex items-center gap-2">
-                  <input
-                    id="puntos"
-                    type="text"
-                    inputMode="decimal"
-                    value={draft.points}
-                    disabled={!canEdit}
-                    onChange={(event) => update({ points: event.target.value })}
-                    className={`${FIELD_INPUT} tnum w-28 text-right`}
-                  />
-                  <span className="text-sm text-ink-500">puntos</span>
-                </div>
                 <p className="mt-1 text-xs text-ink-500">
-                  {weekly
-                    ? 'El Reporte de Búsqueda y el de Prácticas valen lo mismo: este valor es el de los dos y se repite cada semana.'
-                    : 'Lo que vale esta actividad en Calificaciones.'}
+                  Lo que el alumno lee antes de contestar. Vacío, ve las instrucciones de siempre.
                 </p>
-              </div>
-            </section>
-          ) : (
-            <section className="rounded-xl border border-ink-200 bg-ink-50 p-5 text-sm text-ink-600">
-              Esta actividad se contesta en Google Forms. Aquí solo se fija su fecha de entrega, que
-              usa Estado de Entregas; el alumno no la ve en su portal.
-            </section>
-          )}
-
-          <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-ink-900">Asignar</h2>
-
-            <div className="mt-4 grid gap-5 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <p className="mb-1 text-xs font-medium text-ink-500">Para</p>
-                <p className="text-sm font-medium text-ink-900">{formatGroupLabel(group)}</p>
-              </div>
-
-              {/* Izquierda: Disponible desde. Derecha: Fecha de entrega y,
-                  debajo, Disponible hasta. */}
-              {weekly ? (
-                <div className="self-start rounded-lg border border-ink-200 bg-ink-50 px-3 py-2.5 text-xs text-ink-600 sm:col-start-2 sm:row-start-2">
-                  Cada semana vence el domingo a las 23:59; lo que llegue después es entrega tardía.
-                  Las semanas se configuran en{' '}
-                  <Link
-                    to="/actividades/semanas"
-                    className="font-medium text-accent-700 hover:underline"
-                  >
-                    Semanas del semestre
-                  </Link>
-                  .
-                </div>
-              ) : (
-                <DateTimeField
-                  id="fecha-entrega"
-                  className="sm:col-start-2 sm:row-start-2"
-                  label="Fecha de entrega"
-                  hint="Lo que llegue después es entrega tardía."
-                  value={draft.dueAt}
-                  defaultTime="23:59"
+                <textarea
+                  id="instrucciones"
+                  rows={6}
+                  maxLength={5000}
+                  value={draft.instructions}
                   disabled={!canEdit}
-                  onChange={(dueAt) => update({ dueAt })}
+                  placeholder={meta.defaultInstructions.join('\n')}
+                  onChange={(event) => update({ instructions: event.target.value })}
+                  className={`${FIELD_INPUT} mt-3 block w-full`}
                 />
-              )}
 
-              {inPanel && (
-                <>
-                  <DateTimeField
-                    id="disponible-desde"
-                    className="sm:col-start-1 sm:row-start-2"
-                    label="Disponible desde"
-                    hint="Antes de esta hora el alumno no la ve. Vacío: desde que se publica."
-                    value={draft.availableFrom}
-                    defaultTime="00:00"
+                <label className="mt-5 flex items-center gap-3 text-sm text-ink-800">
+                  <input
+                    type="checkbox"
+                    checked={draft.isPublished}
                     disabled={!canEdit}
-                    onChange={(availableFrom) => update({ availableFrom })}
+                    onChange={(event) => update({ isPublished: event.target.checked })}
+                    className="h-4 w-4 rounded border-ink-300"
                   />
+                  <span>
+                    <span className="font-medium">Publicada</span>
+                    <span className="ml-2 text-ink-500">
+                      Sin publicar, el alumno no la ve aunque estén las fechas.
+                    </span>
+                  </span>
+                </label>
+
+                <div className="mt-5">
+                  <label htmlFor="puntos" className="text-sm font-semibold text-ink-900">
+                    Puntos posibles
+                  </label>
+                  <div className="mt-2 flex items-center gap-2">
+                    <input
+                      id="puntos"
+                      type="text"
+                      inputMode="decimal"
+                      value={draft.points}
+                      disabled={!canEdit}
+                      onChange={(event) => update({ points: event.target.value })}
+                      className={`${FIELD_INPUT} tnum w-28 text-right`}
+                    />
+                    <span className="text-sm text-ink-500">puntos</span>
+                  </div>
+                  <p className="mt-1 text-xs text-ink-500">
+                    {weekly
+                      ? 'El Reporte de Búsqueda y el de Prácticas valen lo mismo: este valor es el de los dos y se repite cada semana.'
+                      : 'Lo que vale esta actividad en Calificaciones.'}
+                  </p>
+                </div>
+              </section>
+            ) : (
+              <section className="rounded-xl border border-ink-200 bg-ink-50 p-5 text-sm text-ink-600">
+                Esta actividad se contesta en Google Forms. Aquí solo se fija su fecha de entrega, que
+                usa Estado de Entregas; el alumno no la ve en su portal.
+              </section>
+            )}
+
+            <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-sm">
+              <h2 className="text-sm font-semibold text-ink-900">Asignar</h2>
+
+              <div className="mt-4 grid gap-5 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <p className="mb-1 text-xs font-medium text-ink-500">Para</p>
+                  <p className="text-sm font-medium text-ink-900">{formatGroupLabel(group)}</p>
+                </div>
+
+                {/* Izquierda: Disponible desde. Derecha: Fecha de entrega y,
+                    debajo, Disponible hasta. */}
+                {weekly ? (
+                  <div className="self-start rounded-lg border border-ink-200 bg-ink-50 px-3 py-2.5 text-xs text-ink-600 sm:col-start-2 sm:row-start-2">
+                    Cada semana vence el domingo a las 23:59; lo que llegue después es entrega tardía.
+                    Las semanas se configuran en{' '}
+                    <Link
+                      to="/actividades/semanas"
+                      className="font-medium text-accent-700 hover:underline"
+                    >
+                      Semanas del semestre
+                    </Link>
+                    .
+                  </div>
+                ) : (
                   <DateTimeField
-                    id="disponible-hasta"
-                    className="sm:col-start-2 sm:row-start-3"
-                    label="Disponible hasta"
-                    hint="Después ya no puede entregar; la ve cerrada. Vacío: nunca cierra."
-                    value={draft.availableUntil}
+                    id="fecha-entrega"
+                    className="sm:col-start-2 sm:row-start-2"
+                    label="Fecha de entrega"
+                    hint="Lo que llegue después es entrega tardía."
+                    value={draft.dueAt}
                     defaultTime="23:59"
                     disabled={!canEdit}
-                    onChange={(availableUntil) => update({ availableUntil })}
+                    onChange={(dueAt) => update({ dueAt })}
                   />
-                </>
-              )}
-            </div>
-          </section>
+                )}
 
-          {message && <p className="text-sm text-red-700">{message}</p>}
+                {inPanel && (
+                  <>
+                    <DateTimeField
+                      id="disponible-desde"
+                      className="sm:col-start-1 sm:row-start-2"
+                      label="Disponible desde"
+                      hint="Antes de esta hora el alumno no la ve. Vacío: desde que se publica."
+                      value={draft.availableFrom}
+                      defaultTime="00:00"
+                      disabled={!canEdit}
+                      onChange={(availableFrom) => update({ availableFrom })}
+                    />
+                    <DateTimeField
+                      id="disponible-hasta"
+                      className="sm:col-start-2 sm:row-start-3"
+                      label="Disponible hasta"
+                      hint="Después ya no puede entregar; la ve cerrada. Vacío: nunca cierra."
+                      value={draft.availableUntil}
+                      defaultTime="23:59"
+                      disabled={!canEdit}
+                      onChange={(availableUntil) => update({ availableUntil })}
+                    />
+                  </>
+                )}
+              </div>
+            </section>
 
-          {canEdit ? (
-            <div className="flex gap-3">
-              <button type="submit" disabled={saving} className={PRIMARY_BUTTON}>
-                {saving ? 'Guardando…' : 'Guardar'}
-              </button>
-              <Link to="/actividades" className={SECONDARY_BUTTON}>
-                Cancelar
-              </Link>
-            </div>
-          ) : (
-            <p className="text-sm text-ink-500">Solo lectura.</p>
-          )}
-        </form>
+            {message && <p className="text-sm text-red-700">{message}</p>}
+
+            {canEdit ? (
+              <div className="flex gap-3">
+                <button type="submit" disabled={saving} className={PRIMARY_BUTTON}>
+                  {saving ? 'Guardando…' : 'Guardar'}
+                </button>
+                <Link to="/actividades" className={SECONDARY_BUTTON}>
+                  Cancelar
+                </Link>
+              </div>
+            ) : (
+              <p className="text-sm text-ink-500">Solo lectura.</p>
+            )}
+          </form>
+          <QuestionsPreview formCode={meta.code} lang={group.language === 'en' ? 'en' : 'es'} />
+        </div>
       )}
     </>
   )

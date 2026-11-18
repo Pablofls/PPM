@@ -761,6 +761,12 @@ Módulo 2, Apéndice A, Apéndice B y Bitácoras semanales); cada fila lleva:
     cada semana vence el domingo y lleva a *Semanas del semestre*.
   - Google Forms: solo *Fecha de entrega* (para Estado de Entregas); el alumno
     no las ve en su portal.
+- **Preguntas** (a la derecha en pantallas anchas, debajo en las angostas;
+  `QuestionsPreview.tsx`): todas las preguntas de la actividad como las ve el
+  alumno, en el idioma del grupo, por bloques, con su tipo (Texto, Una opción,
+  Sí / No…), las opciones, cuáles son opcionales y las condicionales (p. ej.
+  «Solo si Tengo perfil de LinkedIn es Sí»). Sale de los mismos catálogos que el
+  portal (`portalForms.ts`, `DEMOGRAPHICS_FORM`, `WEEKLY_FORMS`). Sin cambios de BD.
 - Con «Solo lectura», todo deshabilitado.
 
 ### Semanas del semestre · `/actividades/semanas`
